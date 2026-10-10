@@ -144,7 +144,8 @@ function Card({
 
   const checkNumber = () => {
     if (q.kind !== 'numeric') return;
-    const x = parseNumeric(typed);
+    // When the answer is already expressed in percent, "27%" means 27, not 0.27.
+    const x = parseNumeric(q.unit === '%' ? typed.replace(/%\s*$/, '') : typed);
     if (x === null) {
       setBadInput(true);
       return;

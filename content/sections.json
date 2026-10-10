@@ -221,7 +221,8 @@
     "title": "Inference",
     "level": 1,
     "order": 27,
-    "hash": "7094867f50b1fd2a528f8f7bd5edfaeb5a25d0cb87f12d63900e193e2c365560"
+    "hash": "7094867f50b1fd2a528f8f7bd5edfaeb5a25d0cb87f12d63900e193e2c365560",
+    "coveredHash": "7094867f50b1fd2a528f8f7bd5edfaeb5a25d0cb87f12d63900e193e2c365560"
   },
   {
     "id": "31f7eb87-3605-80ed-9ab6-d1362937edab",
@@ -229,7 +230,8 @@
     "title": "Batching & packing",
     "level": 2,
     "order": 28,
-    "hash": "33ddb08d82752f5f93412fb20b6cc9027b59cde89cc986f5abcd52c7451de60a"
+    "hash": "33ddb08d82752f5f93412fb20b6cc9027b59cde89cc986f5abcd52c7451de60a",
+    "coveredHash": "33ddb08d82752f5f93412fb20b6cc9027b59cde89cc986f5abcd52c7451de60a"
   },
   {
     "id": "3057eb87-3605-80f5-9033-ef9b30a9f4de",
@@ -237,7 +239,8 @@
     "title": "Speculative decoding",
     "level": 2,
     "order": 29,
-    "hash": "da7aff0f2cee0931ad30537ae0f8dedbc7c41cb9832a401632219e5ae194f822"
+    "hash": "da7aff0f2cee0931ad30537ae0f8dedbc7c41cb9832a401632219e5ae194f822",
+    "coveredHash": "da7aff0f2cee0931ad30537ae0f8dedbc7c41cb9832a401632219e5ae194f822"
   },
   {
     "id": "2f47eb87-3605-80c1-a4a4-d8dc201f202c",
@@ -245,7 +248,8 @@
     "title": "KV cache",
     "level": 2,
     "order": 30,
-    "hash": "b65d3481b3a66384320f46a301a9aceba0e6b83cd2742151edce815978eede3f"
+    "hash": "b65d3481b3a66384320f46a301a9aceba0e6b83cd2742151edce815978eede3f",
+    "coveredHash": "b65d3481b3a66384320f46a301a9aceba0e6b83cd2742151edce815978eede3f"
   },
   {
     "id": "2ed7eb87-3605-809d-b091-c7cde03bd832",
@@ -253,7 +257,8 @@
     "title": "Reducing KV cache size",
     "level": 3,
     "order": 31,
-    "hash": "0749d1b4a71f124cca2d9f0ac0a11d44ded27432e73c6ba30f1402fd0e25a672"
+    "hash": "0749d1b4a71f124cca2d9f0ac0a11d44ded27432e73c6ba30f1402fd0e25a672",
+    "coveredHash": "0749d1b4a71f124cca2d9f0ac0a11d44ded27432e73c6ba30f1402fd0e25a672"
   },
   {
     "id": "2f47eb87-3605-80d3-b655-fe168af1f680",
@@ -261,7 +266,8 @@
     "title": "Sampling strategies",
     "level": 2,
     "order": 32,
-    "hash": "863d5270d42fc8daa16618b1dff793ba0688518cc6fdbedee97e2928a4c4fc2d"
+    "hash": "863d5270d42fc8daa16618b1dff793ba0688518cc6fdbedee97e2928a4c4fc2d",
+    "coveredHash": "863d5270d42fc8daa16618b1dff793ba0688518cc6fdbedee97e2928a4c4fc2d"
   },
   {
     "id": "2ed7eb87-3605-8050-81b5-fb3febc78021",
@@ -269,7 +275,8 @@
     "title": "Flash Attention",
     "level": 2,
     "order": 33,
-    "hash": "3293113055764c28e822acce5f7f5c2eed7a8ccfac53a46a7d80e7056e599fb4"
+    "hash": "3293113055764c28e822acce5f7f5c2eed7a8ccfac53a46a7d80e7056e599fb4",
+    "coveredHash": "3293113055764c28e822acce5f7f5c2eed7a8ccfac53a46a7d80e7056e599fb4"
   },
   {
     "id": "2f67eb87-3605-80f2-90ed-fea352bbe7f4",

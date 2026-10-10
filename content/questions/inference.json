@@ -1,0 +1,590 @@
+{
+  "chapter": "Inference",
+  "concepts": [
+    {
+      "id": "inference.inference.latency-throughput",
+      "section": "2ed7eb87-3605-8082-9d65-f39c901c2ef2",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "A serving stack decodes 4 requests at once, each streaming at 40 tokens/s. After the batch grows to 8 requests, each stream slows to 25 tokens/s. What is the aggregate throughput now?",
+          "answer": 200,
+          "tolerance": 0,
+          "unit": "tokens/s",
+          "explanation": "Throughput adds up over all concurrent requests: $8\\times 25=200$ tokens/s, up from $4\\times 40=160$. Yet a 100-token reply now takes 4 s instead of 2.5 s (ignoring prefill), so latency got worse while throughput improved."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A change to a serving system can increase the total tokens per second it produces across all users while making each individual request take longer to complete.",
+          "answer": true,
+          "explanation": "Throughput is measured over all requests together and latency over a single request, so they can move in opposite directions, for instance when a bigger batch yields more total tokens/s but slower individual streams."
+        }
+      ]
+    },
+    {
+      "id": "inference.batching-packing.idle-slots",
+      "section": "31f7eb87-3605-80ed-9ab6-d1362937edab",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Four requests share a batch that is released only when its slowest member is done. They generate 10, 10, 20 and 460 tokens. A sequence's slot is busy while it generates and idle afterwards, until the whole batch ends. What percentage of slot-time does useful work?",
+          "answer": 27.2,
+          "tolerance": 0.05,
+          "unit": "%",
+          "explanation": "The batch runs 460 decode steps on 4 slots, i.e. $4\\times 460=1840$ slot-steps, of which only $10+10+20+460=500$ are useful: $500/1840\\approx 27\\%$. Refilling a freed slot immediately removes most of this idle time."
+        },
+        {
+          "kind": "recall",
+          "prompt": "One sequence in a running batch emits its last token while the others are still decoding. What does a continuous-batching scheduler do at that moment, and what would the collect-then-run scheme do instead?",
+          "answer": "Continuous batching puts a waiting request into the freed slot right away, so the next step runs with the slot occupied. The older scheme leaves the slot idle until every sequence in the batch has finished, and only then collects the next batch.",
+          "explanation": "The short sequence's slot is what gets wasted in the older scheme. ⚠️ Note: the notes say the batch is \"always full\", which can only hold while requests are actually waiting in the queue."
+        }
+      ]
+    },
+    {
+      "id": "inference.batching-packing.selective-mixing",
+      "section": "31f7eb87-3605-80ed-9ab6-d1362937edab",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Selective batching puts sequences that are still reading their prompt into the same batch as sequences that are already generating. Which property of the two phases motivates this?",
+          "choices": [
+            "Decode keeps the compute units saturated while prefill mostly waits on memory, so each phase uses what the other leaves idle",
+            "Both phases cost the same per token, so any mix of them is equally efficient on the hardware",
+            "Prefill keeps the compute units saturated while decode mostly waits on memory, so each phase uses what the other leaves idle",
+            "Prefill sequences are always shorter than decode sequences, so mixing them minimizes padding in the batch"
+          ],
+          "correct": 2,
+          "explanation": "The notes characterize prefill as compute-heavy and decode as memory-bound, so co-scheduling them balances the load. The first choice inverts the two phases."
+        },
+        {
+          "kind": "recall",
+          "prompt": "A decode step handles one new token per sequence and is called memory-bound. Which resource sits underused if only such sequences are batched, and how does a sequence that is still being prefilled help?",
+          "answer": "The arithmetic (compute) units are underused, because the time goes to moving data. A prefill sequence brings many tokens of compute-heavy work, which can use that idle arithmetic capacity in the same step.",
+          "explanation": "(General context, not from the notes: in decode the weights and cache are streamed from memory for very little math per byte, so extra tokens riding along are nearly free.)"
+        }
+      ]
+    },
+    {
+      "id": "inference.batching-packing.packing-masks",
+      "section": "31f7eb87-3605-80ed-9ab6-d1362937edab",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "After concatenating several short training examples into one long sequence, the ordinary causal mask by itself is enough to keep each example independent of the others.",
+          "answer": false,
+          "explanation": "A causal mask only hides future tokens. Tokens of a later example can still attend to every earlier example packed before them, so attention masks that cut across example boundaries are required."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why pack many short examples into one max-length sequence rather than padding each one up to max length, and what must be added to keep the training signal correct?",
+          "answer": "Packing avoids spending compute and memory on pad tokens. It needs attention masks that stop tokens from attending across example boundaries, so examples do not contaminate each other."
+        }
+      ]
+    },
+    {
+      "id": "inference.batching-packing.token-budget",
+      "section": "31f7eb87-3605-80ed-9ab6-d1362937edab",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "A finetuning loader caps each batch at 32,768 tokens, counting every sequence at the length of the longest one in its batch (padding included). One batch has a longest sequence of 1,024 tokens, but an average of only 200. At most how many sequences does it hold?",
+          "choices": [
+            "163",
+            "128",
+            "16",
+            "32"
+          ],
+          "correct": 3,
+          "explanation": "Padded counting gives $\\text{batch size}\\times 1024\\le 32768$, so at most 32 sequences. Counting real tokens would allow about 163, but memory follows $\\text{batch\\_size}\\times\\text{sequence\\_length}$ of the padded tensor."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With a budget of 8,192 tokens, a batch of four 1,000-token sequences plus one 3,000-token sequence is allowed, because its 7,000 real tokens fit under the budget.",
+          "answer": false,
+          "explanation": "Padded to the longest sequence, five sequences occupy $5\\times 3000=15000$ tokens, over the budget. ⚠️ Note: this technique sits in the Inference chapter, yet the notes describe it as mostly a finetuning practice."
+        }
+      ]
+    },
+    {
+      "id": "inference.speculative-decoding.accept-rule",
+      "section": "3057eb87-3605-80f5-9033-ef9b30a9f4de",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "In speculative decoding the draft model samples token $x$ with $q(x)=0.50$, and the target model gives that token $p(x)=0.20$. With what probability is the drafted token accepted?",
+          "answer": 0.4,
+          "tolerance": 0,
+          "explanation": "The acceptance probability is $\\min\\left(1,\\frac{p(x)}{q(x)}\\right)=\\min(1,0.4)=0.4$: the draft over-proposed $x$, so it is thinned out."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A token $x$ is drawn from the draft distribution $q$. For which pair of probabilities is it accepted with certainty?",
+          "choices": [
+            "$q(x)=0.60$, $p(x)=0.55$",
+            "$q(x)=0.40$, $p(x)=0.40$",
+            "$q(x)=0.05$, $p(x)=0.04$",
+            "$q(x)=0.90$, $p(x)=0.30$"
+          ],
+          "correct": 1,
+          "explanation": "Certainty needs $p(x)/q(x)\\ge 1$. Equality gives ratio 1, while the other pairs give about 0.92, 0.8 and 0.33."
+        }
+      ]
+    },
+    {
+      "id": "inference.speculative-decoding.resample-residual",
+      "section": "3057eb87-3605-80f5-9033-ef9b30a9f4de",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "A 3-token vocabulary has draft $q=(0.2,0.6,0.2)$ and target $p=(0.5,0.3,0.2)$. A token is drafted from $q$ and verified with the accept rule. What is the probability that the drafted token is rejected?",
+          "answer": 0.3,
+          "tolerance": 0,
+          "explanation": "Only the second token can be rejected: $q\\cdot(1-p/q)=0.6\\cdot(1-0.5)=0.3$. This equals $\\sum_{x'}\\max(0,p(x')-q(x'))=0.3$, the mass by which the target exceeds the draft."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Draft $q=(0.2,0.2,0.6)$, target $p=(0.5,0.3,0.2)$. A drafted token has just been rejected. Which tokens can the replacement be, and with what probabilities?",
+          "answer": "It is sampled from the renormalized $\\max(0,p-q)=(0.3,0.1,0)$, i.e. $(0.75,0.25,0)$: token 1 with 0.75, token 2 with 0.25, and token 3 never.",
+          "explanation": "Token 3 is over-proposed by the draft ($q>p$), so it already gets all it should from accepted drafts. The residual only carries mass where the target exceeds the draft."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "After a drafted token is rejected, the replacement token is drawn from the target distribution $p$ itself.",
+          "answer": false,
+          "explanation": "Drawing from $p$ would count high-probability tokens twice, since they already come through accepted drafts. The replacement comes from the renormalized $\\max(0,p-q)$, so that both routes together add up to exactly $p$."
+        }
+      ]
+    },
+    {
+      "id": "inference.speculative-decoding.exactness",
+      "section": "3057eb87-3605-80f5-9033-ef9b30a9f4de",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "A draft model that matches the target poorly makes speculative decoding slower, but it does not change the distribution of the tokens that end up being emitted.",
+          "answer": true,
+          "explanation": "For any token, emission probability is $\\min(q(x),p(x))+\\max(0,p(x)-q(x))=p(x)$, whatever $q$ is. A worse draft only raises the rejection probability $\\sum_{x'}\\max(0,p(x')-q(x'))$, so fewer drafts survive per round."
+        },
+        {
+          "kind": "recall",
+          "prompt": "A token $x$ has $q(x)<p(x)$, so the accepted-draft route delivers only $q(x)$ of its target probability. Where does the remaining mass come from?",
+          "answer": "From the rejection route: after a rejection the replacement is sampled from the renormalized $\\max(0,p-q)$, which contributes exactly $p(x)-q(x)$ for this token. Then $q(x)+p(x)-q(x)=p(x)$.",
+          "explanation": "Such a token is always accepted when drafted ($p>q$), so the accepted route gives $q(x)\\cdot 1$; the residual resample supplies the rest."
+        }
+      ]
+    },
+    {
+      "id": "inference.speculative-decoding.round-yield",
+      "section": "3057eb87-3605-80f5-9033-ef9b30a9f4de",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "The draft model proposes $K=5$ tokens and the target model scores them in a single pass. Drafts 1 and 2 are accepted and draft 3 is rejected. How many tokens does this round add to the output?",
+          "answer": 3,
+          "tolerance": 0,
+          "unit": "tokens",
+          "explanation": "Two accepted drafts plus one replacement sampled at the rejected position make 3. Drafts 4 and 5 are dropped."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "With $K=4$ draft tokens, what is the largest number of tokens that one verification pass of the target can add to the output?",
+          "choices": [
+            "5: all four drafts accepted, plus one from the target's last logits",
+            "4: one per draft token, since the target adds nothing beyond checking",
+            "8: each draft token plus a matching token sampled from the target",
+            "1: the pass can only ever yield a single trusted token"
+          ],
+          "correct": 0,
+          "explanation": "Scoring the drafts also produces next-token logits after the last one, so full acceptance still yields an extra target-sampled token. The minimum is 1, when the first draft is rejected and replaced."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Draft token 3 of 5 is rejected. Why are drafts 4 and 5 discarded even if the target would accept each of them when considered on its own?",
+          "answer": "They were generated as continuations of token 3. Once token 3 is replaced by a different token, they follow a prefix that was never emitted, so everything after the first rejection is thrown away and drafting restarts from the replacement.",
+          "explanation": "The notes say the resampling starts at the first rejected token. (General context, not from the notes: the target's scores for later positions were also computed assuming the rejected token.)"
+        }
+      ]
+    },
+    {
+      "id": "inference.speculative-decoding.why-faster",
+      "section": "3057eb87-3605-80f5-9033-ef9b30a9f4de",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Speculative decoding has the large model check $K$ drafted tokens in one pass. Why is checking them far cheaper than letting the large model generate those $K$ tokens itself?",
+          "answer": "Checking looks like prefill: all $K$ positions are already known, so their next-token distributions come out of one parallel forward pass. Generating them takes $K$ sequential passes, each needing the token produced by the previous one.",
+          "explanation": "This relies on prefill processing tokens faster than generation does."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "Plain decoding takes 100 ms per token. In speculative decoding, the draft model needs 10 ms per drafted token ($K=4$), then one 100 ms target pass scores all drafts (assume parallel scoring costs the same as one decode step). A round emits 3 tokens on average. Average ms per emitted token?",
+          "answer": 46.7,
+          "tolerance": 0.05,
+          "unit": "ms",
+          "explanation": "A round costs $4\\times 10+100=140$ ms and yields 3 tokens, so $140/3\\approx 46.7$ ms per token, about 2.1 times faster than plain decoding. The gain shrinks if the draft is slow or its tokens are often rejected."
+        }
+      ]
+    },
+    {
+      "id": "inference.kv-cache.size-accounting",
+      "section": "2f47eb87-3605-80c1-a4a4-d8dc201f202c",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "A model has $L=24$ layers, $K=16$ KV heads and head dimension $H=64$, with keys and values stored at 2 bytes per value. How much KV cache does a batch of $B=32$ sequences of $S=2048$ tokens need?",
+          "answer": 6.44,
+          "tolerance": 0.05,
+          "unit": "GB",
+          "explanation": "Per token: $2\\cdot L\\cdot K\\cdot H=2\\cdot 24\\cdot 16\\cdot 64=49152$ values, i.e. 98304 bytes. Times $B\\cdot S=65536$ tokens gives about $6.44\\times 10^{9}$ bytes. ⚠️ Note: the cache formula in the notes counts values, not bytes, so multiply by the dtype size; and the cache code there allocates num_heads heads (plain MHA), where GQA would use $K$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "At fixed batch size and sequence length, which single change doubles the KV cache?",
+          "choices": [
+            "Doubling the number of KV heads $K$ while $H$ stays fixed",
+            "Doubling the number of query heads $N$ while $K$ and $H$ stay fixed",
+            "Doubling the MLP hidden dimension $F$",
+            "Doubling the vocabulary size $V$"
+          ],
+          "correct": 0,
+          "explanation": "The cache is proportional to $B\\cdot S\\cdot (KH)\\cdot L\\cdot 2$. $N$, $F$ and $V$ do not appear in it; they affect parameters or activations, not what is cached."
+        }
+      ]
+    },
+    {
+      "id": "inference.kv-cache.preallocated-buffer",
+      "section": "2f47eb87-3605-80c1-a4a4-d8dc201f202c",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "In a cache pre-allocated up to max_seq_len, the memory for positions that a short sequence has not reached yet is available to other sequences.",
+          "answer": false,
+          "explanation": "The buffer is created at its full shape up front. Attention only reads the slice up to the current position, but the whole buffer stays reserved. (General context, not from the notes: paged cache allocators exist to avoid this waste.)"
+        },
+        {
+          "kind": "numeric",
+          "prompt": "One layer's cache is pre-allocated as $(\\text{batch},\\text{num\\_heads},\\text{max\\_seq\\_len},\\text{head\\_dim})$ for both K and V in FP16, with batch 8, 32 heads, max_seq_len 4096 and head_dim 128. How many MiB does it reserve, regardless of the current position?",
+          "answer": 512,
+          "tolerance": 0,
+          "unit": "MiB",
+          "explanation": "One tensor has $8\\cdot 32\\cdot 4096\\cdot 128=2^{27}$ elements. Two tensors (K and V) at 2 bytes each give $2^{29}$ bytes $=512$ MiB."
+        }
+      ]
+    },
+    {
+      "id": "inference.kv-cache.what-is-cached",
+      "section": "2f47eb87-3605-80c1-a4a4-d8dc201f202c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In cached decoding each layer computes Q, K and V for the new token only, yet the cache holds K and V but no Q. Why would storing past queries be pointless?",
+          "answer": "The new token's attention needs its own query against all earlier keys and values. Earlier queries would only serve to recompute the outputs of earlier positions, which were already produced, so only past K and V are ever re-read."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Generating the token at position 800 with a KV cache, in a single layer, which description of the work and memory access is correct?",
+          "choices": [
+            "Q, K, V are computed for the new token; the 800 earlier K, V are read and the new K, V stored",
+            "Only Q is computed for the new token; K and V of all 801 positions are read from the cache",
+            "Q, K and V are recomputed for all 801 positions, and the cache only stores the final logits",
+            "K and V are computed for the new token, and the queries of positions 0 to 799 are read from the cache"
+          ],
+          "correct": 0,
+          "explanation": "The new token needs fresh K and V to store at its own slot, plus its fresh Q. The earlier positions contribute only their stored K and V."
+        }
+      ]
+    },
+    {
+      "id": "inference.reducing-kv-cache.gqa-factor",
+      "section": "2ed7eb87-3605-809d-b091-c7cde03bd832",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "A model has $N=48$ query heads. With grouped-query attention the group size is $G=6$ query heads per K/V pair. By what factor is its KV cache smaller than standard multi-head attention with the same $H$ and $L$?",
+          "answer": 6,
+          "tolerance": 0,
+          "unit": "x",
+          "explanation": "$K=N/G=8$ KV heads instead of 48, and the cache is proportional to $K$, so it shrinks by $N/K=G=6$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A model has $N=32$ query heads. Which GQA setting makes it behave exactly like multi-query attention?",
+          "choices": [
+            "$K=32$, $G=1$",
+            "$K=16$, $G=2$",
+            "$K=1$, $G=32$",
+            "$K=1$, $G=1$"
+          ],
+          "correct": 2,
+          "explanation": "MQA means one shared K/V for all heads: $K=1$ and $G=N/K=32$. The first choice is standard multi-head attention, and the last is inconsistent with $G=N/K$."
+        }
+      ]
+    },
+    {
+      "id": "inference.reducing-kv-cache.mla",
+      "section": "2ed7eb87-3605-809d-b091-c7cde03bd832",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Standard attention caches, per token and per layer, a key and a value of size $N\\cdot H$ each, with $N=32$ and $H=128$. Multi-head latent attention instead caches one latent vector of size 512 per token per layer, replacing both. By what factor does the per-token cache shrink?",
+          "answer": 16,
+          "tolerance": 0,
+          "unit": "x",
+          "explanation": "Standard: $2\\cdot 32\\cdot 128=8192$ values; latent: 512 values; the ratio is $8192/512=16$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which technique shrinks the KV cache at the price of extra computation at every decoding step?",
+          "choices": [
+            "Multi-query attention",
+            "Group-query attention",
+            "Multi-head latent attention",
+            "Local attention with a window"
+          ],
+          "correct": 2,
+          "explanation": "Latent attention has to project the cached latent back up to full-size keys and values at each step. Sharing K/V across heads and dropping old tokens add no such step."
+        },
+        {
+          "kind": "recall",
+          "prompt": "MQA and GQA shrink the cache by sharing K and V across query heads, whereas MLA compresses what is cached. What does each of the two approaches give up?",
+          "answer": "Sharing K/V across heads (MQA/GQA) costs some per-head representational capacity, since heads reuse the same keys and values. MLA keeps a separate K/V per head but pays extra compute each step to expand the latent back up.",
+          "explanation": "⚠️ Note: the notes also say MLA is not compatible with RoPE, with no reason or workaround given. (General context, not from the notes: DeepSeek-V2 handles this with a separate, decoupled RoPE component.)"
+        }
+      ]
+    },
+    {
+      "id": "inference.reducing-kv-cache.shared-axes",
+      "section": "2ed7eb87-3605-809d-b091-c7cde03bd832",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Every pair of adjacent layers is made to reuse one shared set of K and V. In the cache size $B\\cdot S\\cdot (KH)\\cdot L\\cdot 2$, which factor is effectively halved?",
+          "choices": [
+            "$L$",
+            "$K$",
+            "$S$",
+            "$H$"
+          ],
+          "correct": 0,
+          "explanation": "Cross-layer sharing acts on the layer axis: two layers now need only one cache entry. MQA/GQA act on $K$, and local attention bounds $S$."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "Start from full multi-head attention with $N=32$ heads and a 16,384-token context. A model uses GQA with $K=8$, shares K/V between pairs of adjacent layers, and uses local attention with a 2,048-token window in every layer. By what overall factor is its cache smaller?",
+          "answer": 64,
+          "tolerance": 0,
+          "unit": "x",
+          "explanation": "The three techniques act on different factors of the cache size: heads give $32/8=4$, layer sharing $2$, and the window $16384/2048=8$. Together $4\\cdot 2\\cdot 8=64$."
+        }
+      ]
+    },
+    {
+      "id": "inference.reducing-kv-cache.local-window",
+      "section": "2ed7eb87-3605-809d-b091-c7cde03bd832",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "With a fixed-width sliding window, a sequence's KV cache keeps growing linearly with the number of generated tokens, just with a smaller slope.",
+          "answer": false,
+          "explanation": "Tokens that leave the window can be discarded, so the cache stops growing at the window size and no longer depends on sequence length."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "A model has $L=40$ layers, $K=8$, $H=128$, with K and V stored at 2 bytes per value. Every layer uses local attention with a 4,096-token window. One sequence is 100,000 tokens long. How many MiB of KV cache does it hold?",
+          "answer": 640,
+          "tolerance": 0,
+          "unit": "MiB",
+          "explanation": "Per token: $2\\cdot 40\\cdot 8\\cdot 128\\cdot 2=163840$ bytes (160 KiB). Only 4096 tokens are kept: $4096\\times 160$ KiB $=640$ MiB, versus about 15 GiB if all 100,000 tokens were kept."
+        }
+      ]
+    },
+    {
+      "id": "inference.sampling.temperature-odds",
+      "section": "2f47eb87-3605-80d3-b655-fe168af1f680",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Two tokens have logits that differ by 2, so at temperature $1$ their probability ratio is $e^{2}\\approx 7.4$. The logits are now divided by a temperature of $0.5$ before the softmax. What is their probability ratio?",
+          "answer": 54.6,
+          "tolerance": 0.05,
+          "explanation": "Dividing by $0.5$ doubles the logit gap to 4, so the ratio becomes $e^{4}\\approx 54.6$: a lower temperature sharpens the distribution."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Dividing the logits by a positive temperature can sharpen or flatten the distribution, but it never changes which token is ranked most likely.",
+          "answer": true,
+          "explanation": "Dividing by a positive constant is order-preserving, so the ranking of tokens is unchanged. Only the gaps, and therefore the probabilities, change. (General context, not from the notes: dividing by zero is why greedy decoding is usually special-cased, and the code in the notes does not handle temperature 0.)"
+        }
+      ]
+    },
+    {
+      "id": "inference.sampling.temperature-vs-filters",
+      "section": "2f47eb87-3605-80d3-b655-fe168af1f680",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "In the sampler, logits are divided by the temperature before any filtering. When the temperature changes from 1 to 2 on the same context, which filter can end up keeping a different set of tokens?",
+          "choices": [
+            "Top-k with $k=40$",
+            "Top-p with $p=0.9$",
+            "Greedy argmax",
+            "Top-k with $k=2$"
+          ],
+          "correct": 1,
+          "explanation": "Top-k and argmax select by rank, which scaling preserves. Top-p selects by cumulative probability, and that depends on how flat the softmax is after the temperature is applied."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Explain why raising the temperature can enlarge the set of tokens kept by top-p, but cannot change the set kept by top-k.",
+          "answer": "Top-k picks the $k$ highest logits, and dividing by a positive temperature preserves their order. Top-p stops when the cumulative probability crosses $p$; a flatter distribution (higher temperature) needs more tokens to get there."
+        }
+      ]
+    },
+    {
+      "id": "inference.sampling.nucleus-boundary",
+      "section": "2f47eb87-3605-80d3-b655-fe168af1f680",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Sorted token probabilities are $(0.45, 0.30, 0.15, 0.10)$ and top_p is $0.7$. The implementation takes cumulative sums in sorted order, flags tokens whose cumulative probability exceeds top_p, shifts the flags one place down the ranking, and always unflags the top token. How many tokens remain?",
+          "answer": 2,
+          "tolerance": 0,
+          "unit": "tokens",
+          "explanation": "Cumulative sums are $(0.45,0.75,0.90,1.0)$, so the flags are $(\\text{no},\\text{yes},\\text{yes},\\text{yes})$. Shifting gives $(\\text{no},\\text{no},\\text{yes},\\text{yes})$: the second token, which crossed 0.7, stays. Two tokens remain."
+        },
+        {
+          "kind": "recall",
+          "prompt": "The most likely token has probability 0.6 and top_p is $0.3$. How many tokens can be sampled, and why can the candidate set never end up empty in this implementation?",
+          "answer": "Exactly one: the top token. The flags are shifted down the ranking and the first position is never flagged, so the token that pushes the cumulative probability past top_p is always kept, including the top token itself.",
+          "explanation": "⚠️ Note: the code comment says tokens above the threshold are removed, but because of the shift the first token to cross it is kept."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With top_p set to 0.9, the tokens that remain as candidates can carry more than 90% of the total probability.",
+          "answer": true,
+          "explanation": "The token that makes the cumulative probability cross top_p is kept, so the kept mass can exceed it. For example, if the top token alone has probability 0.95, it is kept even though 0.95 > 0.9."
+        }
+      ]
+    },
+    {
+      "id": "inference.sampling.topk-then-topp",
+      "section": "2f47eb87-3605-80d3-b655-fe168af1f680",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "A sampler applies top-k, then top-p. After temperature, the five most likely tokens have probabilities $(0.40,0.25,0.15,0.10,0.10)$; $k=3$, $p=0.45$. Top-p keeps the smallest top-ranked set whose cumulative probability exceeds $p$. How many tokens can still be sampled?",
+          "answer": 1,
+          "tolerance": 0,
+          "unit": "tokens",
+          "explanation": "Top-k masks the other logits to $-\\infty$, so top-p's softmax renormalizes over the survivors: $(0.5,0.3125,0.1875)$. The top token alone exceeds 0.45, leaving 1 token. Without top-k, $0.40<0.45<0.65$ would keep 2."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "When both top_k and top_p are set in the sampler, top-p's cumulative probabilities are computed from the original softmax over the full vocabulary.",
+          "answer": false,
+          "explanation": "Top-k sets the excluded logits to $-\\infty$ first, so the softmax inside the top-p step is renormalized over the surviving tokens, which usually makes the resulting set smaller."
+        }
+      ]
+    },
+    {
+      "id": "inference.flash-attention.score-matrix-size",
+      "section": "2ed7eb87-3605-8050-81b5-fb3febc78021",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Standard attention in one layer materializes the full score matrix for every sequence and query head. With $B=2$, $N=16$, $S=4096$ and 2 bytes per element, how large is that matrix?",
+          "answer": 1.07,
+          "tolerance": 0.05,
+          "unit": "GB",
+          "explanation": "$B\\cdot N\\cdot S^2\\cdot 2=2\\cdot 16\\cdot 4096^2\\cdot 2=2^{30}$ bytes $\\approx 1.07$ GB, for just one layer's scores."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "The context grows from 8,192 to 16,384 tokens with the same batch and heads. How do the attention-related activation memories change for (standard attention, FlashAttention)?",
+          "choices": [
+            "about 4x for standard attention, about 2x for FlashAttention",
+            "about 2x for standard attention, unchanged for FlashAttention",
+            "about 2x for both",
+            "about 4x for both"
+          ],
+          "correct": 0,
+          "explanation": "Standard attention stores an $S\\times S$ matrix per head, so doubling $S$ quadruples it. FlashAttention brings attention activation memory down to $O(S)$, which only doubles."
+        }
+      ]
+    },
+    {
+      "id": "inference.flash-attention.hbm-traffic",
+      "section": "2ed7eb87-3605-8050-81b5-fb3febc78021",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Standard attention sends the $S\\times S$ score matrix through HBM four times: written, read for softmax, written again, read for the product with values. For one head of one sequence with $S=4096$ and 2 bytes per element, how many MB move?",
+          "answer": 134,
+          "tolerance": 0.05,
+          "unit": "MB",
+          "explanation": "Each pass moves $4096^2\\cdot 2\\approx 33.6$ MB, and four passes give about 134 MB, for a single head of a single sequence in one layer."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Standard attention is described as memory-bound. Which traffic causes that, and what does FlashAttention do to it?",
+          "answer": "The large $N\\times N$ score matrix is repeatedly written to and read back from HBM. FlashAttention works tile by tile in fast SRAM and writes only the final output, so that traffic largely disappears.",
+          "explanation": "⚠️ Note: the notes say it is faster \"because memory bandwidth isn't the bottleneck\", which is loosely worded: bandwidth is relieved, not removed. (General context, not from the notes: the number of arithmetic operations stays essentially the same.)"
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "FlashAttention speeds up attention by skipping part of the query-key pairs, accepting a small loss of accuracy in return for fewer operations.",
+          "answer": false,
+          "explanation": "It is an exact method: the same attention result is computed in tiles. The gain comes from avoiding HBM reads and writes of the full score matrix, not from skipping pairs."
+        }
+      ]
+    },
+    {
+      "id": "inference.flash-attention.exact-tiling",
+      "section": "2ed7eb87-3605-8050-81b5-fb3febc78021",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "Although FlashAttention handles only a small tile of score columns at a time, its result is mathematically the same as standard attention's.",
+          "answer": true,
+          "explanation": "Using the online softmax trick, the tiles are combined so that the final softmax is exact, not approximated."
+        },
+        {
+          "kind": "recall",
+          "prompt": "A row's softmax normalizer involves all $S$ scores, but a tile in SRAM holds only, say, 64 of them. What trick lets tiled attention still produce the right result?",
+          "answer": "The online softmax: keep running statistics per row (maximum and sum of exponentials) and rescale the partial results as each new tile arrives, so the final normalization equals the full-row softmax.",
+          "explanation": "The notes only name the online softmax trick. (General context, not from the notes: the running statistics are the row maximum and the running sum of exponentials, with earlier partial outputs rescaled whenever the maximum changes.)"
+        },
+        {
+          "kind": "mcq",
+          "prompt": "In the tiled loop over blocks of Q and of K/V, which data gets written back to HBM?",
+          "choices": [
+            "Each score tile, so that the next block can reuse it",
+            "The softmax weights of each tile, for the later product with V",
+            "A compressed copy of K and V for every tile",
+            "Only the finished output rows for the Q block"
+          ],
+          "correct": 3,
+          "explanation": "Scores, softmax and the product with V all happen inside SRAM; only the final output leaves it. That is what keeps the $N\\times N$ matrix out of HBM."
+        }
+      ]
+    },
+    {
+      "id": "inference.flash-attention.causal-flag",
+      "section": "2ed7eb87-3605-8050-81b5-fb3febc78021",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "A causal-masking flag fused into the attention kernel avoids having to store an $S\\times S$ mask tensor in memory.",
+          "answer": true,
+          "explanation": "The kernel applies the causal condition on the fly per tile instead of reading a materialized mask."
+        },
+        {
+          "kind": "recall",
+          "prompt": "FlashAttention keeps attention activations at $O(S)$. Why would passing the kernel an explicit $S\\times S$ mask tensor undermine that saving?",
+          "answer": "The mask itself has $S^2$ entries, so it brings back quadratic memory (and its reads from HBM), even if the scores are never stored. A fused causal flag generates the mask inside the kernel."
+        }
+      ]
+    }
+  ]
+}
