@@ -48,6 +48,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,json}'],
+        // Activate a new version as soon as it is installed instead of waiting
+        // for every tab to close (phones keep the app open for days).
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],
