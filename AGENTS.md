@@ -21,6 +21,8 @@ Node 24 is pinned in `.nvmrc` (`nvm install && nvm use`). Then `npm ci`.
 | `npm run bank:check` | Validates the question bank (schema, ids, KaTeX, soft checks). `-- --stats` adds counts. CI runs it. |
 | `npm run bank:status` | One row per chapter: size, concept target, concepts written, kind mix, status (`todo`, `in progress`, `done`, `outdated`). `-- --json` for machine output. |
 | `npm run bank:task -- <slug>` | Prints the self-contained brief for writing that chapter. `-- --section <id-or-slug>` scopes it to one section; `-- --review` prints the reviewer brief. |
+| `npm run bank:pack -- <slug>` | Writes `chat-packs/<slug>.md` (gitignored): one self-contained file to drop into a chat assistant (claude.ai, ChatGPT, Gemini...) to write that chapter's questions without a coding agent. `-- <slug> --section <id-or-slug>` packs one section, `-- all` one pack per chapter. Needs `.cache/book/`. |
+| `npm run bank:import -- <file>` | Validates what the chat replied (`.json`, `.md` or `.txt`, JSON code blocks) and merges it into `content/questions/<slug>.json` (new ids appended, existing ids skipped unless `--replace`; nothing is written on errors). `--dry-run` only reports. |
 | `npm run book:covered -- <slug>` | Sets `coveredHash = hash` for the chapter's sections in `content/sections.json` (`-- <slug> --section <id>` for one section; `all` for everything) |
 
 Arguments to npm scripts go after `--`. Limit parallel CPU use (for example `--maxWorkers=4`).
@@ -36,8 +38,8 @@ content/
   sections.json               id, chapter, title, order, hash, coveredHash per section (no book text)
   questions/<slug>.json       the bank: one file per chapter (files starting with `_` are ignored)
 scripts/                      content pipeline (Node 24, run with `node scripts/x.ts`, erasable TS only)
-  fetch-book.ts, book-diff.ts, check-bank.ts, bank-status.ts, bank-task.ts, mark-covered.ts
-  lib/                        testable logic (+ *.test.ts): slugs, bank-files, sections-file, schema, check, diff, chapters, brief, overlap, covered
+  fetch-book.ts, book-diff.ts, check-bank.ts, bank-status.ts, bank-task.ts, bank-pack.ts, bank-import.ts, mark-covered.ts
+  lib/                        testable logic (+ *.test.ts): slugs, bank-files, sections-file, schema, check, diff, chapters, brief, pack, import, overlap, covered
 src/                          the app
   bank/                       bank types (shared contract with scripts) and loading
   srs/                        FSRS wrapper, event replay, session queue
@@ -45,6 +47,7 @@ src/                          the app
   grading/                    numeric parsing and tolerance
   ui/                         screens and the KaTeX renderer
 .cache/                       gitignored: raw Notion blocks and .cache/book/*.md (the book's text)
+chat-packs/                   gitignored: packs for chat assistants (contain the book's text), see "Writing questions with a chat assistant"
 .github/workflows/pages.yml   bank:check, test, build, deploy
 ```
 
@@ -62,6 +65,19 @@ When asked to write or add questions for a chapter or section (for example "writ
 6. Commit only `content/questions/<slug>.json` and `content/sections.json`, with the message `Add questions: <Chapter title>`.
 7. Reply with the report format from the brief (counts, kind mix, `⚠️` notes, skipped sections).
 
+## Writing questions with a chat assistant (drag and drop)
+
+For writing questions in a chat (claude.ai, ChatGPT, Gemini...) with no coding agent: the chat gets one file and replies with JSON, which `bank:import` validates and merges.
+
+1. **Pack**: `npm run bank:pack -- <chapter-slug>` (needs `.cache/book/`; run `npm run book:fetch` first). It writes `chat-packs/<slug>.md` and prints its size and approximate token count. That file holds the instructions for the assistant, the full `content/GUIDE.md`, the data types, a calibrated example, and the chapter's source notes (plus the notation section), so it is self-contained. `-- <slug> --section <id-or-slug>` packs a single section (`chat-packs/<slug>--<section>.md`), `-- all` writes one pack per chapter. `chat-packs/` is gitignored because the packs contain the book's text: never commit it, never paste it anywhere public.
+2. **Ask**: start a new chat, drag and drop the pack file and send "Write the questions." A big chapter may come in several messages: answer "continue" until all sections are covered.
+3. **Save the reply**: copy the JSON code block (or the whole reply; with several messages, one file per message or all in one) into a file such as `reply.json`, `reply.md` or `reply.txt`.
+4. **Import**: `npm run bank:import -- reply.json`. It extracts the JSON (the whole file, or every fenced ```json block, concatenating the concepts of several blocks), finds the chapter by its title and the ids, validates with the same checker as `bank:check`, and merges into `content/questions/<slug>.json`: new ids are appended, an id that already exists is skipped (replaced only with `--replace`), existing concepts missing from the import are kept. Errors (including invalid JSON, with the position) mean nothing is written. Unescaped LaTeX backslashes (the most common mistake) are repaired automatically and reported.
+5. **Fix warnings**: warnings do not block the import but should be fixed. The command prints a ready-to-paste "Please fix:" message: paste it back into the same chat, save the corrected reply and import it with `--replace` (the concepts keep their ids).
+6. **Review** in the app with `npm run dev`. For a deeper audit, `npm run bank:task -- <slug> --review` gives a reviewer brief for a coding agent.
+7. **Mark covered** when satisfied: `npm run book:covered -- <slug>` (`-- <slug> --section <id>` if only part of the chapter was written).
+8. **Commit and publish**: `git add content/questions/<slug>.json content/sections.json && git commit -m "Add questions: <Chapter title>"`, then `git push`.
+
 ## Reviewing questions
 
 When asked to review or audit a chapter's questions: `npm run bank:task -- <slug> --review` prints the reviewer brief. A reviewer is a different agent from the writer. It reads the chapter file and its source sections, audits every concept against `content/GUIDE.md` sections 2 to 6 and 12 (non-obviousness, faithfulness to the notes, answer leaks, distractor quality, copied phrasing), fixes problems in place (same ids; retire rather than delete), passes `bank:check`, commits only the chapter file as `Review questions: <Chapter title>`, and reports what it changed.
@@ -77,7 +93,7 @@ Several agents can write different chapters at the same time.
 
 ## Hard rules
 
-- **Never commit `.cache/`** (the book's text lives there; it is gitignored). The repo and the site are public.
+- **Never commit `.cache/` or `chat-packs/`** (the book's text lives there; both are gitignored). The repo and the site are public.
 - **Never copy the book's prose** into any file. Question prose is in your own words; facts, formulas and notation stay exact (GUIDE section 5).
 - **Concept ids are permanent**: never rename or reuse one, never delete one (set `"retired": true`), never reorder or remove a concept's variants (progress is logged by id and variant index).
 - Never invent facts that the notes do not contain; mark doubts with `⚠️ Note:` and outside knowledge with `(General context, not from the notes: ...)`.

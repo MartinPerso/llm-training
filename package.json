@@ -14,6 +14,8 @@
     "bank:check": "node scripts/check-bank.ts",
     "bank:status": "node scripts/bank-status.ts",
     "bank:task": "node scripts/bank-task.ts",
+    "bank:pack": "node scripts/bank-pack.ts",
+    "bank:import": "node scripts/bank-import.ts",
     "book:covered": "node scripts/mark-covered.ts"
   },
   "dependencies": {

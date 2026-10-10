@@ -3,3 +3,4 @@ dist
 .cache
 *.local
 .DS_Store
+chat-packs
