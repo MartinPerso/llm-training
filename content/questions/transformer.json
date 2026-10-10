@@ -1,0 +1,1226 @@
+{
+  "chapter": "The modern transformer LM",
+  "concepts": [
+    {
+      "id": "transformer.architecture.embedding-lookup",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does the token embedding add $VD$ parameters but no matmul FLOPs to the forward pass?",
+          "answer": "It is a row lookup, $\\mathbf X^{(0)}=\\mathbf W_e[\\text{tokens}]$: each token id selects one $D$-dimensional row, so nothing is multiplied.",
+          "explanation": "Selecting rows of $\\mathbf W_e\\in\\mathbb R^{V\\times D}$ is indexing, so the FLOP accounting has no embedding term. The unembedding at the other end is a real matmul, $(B,S,D)\\times(D,V)$ for $2BSDV$ FLOPs, with the same $VD$ parameter count. Both matrices are counted separately in the $2VD$ term of the parameter total."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The token embedding and the unembedding cost about the same number of forward FLOPs.",
+          "answer": false,
+          "explanation": "They have the same number of parameters ($VD$ each), but only the unembedding is a matmul: $(B,S,D)\\times(D,V)$ costs $2BSDV$ FLOPs. The embedding just indexes rows of $\\mathbf W_e$ with the token ids, which is why the full forward estimate $2BSD(12LD+2LS+V)$ has a single $V$ term."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.pre-norm-order",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In a pre-norm attention block, what enters the projections and what bypasses them?",
+          "answer": "The projections receive $\\bar{\\mathbf X}^{(\\ell)}$, the normalized state; the residual path carries $\\mathbf X^{(\\ell)}$.",
+          "explanation": "The branch starts with $\\mathbf Q=\\bar{\\mathbf X}\\mathbf W_Q$ and ends with $\\mathbf X^{(\\ell)}\\leftarrow\\mathbf X^{(\\ell)}+\\mathbf O_{\\text{proj}}$. Normalizing the branch input is different from replacing the residual state by its normalized version. The FFN follows the same ordering."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The attention residual adds its output to the normalized branch input.",
+          "answer": false,
+          "explanation": "The addition uses $\\mathbf X^{(\\ell)}+\\mathbf O_{\\text{proj}}$, not $\\bar{\\mathbf X}^{(\\ell)}+\\mathbf O_{\\text{proj}}$. The bar denotes the copy used to form projections, while the unbarred state follows the skip path. Confusing the two changes the block's computation before the FFN begins."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.gqa-projection-widths",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In GQA, why are the key and value projections narrower than the query projection?",
+          "answer": "Queries have $N$ heads, giving width $NH=D$; keys and values have only $K$ heads, giving width $KH$.",
+          "explanation": "The matrices are $\\mathbf W_Q\\in\\mathbb R^{D\\times D}$ and $\\mathbf W_K,\\mathbf W_V\\in\\mathbb R^{D\\times KH}$. Sharing K/V heads reduces their projected width without removing query heads. ⚠️ Note: the first projection display incorrectly gives K/V width $D$ for general GQA; the later reshape uses $KH$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What is the key projection's output width before GQA expansion?",
+          "choices": [
+            "$NH$",
+            "$KH$",
+            "$NK$",
+            "$DH$"
+          ],
+          "correct": 1,
+          "explanation": "A $D\\times KH$ projection produces $KH$ features, later split into $K$ heads of width $H$. $NH=D$ is the query width, and neither $NK$ nor $DH$ describes the key features. ⚠️ Note: an earlier display uses $D$ for K/V, which only agrees when $K=N$."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.architecture.head-axis-layout",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "After exposing query heads, which axes must swap before attention?",
+          "answer": "Swap sequence and head axes: $B\\times T\\times N\\times H\\to B\\times N\\times T\\times H$.",
+          "explanation": "First $D=NH$ is split, then the head axis moves before the sequence axis. This leaves the last two dimensions as $T\\times H$, so each head can multiply by its own transposed keys. A reshape alone does not perform this axis exchange."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which query layout makes the final two axes ready for attention matrix multiplication?",
+          "choices": [
+            "$B\\times T\\times N\\times H$",
+            "$B\\times N\\times H\\times T$",
+            "$B\\times N\\times T\\times H$",
+            "$B\\times H\\times T\\times N$"
+          ],
+          "correct": 2,
+          "explanation": "Queries must end in $T\\times H$ while batch and head index independent matrices. The other layouts either put heads inside the matrix or reverse query positions and features. Multiplying by keys ending in $H\\times S$ then creates $T\\times S$ scores."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.architecture.gqa-head-sharing",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How do $K$ key/value heads serve $N$ query heads?",
+          "answer": "Each K/V head is shared by a group of $G=N/K$ query heads. K/V are logically expanded to the query-head count.",
+          "explanation": "The head layout changes from $B\\times K\\times S\\times H$ to $B\\times N\\times S\\times H$ for attention. The relation $G=N/K$ counts queries per shared K/V pair, not the number of distinct K/V heads. Expansion does not introduce additional learned K/V projections."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Expanding GQA keys to $N$ heads introduces $N$ independently learned key projections.",
+          "answer": false,
+          "explanation": "The learned key matrix still has shape $D\\times KH$, so there are only $K$ distinct key heads. Expansion reuses these across $G=N/K$ queries each. This distinction explains why attention can have $N$ score matrices while its K/V projection parameters depend on $K$."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.gqa-score-count",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "A GQA layer has $N=32$ query heads and $K=8$ KV heads. How many $T\\times S$ score matrices does it compute per sequence?",
+          "answer": 32,
+          "tolerance": 0,
+          "unit": "matrices",
+          "explanation": "Scores are $\\mathbf A=\\mathbf Q\\mathbf K^\\top/\\sqrt H\\in\\mathbb R^{B\\times N\\times T\\times S}$: one matrix per query head, after K is expanded from $K$ to $N$ heads. Sharing ($G=N/K=4$ query heads per KV head) shrinks the K/V projections and the cache, not the number of score matrices. Answering 8 confuses stored KV heads with attention heads."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "GQA shrinks the attention score tensor by the group size $G$.",
+          "answer": false,
+          "explanation": "The score tensor is $B\\times N\\times T\\times S$ with $N$ query heads whatever $K$ is: every query head still matches against (shared) keys. What GQA shrinks by $G=N/K$ is the key/value side, $\\mathbf W_K,\\mathbf W_V\\in\\mathbb R^{D\\times KH}$ and the KV cache. The quadratic activation term $BNS^2$ therefore keeps its factor $N$."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.qk-norm-purpose",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Where does optional QK norm apply an RMSNorm?",
+          "choices": [
+            "Residual input to the Q/K/V projections",
+            "Value vectors before $\\mathbf A\\mathbf V$",
+            "Head outputs before $\\mathbf W_O$",
+            "Query and key vectors before $\\mathbf Q\\mathbf K^\\top$"
+          ],
+          "correct": 3,
+          "explanation": "QK norm applies RMSNorm to the projected queries and keys, to control the magnitude of what enters the dot product and so the sharpness of the softmax. The residual input already has its own pre-attention RMSNorm, a different norm on a different tensor. Values and head outputs never enter the scores, so they are not normalized."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "QK norm normalizes the value vectors as well, since Q, K and V come from the same input.",
+          "answer": false,
+          "explanation": "Only queries and keys are normalized: their dot product sets the attention logits, and large logits make the softmax peaky and resistant to updates. Values do not enter the scores, so their scale does not change the attention distribution. The shared input $\\bar{\\mathbf X}$ was already normalized once by the block's RMSNorm before all three projections."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.score-scaling",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why scale attention dot products before softmax?",
+          "answer": "Their typical magnitude grows with $\\sqrt H$; dividing by $\\sqrt H$ limits softmax saturation and weak updates.",
+          "explanation": "The score formula is $\\mathbf A=\\mathbf Q\\mathbf K^\\top/\\sqrt H$. Large unscaled scores make the probability distribution too concentrated, so changing the scores has little effect. ⚠️ Note: the prose says divide by $H$, but the displayed equation correctly uses $\\sqrt H$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which divisor is used for attention logits with head dimension $H$?",
+          "choices": [
+            "$\\sqrt H$",
+            "$H$",
+            "$\\sqrt D$",
+            "$D$"
+          ],
+          "correct": 0,
+          "explanation": "Scores are $\\mathbf Q\\mathbf K^\\top/\\sqrt H$, so the scale is based on each head's width rather than the full hidden width. Dividing by $H$ applies too much scaling relative to this formula. ⚠️ Note: the prose and equation disagree; this question follows the equation."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.causal-mask-values",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why assign forbidden attention scores $-\\infty$ instead of zero?",
+          "answer": "Softmax gives $e^{-\\infty}=0$, excluding forbidden positions; a score of zero still contributes $e^0=1$.",
+          "explanation": "For a masked entry, $\\exp(-\\infty)/\\sum_k\\exp(\\mathbf A_{ik})=0$. Zeroing the score would still leave a positive term in the numerator and denominator. Applying the mask before softmax therefore removes future positions from both the output and its normalization."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A zero pre-softmax score excludes a future token from attention.",
+          "answer": false,
+          "explanation": "Softmax exponentiates scores, and $e^0=1$ is positive. The exclusion value is $-\\infty$, for which $e^{-\\infty}=0$, so the masked key receives no probability. This is why the causal mask must affect logits rather than merely set them to a neutral-looking numeric value."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.softmax-key-axis",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "For a fixed query and head, over which positions does attention softmax normalize?",
+          "choices": [
+            "Query positions",
+            "Key positions",
+            "Query-head indices",
+            "Value-feature indices"
+          ],
+          "correct": 1,
+          "explanation": "The denominator is $\\sum_{k=1}^S\\exp(\\mathbf A_{ik})$: for query $i$ it runs over keys $k$, so each row of the $T\\times S$ score matrix sums to 1. Columns (one key, seen by every query) are not normalized, so a key can get large weight from many queries or from none. Heads and value features are separate axes that never compete in this distribution."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Attention softmax normalizes each column, so the weights a key receives over all queries sum to 1.",
+          "answer": false,
+          "explanation": "Softmax runs along the key axis, $\\mathbf A_{ij}\\leftarrow\\exp(\\mathbf A_{ij})/\\sum_k\\exp(\\mathbf A_{ik})$, so each row (one query) sums to 1. A column collects what one key receives from all queries and has no constraint. Each query's row then forms a weighted average of value vectors in $\\mathbf O=\\mathbf A\\mathbf V$."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.value-weighted-output",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which vectors supply the content of an attention output, once its weights are fixed?",
+          "answer": "The values: $\\mathbf O=\\mathbf A\\mathbf V$. Queries and keys determine the weights.",
+          "explanation": "The multiplication $(T\\times S)(S\\times H)$ gives a $T\\times H$ output per head. Keys participate in matching but are not the vectors averaged by these weights. This separates the selection mechanism from the content later mixed by the output projection."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which operation converts normalized attention weights into per-head outputs?",
+          "choices": [
+            "$\\mathbf A\\mathbf Q$",
+            "$\\mathbf A\\mathbf K$",
+            "$\\mathbf A\\mathbf V$",
+            "$\\mathbf Q\\mathbf K^\\top$"
+          ],
+          "correct": 2,
+          "explanation": "The weighted output is $\\mathbf O=\\mathbf A\\mathbf V$, combining values across the key-position axis. $\\mathbf Q\\mathbf K^\\top$ produces scores earlier in the pipeline; multiplying by Q or K substitutes the wrong content. The resulting head outputs still need to be merged and projected."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.architecture.head-output-mixing",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "With GQA ($K<N$ KV heads), what shape does the output projection $\\mathbf W_O$ have?",
+          "choices": [
+            "$KH\\times D$",
+            "$D\\times D$",
+            "$D\\times KH$",
+            "$GH\\times D$"
+          ],
+          "correct": 1,
+          "explanation": "$\\mathbf W_O$ acts on the concatenated outputs of all $N$ query heads, and $NH=D$, so it stays $D\\times D$. GQA shares keys and values, which narrows $\\mathbf W_K,\\mathbf W_V$ to $D\\times KH$, but every query head still produces its own $H$-wide output. Hence the attention count $2D^2+2DKH$: two full-width matrices (Q and O) and two narrow ones (K and V)."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Before the output projection, no operation in an attention layer combines features from different heads.",
+          "answer": true,
+          "explanation": "Each head computes its own scores and its own $\\mathbf A\\mathbf V$ in its $H$-dimensional subspace (GQA heads may read the same keys and values, but their outputs stay separate). The reshape $B\\times N\\times T\\times H\\to B\\times T\\times D$ only lays head outputs side by side. The first learned mixing across heads is $\\mathbf O_{\\text{proj}}=\\mathbf O\\mathbf W_O$, which is then added to the residual stream."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.ffn-expansion-paths",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "How many separate $D\\times F$ matrices expand the hidden state in a SwiGLU FFN?",
+          "answer": 2,
+          "tolerance": 0,
+          "unit": "matrices",
+          "explanation": "There is one up projection and one gate projection: $1+1=2$ expansion matrices. Each maps the normalized state from $D$ to $F$, whereas the down projection maps $F$ back to $D$. Counting only one expansion misses the second learned representation used by SwiGLU."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why must the up and gate projections in SwiGLU have the same output width?",
+          "answer": "Their outputs are multiplied element by element, so both must have width $F$.",
+          "explanation": "The branch computes $\\mathbf H=\\operatorname{Swish}(\\mathbf G)\\odot\\mathbf U$. Both factors have shape $B\\times T\\times F$, so corresponding features can interact. The later down projection, rather than either expansion, restores the residual width $D$."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.architecture.swish-gate-operation",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In SwiGLU, which projection receives Swish before the elementwise product?",
+          "answer": "The gate projection: $\\mathbf H=\\operatorname{Swish}(\\mathbf G)\\odot\\mathbf U$.",
+          "explanation": "Expanding Swish gives $\\mathbf H=(\\mathbf G\\odot\\sigma(\\mathbf G))\\odot\\mathbf U$. Applying only sigmoid would discard the extra $\\mathbf G$ factor, and applying Swish to $\\mathbf U$ would change the specified branch. This operation precedes the learned down projection."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which expression is the SwiGLU intermediate?",
+          "choices": [
+            "$\\sigma(\\mathbf G)\\odot\\mathbf U$",
+            "$\\operatorname{Swish}(\\mathbf U)\\odot\\mathbf G$",
+            "$\\operatorname{Swish}(\\mathbf G)+\\mathbf U$",
+            "$\\operatorname{Swish}(\\mathbf G)\\odot\\mathbf U$"
+          ],
+          "correct": 3,
+          "explanation": "The intermediate is $\\mathbf H=\\operatorname{Swish}(\\mathbf G)\\odot\\mathbf U$, with $\\operatorname{Swish}(\\mathbf G)=\\mathbf G\\odot\\sigma(\\mathbf G)$. Sigmoid alone drops a content factor, swapping branches changes which representation is self-gated, and addition removes the product. The $F$-wide result is then projected to $D$."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.architecture.ffn-down-residual",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What would prevent adding the SwiGLU intermediate directly to the residual stream?",
+          "answer": "It has width $F$, while the residual has width $D$; the $F\\times D$ down projection must restore the matching width.",
+          "explanation": "The branch first computes $\\mathbf F=\\mathbf H\\mathbf W_{\\text{down}}$, then $\\mathbf X^{(\\ell+1)}=\\mathbf X^{(\\ell)}+\\mathbf F$. Directly adding an $F$-wide intermediate would mismatch the residual shape when $F\\ne D$. Expansion is internal to the FFN, not a change to the layer's external width."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The FFN adds its down-projected output to the state that already includes the attention update.",
+          "answer": true,
+          "explanation": "Attention first updates $\\mathbf X^{(\\ell)}\\leftarrow\\mathbf X^{(\\ell)}+\\mathbf O_{\\text{proj}}$. The FFN then uses that updated state and adds $\\mathbf F$ to it. Adding back to the pre-attention state instead would discard the attention update from the residual path."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.architecture.final-normalization",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Ignoring optional QK norm, how many RMSNorm scale vectors $\\gamma$ does a 32-layer model have?",
+          "answer": 65,
+          "tolerance": 0,
+          "unit": "vectors",
+          "explanation": "Each layer has two, $\\gamma_{\\text{attn}}^{(\\ell)}$ before attention and $\\gamma_{\\text{ffn}}^{(\\ell)}$ before the FFN, plus one $\\gamma_{\\text{final}}$ after the layer loop: $2\\cdot32+1=65$. Each has $D$ entries, so normalization adds $(2L+1)D$ parameters, negligible next to $12LD^2$. Forgetting the final norm gives 64."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The unembedding is applied directly to the last layer's output $\\mathbf X^{(L)}$.",
+          "answer": false,
+          "explanation": "A final RMSNorm sits in between: $\\mathbf X_{\\text{final}}=\\frac{\\mathbf X^{(L)}}{\\operatorname{RMS}(\\mathbf X^{(L)})+\\epsilon}\\odot\\gamma_{\\text{final}}$, then $\\mathbf Z=\\mathbf X_{\\text{final}}\\mathbf W_u$. In this pre-norm layout each block only normalizes its own branch input and the residual stream itself is never normalized, so without this step the logits would read the raw residual."
+        }
+      ]
+    },
+    {
+      "id": "transformer.architecture.unembedding-logits",
+      "section": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does the final projection change the last axis from $D$ to $V$?",
+          "answer": "It produces one logit per vocabulary token, using $\\mathbf W_u\\in\\mathbb R^{D\\times V}$.",
+          "explanation": "The projection is $\\mathbf Z=\\mathbf X_{\\text{final}}\\mathbf W_u\\in\\mathbb R^{B\\times T\\times V}$. The $D$ hidden features become scores for $V$ candidate tokens; this is not an embedding lookup. Attention's softmax normalizes key positions earlier and does not create these vocabulary logits."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which shape belongs to the unembedding matrix used in the forward multiplication?",
+          "choices": [
+            "$V\\times D$",
+            "$D\\times V$",
+            "$D\\times D$",
+            "$D\\times F$"
+          ],
+          "correct": 1,
+          "explanation": "Multiplying a $B\\times T\\times D$ hidden state by a $D\\times V$ matrix yields $B\\times T\\times V$ logits. $V\\times D$ is the embedding lookup layout, $D\\times D$ fits head-output mixing, and $D\\times F$ fits FFN expansion. The contracting axis must be the hidden width."
+        }
+      ]
+    },
+    {
+      "id": "transformer.implementation-notes.mask-boolean-convention",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "If True means an attention position is allowed, which entries should a fill operation overwrite?",
+          "answer": "The False entries: invert the allowed-position mask before filling with $-\\infty$.",
+          "explanation": "A masked fill overwrites entries selected by True, whereas this attention mask uses True to mean retain. The fill selector must therefore be the complement of the allowed-position mask. Failing to invert it suppresses permitted keys and leaves forbidden keys available to softmax."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "If True marks allowed keys, passing that mask directly to a negative-infinity fill removes the allowed keys.",
+          "answer": true,
+          "explanation": "The fill operation acts exactly where its selector is True. Under an allowed-position convention, those are the entries that should survive, so direct use reverses the intended behavior. Inverting the mask aligns the fill operation with the causal constraint before normalization."
+        }
+      ]
+    },
+    {
+      "id": "transformer.implementation-notes.trigonometric-cache",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which RoPE quantities can be cached before processing any token content?",
+          "choices": [
+            "Projected queries and keys",
+            "Normalized residual vectors",
+            "Position-pair sines and cosines",
+            "Content-dependent attention weights"
+          ],
+          "correct": 2,
+          "explanation": "Angles are $m\\theta_i$, so their sines and cosines depend on position and dimension pair, not token content. Queries, normalized states and attention weights require the actual hidden states. Precomputing the trigonometric table leaves only the content-dependent rotation arithmetic during a forward pass."
+        },
+        {
+          "kind": "recall",
+          "prompt": "For RoPE, why is a table indexed only by position insufficient?",
+          "answer": "Each dimension pair has its own $\\theta_i$, so the cached values need both position $m$ and pair index $i$.",
+          "explanation": "The cached entries are $\\cos(m\\theta_i)$ and $\\sin(m\\theta_i)$ with $\\theta_i=\\Theta^{-2i/H}$. A single angle per position would rotate every pair at the same frequency. The two-index table preserves the distinct frequency scales while reusing them across token vectors."
+        }
+      ]
+    },
+    {
+      "id": "transformer.implementation-notes.pair-coordinate-extraction",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "When preparing RoPE coordinate pairs, what is the size of the new innermost axis?",
+          "answer": 2,
+          "tolerance": 0,
+          "unit": "coordinates",
+          "explanation": "The head axis is split as $H=(H/2)\\cdot2$, leaving an innermost axis of size 2. Its two entries are the paired coordinates that receive one rotation. An innermost axis of $H/2$ would instead index pairs and would not directly separate the two coordinates in each pair."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "After splitting the head axis into $(H/2,2)$, how are the paired coordinate streams extracted?",
+          "choices": [
+            "Split the sequence axis in half",
+            "Select alternating attention heads",
+            "Unbind the vocabulary dimension",
+            "Select final-axis slots 0 and 1"
+          ],
+          "correct": 3,
+          "explanation": "The final axis holds the two coordinates of each pair, so selecting its slots 0 and 1 recovers the even and odd streams. Sequence positions, heads and vocabulary entries are separate axes and are not paired by this reshape. The streams then receive the sine/cosine products before being interleaved again."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.implementation-notes.interleave-rotated-coordinates",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "After rotating even and odd coordinate streams, why stack before flattening?",
+          "answer": "Stacking them on a new final axis puts each pair side by side; flattening the last two axes restores alternating coordinates.",
+          "explanation": "The intermediate shape ends in $(H/2,2)$, which flattens back to $H$ in pair order. Concatenating all even outputs followed by all odd outputs would use a different ordering. This restoration is needed before the rotated queries and keys enter the attention dot product."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Concatenating all rotated even coordinates before all rotated odd coordinates restores adjacent-pair RoPE order.",
+          "answer": false,
+          "explanation": "Adjacent-pair order requires even, odd, even, odd across the final axis. Concatenating the two full streams produces all evens first, so it does not invert the original pair extraction. Stacking with a new size-2 axis and then flattening preserves each pair's adjacency."
+        }
+      ]
+    },
+    {
+      "id": "transformer.implementation-notes.fused-projection-unbind",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A fused QKV tensor has shape $B\\times S\\times3\\times N\\times H$. Which axis is removed to separate Q, K and V?",
+          "answer": "Unbind the size-3 axis, leaving each tensor with shape $B\\times S\\times N\\times H$.",
+          "explanation": "The size-3 axis labels projection type, so selecting its three slices produces Q, K and V. Splitting the head axis would instead divide heads, while splitting the sequence axis would divide tokens. A later transpose puts heads before positions for the attention computation."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "How many dimensions remain after unbinding the QKV axis of a $B\\times S\\times3\\times N\\times H$ tensor?",
+          "answer": 4,
+          "tolerance": 0,
+          "unit": "dimensions",
+          "explanation": "Unbinding removes the selected axis: $5-1=4$, leaving $B\\times S\\times N\\times H$ for each result. It does not retain a singleton QKV axis or merge heads with features. The four-axis result is then transposed to the attention layout."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.implementation-notes.fused-width-assumption",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "A fused QKV projection of width $3D$ assumes equal total widths for queries, keys and values.",
+          "answer": true,
+          "explanation": "Three equal slices require $D+D+D=3D$, matching ordinary MHA where $KH=D$. General GQA instead has total width $D+2KH$. ⚠️ Note: the implementation example uses an MHA layout even though the architecture also discusses GQA."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "For a fused GQA projection, which total width accommodates Q, K and V before head expansion?",
+          "choices": [
+            "$D+2KH$",
+            "$D+KH$",
+            "$2D+KH$",
+            "$3KH$"
+          ],
+          "correct": 0,
+          "explanation": "Queries contribute $D$ features and keys and values $KH$ each: $D+KH+KH=D+2KH$. $3KH$ shrinks the queries too, $2D+KH$ keeps one of K/V at full width, and $D+KH$ forgets that keys and values are separate projections. ⚠️ Note: the notes' fused $3D$ projection is the MHA case, where $KH=D$."
+        }
+      ]
+    },
+    {
+      "id": "transformer.implementation-notes.restore-token-head-order",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why transpose attention output before merging its head and feature dimensions?",
+          "answer": "It has layout $B\\times N\\times S\\times H$; transpose to $B\\times S\\times N\\times H$ so each token's heads become adjacent.",
+          "explanation": "The intended merge is $N\\times H\\to D$ within each token. Reshaping the untransposed tensor would reinterpret head-major storage without performing the necessary axis permutation. Restoring token-major order makes the subsequent $D\\times D$ output projection act on the correct head outputs."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An attention output laid out as $B\\times N\\times S\\times H$ can be merged into token features by reshape alone.",
+          "answer": false,
+          "explanation": "The sequence axis lies between the head and feature axes, so these are not the adjacent axes intended for merging. First permute to $B\\times S\\times N\\times H$, then merge $NH=D$. Otherwise the output projection receives a different arrangement of features and token positions."
+        }
+      ]
+    },
+    {
+      "id": "transformer.implementation-notes.key-matrix-transpose",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which key axes are swapped to form the attention score matrix?",
+          "choices": [
+            "Batch and head axes",
+            "Position/features",
+            "Head and position axes",
+            "Batch and feature axes"
+          ],
+          "correct": 1,
+          "explanation": "Keys ending in $S\\times H$ must become $H\\times S$, giving $(T\\times H)(H\\times S)=T\\times S$. Swapping batch or head axes changes which independent matrices are paired rather than the contraction. This transpose is distinct from the earlier head/sequence layout change."
+        },
+        {
+          "kind": "recall",
+          "prompt": "In the key transpose used for $QK^\\top$, why leave batch and head axes in place?",
+          "answer": "They identify independent attention computations; only the key position and feature axes must swap for the feature contraction.",
+          "explanation": "Per head, $(T\\times H)(H\\times S)=T\\times S$ contracts feature width $H$. Keeping the outer axes unchanged pairs each query head with its corresponding keys. Transposing the entire tensor indiscriminately would also move batch and head indices, which serve a different role."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.implementation-notes.causal-diagonal",
+      "section": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "A lower-triangular causal attention mask includes each token's own position.",
+          "answer": true,
+          "explanation": "Allowed indices satisfy $j\\le i$, so the diagonal $j=i$ remains available along with earlier keys. A strict inequality $j<i$ would remove self-attention at the current position. The mask controls which keys survive before the row-wise softmax, not the shape of the value projection."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which condition selects allowed keys in the causal mask for query position $i$?",
+          "choices": [
+            "$j>i$",
+            "$j<i$",
+            "$j\\le i$",
+            "$j\\ge i$"
+          ],
+          "correct": 2,
+          "explanation": "The allowed set is $j\\le i$, including the current token and its prefix. $j<i$ omits the diagonal, while the two other inequalities include future keys. Those disallowed future scores are filled with $-\\infty$ before the attention probabilities are computed."
+        }
+      ]
+    },
+    {
+      "id": "transformer.model-parameters.attention-parameter-count",
+      "section": "3027eb87-3605-805d-b53d-dbd0eee537d6",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What is the per-layer attention parameter count for GQA, excluding normalization?",
+          "answer": "$2D^2+2DKH$: full-width query/output projections plus narrower key/value projections.",
+          "explanation": "Counting the four learned matrices gives $D^2+DKH+DKH+D^2=2D^2+2DKH$. Replacing every term by $D^2$ assumes $K=N$, since $NH=D$. GQA reduces the K/V terms while leaving the query and output projection terms intact."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "In standard MHA, what coefficient multiplies $D^2$ in the attention projection parameter count?",
+          "answer": 4,
+          "tolerance": 0,
+          "explanation": "For $K=N$, $KH=D$, so $2D^2+2DKH=2D^2+2D^2=4D^2$. The four matrices are Q, K, V and output; forgetting the last gives an underestimate. This simplification is the attention contribution used in the approximate whole-model count."
+        }
+      ]
+    },
+    {
+      "id": "transformer.model-parameters.whole-model-parameters",
+      "section": "3027eb87-3605-805d-b53d-dbd0eee537d6",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Under MHA with $F=8D/3$, what is the approximate parameter count including separate embedding and unembedding?",
+          "answer": "$2VD+12LD^2$, neglecting normalization parameters.",
+          "explanation": "The large terms combine as $2VD+L(4D^2+3DF)=2VD+L(4D^2+8D^2)=2VD+12LD^2$. The two vocabulary matrices account for $2VD$. ⚠️ Note: this assumes $F=8D/3$, unlike the earlier $4D$ convention, and the detailed total also omits the final norm's $D$ parameters."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "With MHA and $F=8D/3$, what coefficient multiplies $LD^2$ in the approximate transformer parameter count?",
+          "answer": 12,
+          "tolerance": 0,
+          "explanation": "Attention contributes $4D^2$ and the FFN contributes $3D(8D/3)=8D^2$, hence $4+8=12$. Vocabulary matrices remain a separate $2VD$ term. ⚠️ Note: normalization is neglected, and the result uses $F=8D/3$ rather than the architecture table's generic $F=4D$."
+        }
+      ]
+    },
+    {
+      "id": "transformer.model-parameters.swiglu-width-matching",
+      "section": "3027eb87-3605-805d-b53d-dbd0eee537d6",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "A SwiGLU FFN with $F=8D/3$ has as many parameters as a plain two-matrix FFN of width $F'$. What is $F'/D$?",
+          "answer": 4,
+          "tolerance": 0,
+          "explanation": "SwiGLU has three $D\\times F$-sized matrices (up, gate, down): $$3DF=3D\\cdot\\tfrac{8D}{3}=8D^2=2D\\cdot4D.$$ So $F=8D/3$ matches two matrices of width $4D$, the generic $F=4D$ of the symbol table, and gives the FFN's $8D^2$ in the $12LD^2$ total. (General context, not from the notes: this parameter matching is the usual reason SwiGLU models pick $F\\approx8D/3$.)"
+        }
+      ]
+    },
+    {
+      "id": "transformer.model-activations.quadratic-activation-source",
+      "section": "3027eb87-3605-803c-a1a7-e0d4c3070d10",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which stored activation makes ordinary prefill memory quadratic in $S$?",
+          "answer": "The attention score/weight tensor with shape $B\\times N\\times S\\times S$, contributing $BNS^2$ elements.",
+          "explanation": "The estimate is $14BSD+BNS^2$, with the second term coming from every query-key pair. Projection and FFN activations scale linearly in $S$. ⚠️ Note: $14BSD$ is rounded; substituting $F=8D/3$ into the listed MHA linear terms gives $(40/3)BSD$."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "At fixed model width and batch size, ordinary prefill activations grow only linearly with context length.",
+          "answer": false,
+          "explanation": "The attention tensor contributes $BNS^2$, so the estimate $14BSD+BNS^2$ contains a quadratic term. Linear FFN and projection terms do not remove that growth. ⚠️ Note: the coefficient 14 is approximate and the listed projection counts assume MHA; the quadratic attention term is the robust point."
+        }
+      ]
+    },
+    {
+      "id": "transformer.flops-in-forward.attention-matmul-cost",
+      "section": "3027eb87-3605-803e-9fdf-ff2be7333715",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "For dense prefill attention, what coefficient multiplies $BS^2D$ for $QK^\\top$ and $AV$ together?",
+          "answer": 4,
+          "tolerance": 0,
+          "explanation": "Each product costs $2BS^2D$, so $2BS^2D+2BS^2D=4BS^2D$. This counts score formation and value aggregation, not the linear projections. With MHA projections included, the attention estimate becomes $8BSD^2+4BS^2D$ per layer."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What is the dense prefill attention FLOP count per MHA layer?",
+          "choices": [
+            "$4BSD^2+2BS^2D$",
+            "$8BSD^2+2BS^2D$",
+            "$4BSD^2+4BS^2D$",
+            "$8BSD^2+4BS^2D$"
+          ],
+          "correct": 3,
+          "explanation": "Four projections cost $4(2BSD^2)=8BSD^2$, while score formation and value aggregation cost $2(2BS^2D)=4BS^2D$. The other choices miss half of one or both contributions. These are dense matmul counts for prefill, where query and context lengths agree."
+        }
+      ]
+    },
+    {
+      "id": "transformer.flops-in-forward.swiglu-flop-coefficient",
+      "section": "3027eb87-3605-803e-9fdf-ff2be7333715",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "For prefill with $F=8D/3$, what coefficient multiplies $BSD^2$ in one SwiGLU FFN's matmul FLOPs?",
+          "answer": 16,
+          "tolerance": 0,
+          "explanation": "The three projections cost $3(2BSDF)=6BSDF=6BSD(8D/3)=16BSD^2$. Counting only up and down would omit the gate projection. This is twice the MHA projection-only cost $8BSD^2$, though attention also has its separate quadratic term."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A SwiGLU FFN's matmul cost includes the gate projection as well as the up and down projections.",
+          "answer": true,
+          "explanation": "Each of the three matrices costs $2BSDF$ in prefill, giving $6BSDF$ altogether. The gate's elementwise role does not eliminate the dense projection that produces it. Substituting $F=8D/3$ gives the FFN contribution $16BSD^2$ used in the layer total."
+        }
+      ]
+    },
+    {
+      "id": "transformer.flops-in-forward.full-forward-accounting",
+      "section": "3027eb87-3605-803e-9fdf-ff2be7333715",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Under MHA and $F=8D/3$, what is the full prefill FLOP estimate including unembedding?",
+          "answer": "$2BSD(12LD+2LS+V)$.",
+          "explanation": "Adding layers and output gives $L(24BSD^2+4BS^2D)+2BSDV=2BSD(12LD+2LS+V)$. The $12LD$ term covers layer projections, $2LS$ covers attention interactions, and $V$ covers the vocabulary projection. Omitting unembedding loses a cost that scales with vocabulary size."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which full-forward cost comes from unembedding rather than the repeated transformer layers?",
+          "choices": [
+            "$2BSDV$",
+            "$2BSVDL$",
+            "$4BS^2D$",
+            "$16BSD^2$"
+          ],
+          "correct": 0,
+          "explanation": "The output multiplication has cost $(B S)\\cdot D\\cdot V\\cdot2=2BSDV$. There is one unembedding, so no factor $L$; the other terms belong to attention interactions or the FFN. This explains the separate $V$ term in $2BSD(12LD+2LS+V)$."
+        }
+      ]
+    },
+    {
+      "id": "transformer.flops-in-forward.quadratic-crossover",
+      "section": "3027eb87-3605-803e-9fdf-ff2be7333715",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "In prefill, at what ratio $S/D$ does a layer's $S^2$ attention FLOP term equal all its other matmul FLOPs?",
+          "answer": 6,
+          "tolerance": 0,
+          "explanation": "Per layer the cost is $2BSD(12D+2S)$: $24BSD^2$ for the projections and FFN, $4BS^2D$ for $QK^\\top$ and $AV$. Setting them equal, $$4BS^2D=24BSD^2\\iff S=6D.$$ Below $S=6D$ the projection and FFN matmuls dominate; above it, attention does."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "For $D=4096$, an 8,192-token prefill spends most of its layer FLOPs on the $S^2$ attention terms.",
+          "answer": false,
+          "explanation": "The quadratic share is $$\\frac{4BS^2D}{2BSD(12D+2S)}=\\frac{2S}{12D+2S}=\\frac{16384}{49152+16384}=25\\%.$$ Attention only reaches half at $S=6D\\approx24.6$k tokens. The unembedding, $2BSDV$, comes on top and lowers the share further."
+        }
+      ]
+    },
+    {
+      "id": "transformer.flops-in-backward.backward-two-gradients",
+      "section": "3177eb87-3605-8082-8e62-dbd2adc0435f",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Ignoring recomputation, backward is usually estimated at how many times forward FLOPs?",
+          "answer": 2,
+          "tolerance": 0,
+          "unit": "times",
+          "explanation": "A forward matmul typically has two backward matmuls: one for the input gradient and one for the weight gradient. Thus the rough ratio is $1+1=2$ forward-equivalent costs, with a forward-plus-backward total near 3. The input gradient also carries the learning signal into the preceding layer."
+        },
+        {
+          "kind": "recall",
+          "prompt": "For each matmul, which two gradients does the backward pass compute, and what is each one for?",
+          "answer": "The weight gradient, used for the parameter update, and the input gradient $\\partial L/\\partial X$, which is handed back to the previous layer as its upstream gradient.",
+          "explanation": "Each is one matmul of about the forward matmul's size, so $C_{\\text{backward}}\\approx2C_{\\text{forward}}$ and a forward plus backward step costs about $3C_{\\text{forward}}$. Skipping the input gradient would stop backpropagation at this layer; skipping the weight gradient would leave the layer untrained."
+        }
+      ]
+    },
+    {
+      "id": "transformer.inference-memory-use.inference-memory-components",
+      "section": "2f47eb87-3605-8051-b5f0-d769aebd66cc",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is loading all model weights insufficient to establish that an inference workload fits in memory?",
+          "answer": "The KV cache and peak intermediate activations also need memory, and they grow with the workload.",
+          "explanation": "The budget has three parts: weights, persistent K/V, and transient activation peaks. Larger batches or longer contexts can enlarge the latter two even though the parameters are unchanged. This is why model size alone cannot predict the memory needed for a particular prefill or decode workload."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Inference activation memory is generally budgeted as the sum of saved activations from all layers.",
+          "answer": false,
+          "explanation": "Without a backward pass nothing has to be kept: under `torch.inference_mode()` intermediates are freed right away, so the activation budget is the peak of a single layer (input, Q/K/V, the $BNS^2$ scores without FlashAttention, the $BSF$ FFN intermediate). The KV cache is different: it persists across all $L$ layers and decoding steps. Training, by contrast, keeps every layer's activations for backward."
+        }
+      ]
+    },
+    {
+      "id": "transformer.inference-memory-use.kv-cache-element-count",
+      "section": "2f47eb87-3605-8051-b5f0-d769aebd66cc",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How many scalar elements are stored in a GQA KV cache for batch $B$, context $S$, and $L$ layers?",
+          "answer": "$2BSKHL$ elements; multiply by the cache dtype's bytes per element to obtain bytes.",
+          "explanation": "Each layer and token stores $KH$ key elements and $KH$ value elements: $BSL(KH+KH)=2BSKHL$. The query-head count $N$ is not the number of stored K/V heads. ⚠️ Note: the stated cache-size expression counts elements, so it is not yet a byte count."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which factor determines GQA's stored head count in the KV-cache formula?",
+          "choices": [
+            "Query heads $N$",
+            "KV heads $K$",
+            "Group size $G$",
+            "Vocabulary size $V$"
+          ],
+          "correct": 1,
+          "explanation": "The cache has $BSL(KH+KH)=2BSKHL$ elements, so its head factor is $K$. $N$ counts queries, $G=N/K$ counts queries sharing each K/V head, and $V$ sizes the vocabulary projection. Logical expansion for attention does not require storing separately learned K/V for each query head."
+        }
+      ]
+    },
+    {
+      "id": "transformer.inference-memory-use.flash-memory-scaling",
+      "section": "2f47eb87-3605-8051-b5f0-d769aebd66cc",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does FlashAttention remove the quadratic prefill activation-memory term?",
+          "answer": "It avoids materializing the full $S\\times S$ attention matrix, making the attention storage scale linearly with $S$.",
+          "explanation": "Ordinary attention stores $BNS^2$ score/weight entries. Avoiding that full matrix removes the quadratic storage term; the remaining projected vectors and FFN intermediates scale linearly with context length. The persistent K/V cache is still needed, so the optimization does not reduce inference memory to weights alone."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With FlashAttention, increasing context length still increases prefill activation memory.",
+          "answer": true,
+          "explanation": "Removing the $BNS^2$ matrix leaves terms such as $BSD$ and $BSF$, which still grow with $S$. The change is from quadratic to linear storage scaling, not to constant memory. KV-cache memory also grows with the number of retained context tokens."
+        }
+      ]
+    },
+    {
+      "id": "transformer.inference-memory-use.prefill-decode-regimes",
+      "section": "2f47eb87-3605-8051-b5f0-d769aebd66cc",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "For single-token decode, which activation scaling replaces ordinary prefill's $O(BNS^2+BSF)$?",
+          "choices": [
+            "$O(BNS^2+BF)$",
+            "$O(BN+BSF)$",
+            "$O(BNS+BF)$",
+            "$O(BN+BF)$"
+          ],
+          "correct": 2,
+          "explanation": "One query attends to $S$ cached positions, producing a length-$S$ row instead of an $S\\times S$ matrix. The FFN also processes one new token per sequence, so $O(BNS^2+BSF)$ becomes $O(BNS+BF)$. Keeping $S^2$ confuses decode with prefill; dropping $S$ ignores the keys that decode still reads."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Without FlashAttention, sufficiently long prefill contexts can make activations larger than the model weights.",
+          "answer": true,
+          "explanation": "The weights are fixed for a chosen model, while the materialized attention tensor contributes $BNS^2$ elements. This quadratic term can dominate as $S$ grows, even if weights dominate for short contexts and small batches. Single-token decode has a different activation profile because it builds one query row at a time."
+        }
+      ]
+    },
+    {
+      "id": "transformer.train-memory-use.mixed-precision-state-budget",
+      "section": "3027eb87-3605-80ff-a857-e851e773b3f6",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Mixed-precision training with Adam: how many bytes per parameter, excluding activations?",
+          "answer": 18,
+          "tolerance": 0,
+          "unit": "bytes per parameter",
+          "explanation": "FP32 master weights, BF16 forward copy, two FP32 Adam moments and FP32 gradients: $$4+2+8+4=18\\text{ bytes per parameter}.$$ Forgetting the BF16 copy gives 16; assuming gradients stay in BF16 gives 16 too. Activations come on top and are often the dominant piece, since they grow with $B$ and $S$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "For mixed-precision Adam with FP32 moments, what is the combined size of the two moment buffers?",
+          "choices": [
+            "$2P$ bytes",
+            "$4P$ bytes",
+            "$16P$ bytes",
+            "$8P$ bytes"
+          ],
+          "correct": 3,
+          "explanation": "Adam retains two moment values per parameter, each four bytes in FP32: $2P\\cdot4=8P$ bytes. $2P$ counts elements, $4P$ counts only one moment, and $16P$ doubles the required pair. These states sit alongside weights and accumulated gradients in the training budget."
+        }
+      ]
+    },
+    {
+      "id": "transformer.train-memory-use.bf16-grad-accumulation",
+      "section": "3027eb87-3605-80ff-a857-e851e773b3f6",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "In mixed-precision training, in which precisions are gradients computed and then accumulated?",
+          "choices": [
+            "FP32, then FP32",
+            "BF16, then BF16",
+            "FP32, then BF16",
+            "BF16, then FP32"
+          ],
+          "correct": 3,
+          "explanation": "The backward matmuls run in BF16, but their results are summed into FP32 buffers, so gradients still cost $4P$ bytes rather than $2P$. Mixed precision only adds a transient BF16 copy of the weights ($2P$) for the forward pass; master weights ($4P$), Adam moments ($8P$) and gradients ($4P$) stay in FP32, for 18 bytes per parameter before activations."
+        }
+      ]
+    },
+    {
+      "id": "transformer.train-memory-use.backward-activation-retention",
+      "section": "3027eb87-3605-80ff-a857-e851e773b3f6",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can activation memory accumulate across layers in training but not in ordinary inference?",
+          "answer": "Backward needs intermediate forward values from many layers; inference has no backward pass requiring that retained history.",
+          "explanation": "The per-layer estimate $14BSD+BNS^2$ can accumulate through the layer stack when saved for backward. Gradient checkpointing reduces retained activations, while FlashAttention removes the quadratic attention storage term. ⚠️ Note: the coefficient 14 is a rounded estimate, not an exact activation count."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "FlashAttention removes the need to save FFN activations for backward.",
+          "answer": false,
+          "explanation": "FlashAttention targets attention's quadratic $BNS^2$ storage, while FFN intermediates still contribute terms proportional to $BSF$. Backward still needs forward information outside attention. Gradient checkpointing is the separate memory-reduction mechanism mentioned for reducing how much of that information remains stored."
+        }
+      ]
+    },
+    {
+      "id": "transformer.attention.window-compute-cache",
+      "section": "2f47eb87-3605-800d-8a09-c1899537be9f",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For attention restricted to the last $W$ tokens, how does processing a length-$S$ sequence scale?",
+          "answer": "$O(SW)$ rather than $O(S^2)$, because each of the $S$ queries uses at most $W$ keys.",
+          "explanation": "The count is $S\\cdot O(W)=O(SW)$ instead of $S\\cdot O(S)=O(S^2)$. Tokens outside the window can also leave that layer's cache. ⚠️ Note: the sequence-independent cache claim applies to windowed layers; interleaved global layers still require their own longer history."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A layer attending only to the last $W$ tokens can discard older K/V entries once they leave its window.",
+          "answer": true,
+          "explanation": "That layer's future queries cannot use entries outside the retained window, so keeping them does not affect its attention result. Its cache is bounded by $W$, paralleling the change to $O(SW)$ sequence compute. ⚠️ Note: this does not justify evicting history needed by any interleaved global-attention layers."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rmsnorm.featurewise-scale-control",
+      "section": "3027eb87-3605-80eb-9698-c24b98e22833",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why give RMSNorm a learned vector $\\gamma$ rather than one shared scalar?",
+          "answer": "A vector allows different features to have different learned magnitudes after normalization.",
+          "explanation": "Normalization divides by a shared RMS, while $\\gamma_i$ rescales feature $i$ separately. A single scalar could only raise or lower every feature together, losing that per-feature control. This separates numerical scale stabilization from the network's learned preference for some feature magnitudes over others."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "After RMSNorm's learned rescaling, the hidden vector is required to retain unit RMS.",
+          "answer": false,
+          "explanation": "The normalized values are multiplied by $\\gamma$, so feature-dependent amplification or suppression can change the RMS again. Unit-scale normalization is an intermediate step rather than a constraint on the final output. ⚠️ Note: even before rescaling, the stabilizing $\\epsilon$ makes exact unit RMS an approximation."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rmsnorm.near-zero-feature-scale",
+      "section": "3027eb87-3605-80eb-9698-c24b98e22833",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "What is the effect of an RMSNorm scale $\\gamma_i$ near zero?",
+          "choices": [
+            "Increase the whole vector's RMS",
+            "Suppress only feature $i$",
+            "Subtract feature $i$'s mean",
+            "Redistribute attention to feature $i$"
+          ],
+          "correct": 1,
+          "explanation": "The normalized coordinate is multiplied by $\\gamma_i$, so a near-zero scale nearly removes that coordinate's contribution. It does not center the feature or renormalize attention probabilities, and it is not a uniform vector-wide scale change. This is a direct use of RMSNorm's learned per-feature control."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Setting an RMSNorm scale $\\gamma_i=0$ deletes feature $i$ from the residual stream.",
+          "answer": false,
+          "explanation": "The RMSNorm only feeds a branch: $\\bar{\\mathbf X}=\\frac{\\mathbf X}{\\operatorname{RMS}(\\mathbf X)+\\epsilon}\\odot\\gamma$, while the residual update is $\\mathbf X\\leftarrow\\mathbf X+\\text{branch}(\\bar{\\mathbf X})$. With $\\gamma_i=0$ that branch cannot read feature $i$, but $x_i$ still flows unchanged along the residual path and other blocks can read it. Only $\\gamma_{\\text{final}}$ zeroing $i$ would hide it from the unembedding."
+        }
+      ]
+    },
+    {
+      "id": "transformer.swiglu-ffn.gate-carries-content",
+      "section": "3027eb87-3605-80af-8e23-c14452b10898",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is the SwiGLU gate branch more than a sigmoid confidence weight?",
+          "answer": "Its output includes $\\mathbf G$ itself: $\\operatorname{Swish}(\\mathbf G)=\\mathbf G\\odot\\sigma(\\mathbf G)$, so it contributes learned content.",
+          "explanation": "The full product is $\\mathbf H=\\mathbf G\\odot\\sigma(\\mathbf G)\\odot\\mathbf U$. The sigmoid modulates the gate representation, but does not replace it, so both projected representations influence the content. Treating the branch as only $\\sigma(\\mathbf G)$ drops a multiplicative term and describes a different function."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In SwiGLU, the up branch is the sole content representation and the gate branch supplies only a sigmoid weight.",
+          "answer": false,
+          "explanation": "The gate contributes $\\mathbf G\\odot\\sigma(\\mathbf G)$, not merely $\\sigma(\\mathbf G)$. Thus $\\mathbf H=(\\mathbf G\\odot\\sigma(\\mathbf G))\\odot\\mathbf U$ combines two learned representations. The distinction explains why the gate projection should be understood as content with self-modulation, not just a probability-like switch."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.query-key-targets",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Of queries, keys and values, which does RoPE rotate, and why not the third?",
+          "answer": "Queries and keys only. Position should change which tokens attend to which (the scores), not the content that is passed along (the values).",
+          "explanation": "The scores are $(R_{m\\theta}\\mathbf q)^\\top R_{n\\theta}\\mathbf k=\\mathbf q^\\top R_{(n-m)\\theta}\\mathbf k$, so rotating Q and K is enough to make selection depend on relative position. The output $\\mathbf O=\\mathbf A\\mathbf V$ just mixes values with those weights. Rotating V would also alter what is transmitted, which is not the job of a positional encoding here."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "RoPE also rotates the value vectors, so that attention outputs carry position.",
+          "answer": false,
+          "explanation": "Only $\\mathbf q_m$ and $\\mathbf k_m$ are rotated. Position enters through the score $(R_{m\\theta}\\mathbf q)^\\top R_{n\\theta}\\mathbf k=\\mathbf q^\\top R_{(n-m)\\theta}\\mathbf k$, which decides who attends to whom; the values are the content mixed by those weights in $\\mathbf O=\\mathbf A\\mathbf V$ and stay unrotated."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.relative-position-score",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What positional term remains in the dot product of a RoPE query at $m$ and key at $n$?",
+          "answer": "$\\mathbf q^\\top R_{(n-m)\\theta}\\mathbf k$: the rotation depends on the offset $n-m$.",
+          "explanation": "The algebra is $(R_{m\\theta}\\mathbf q)^\\top R_{n\\theta}\\mathbf k=\\mathbf q^\\top R_{-m\\theta}R_{n\\theta}\\mathbf k=\\mathbf q^\\top R_{(n-m)\\theta}\\mathbf k$. The transpose reverses one angle, producing a difference rather than a sum. The content vectors still affect the score; only its positional dependence is relative."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Holding Q/K content fixed, shifting both token positions by the same amount leaves their RoPE dot product unchanged.",
+          "answer": true,
+          "explanation": "For a common shift $c$, $(n+c)-(m+c)=n-m$, so the remaining rotation is unchanged. This follows from $\\mathbf q^\\top R_{(n-m)\\theta}\\mathbf k$, not from either rotated vector being position-independent. The two vectors rotate differently at new absolute positions but preserve their relative phase."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.transpose-inverse-rotation",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which identity lets the transposed query rotation cancel part of the key rotation?",
+          "choices": [
+            "$R_\\alpha^\\top=R_\\alpha$",
+            "$R_\\alpha R_\\beta=R_{\\alpha\\beta}$",
+            "$R_\\alpha^\\top=R_{-\\alpha}$",
+            "$R_\\alpha^\\top R_\\alpha=R_{2\\alpha}$"
+          ],
+          "correct": 2,
+          "explanation": "Transposing a rotation reverses its angle, $R_\\alpha^\\top=R_{-\\alpha}$, so $$R_{m\\theta}^\\top R_{n\\theta}=R_{-m\\theta}R_{n\\theta}=R_{(n-m)\\theta}.$$ A rotation is not symmetric (that would make the angles add), angles compose by addition rather than multiplication, and $R_\\alpha^\\top R_\\alpha=R_0$ is the identity, not a doubled rotation."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What goes wrong if you treat a RoPE rotation's transpose as the original rotation?",
+          "answer": "You would add the position angles and obtain an $m+n$ dependence instead of the correct $n-m$ dependence.",
+          "explanation": "The correct chain is $R_{m\\theta}^\\top R_{n\\theta}=R_{-m\\theta}R_{n\\theta}=R_{(n-m)\\theta}$. Replacing the transpose by $R_{m\\theta}$ would yield $R_{(m+n)\\theta}$. The sign reversal is what prevents a common shift of both positions from changing the positional part of the score."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.independent-pair-blocks",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What structure does the $H\\times H$ RoPE matrix $\\mathbf R_m$ have for one position?",
+          "answer": "Block-diagonal: $H/2$ independent $2\\times2$ rotation blocks, one per coordinate pair, each with its own angle $m\\theta_i$.",
+          "explanation": "Each block acts on two coordinates, so $H=(H/2)\\cdot2$ gives $H/2$ independent blocks. The full matrix is block-diagonal rather than a dense mixing across the head. Each pair receives its own frequency, which lets different pairs represent different distance scales."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A RoPE rotation at one position mixes coordinates from different dimension pairs.",
+          "answer": false,
+          "explanation": "The full $H\\times H$ rotation is block-diagonal with $2\\times2$ blocks. Off-block entries are zero, so each output pair depends only on its corresponding input pair. Position changes the angle within each block, while distinct pair frequencies provide the range of positional scales."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.coordinate-rotation-signs",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For a pair $[x_1,x_2]$ rotated by $m\\theta_i$, what is its second coordinate?",
+          "answer": "$x_1\\sin(m\\theta_i)+x_2\\cos(m\\theta_i)$.",
+          "explanation": "The matrix's second row gives $\\sin(m\\theta_i)x_1+\\cos(m\\theta_i)x_2$. The first coordinate instead uses a subtraction, so exchanging signs changes the rotation. ⚠️ Note: one expanded vector in the source repeats $x_2$ in the sine term; its matrix and implementation support $x_1$ there."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "In a positive-angle pair rotation, which expression gives the first coordinate?",
+          "choices": [
+            "$x_1\\cos\\theta-x_2\\sin\\theta$",
+            "$x_1\\cos\\theta+x_2\\sin\\theta$",
+            "$x_1\\sin\\theta-x_2\\cos\\theta$",
+            "$x_1\\sin\\theta+x_2\\cos\\theta$"
+          ],
+          "correct": 0,
+          "explanation": "The first row of $R_\\theta$ is $[\\cos\\theta,-\\sin\\theta]$, so the output is $x_1\\cos\\theta-x_2\\sin\\theta$. The plus sign reverses the needed cross-term, while the sine-first choices swap coordinate roles. ⚠️ Note: a separate expanded second-coordinate expression in the source contains a typo; the rotation matrix is consistent."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.rotation-preserves-magnitude",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "RoPE can change a query-key dot product while preserving each vector's Euclidean norm.",
+          "answer": true,
+          "explanation": "For one vector, $\\|R_\\alpha\\mathbf x\\|^2=\\mathbf x^\\top R_\\alpha^\\top R_\\alpha\\mathbf x=\\mathbf x^\\top\\mathbf x$. Two vectors at different positions receive different rotations, so their relative angle and dot product can still change. This is distinct from QK normalization, which explicitly controls input magnitudes."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Does applying RoPE itself amplify a query vector's norm as its position increases?",
+          "answer": "No. A rotation preserves the norm; increasing position changes its angle.",
+          "explanation": "Using $R_\\alpha^\\top=R_{-\\alpha}$ gives $R_\\alpha^\\top R_\\alpha=R_0=I$, hence $\\|R_\\alpha\\mathbf q\\|^2=\\|\\mathbf q\\|^2$. The positional effect therefore comes through relative orientation, not norm growth. ⚠️ Note: rotation alone also does not establish the source's unqualified claim of monotonic dot-product decay with distance."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "transformer.rope.geometric-frequency-spacing",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What frequency schedule gives RoPE a logarithmically spread range of positional scales?",
+          "answer": "$\\theta_i=\\Theta^{-2i/H}$, an exponential schedule across dimension-pair index $i$.",
+          "explanation": "Taking logs gives $\\log\\theta_i=-(2i/H)\\log\\Theta$, so equal index steps produce equal log-frequency steps. Linear spacing of the frequencies themselves would not have this property. The schedule creates rapidly changing pairs for short distances and slowly changing pairs for long distances."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "For successive RoPE dimension pairs, which ratio stays constant?",
+          "choices": [
+            "$\\theta_{i+1}-\\theta_i$",
+            "$\\theta_{i+1}/\\theta_i$",
+            "$(i+1)\\theta_{i+1}$",
+            "$\\theta_i+\\theta_{i+1}$"
+          ],
+          "correct": 1,
+          "explanation": "From $\\theta_i=\\Theta^{-2i/H}$, $\\theta_{i+1}/\\theta_i=\\Theta^{-2/H}$, independent of $i$. A constant difference would describe linear spacing; the product and sum do not remain fixed under this schedule. Geometric frequency spacing is why the pairs cover multiple distance scales."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.fast-slow-distance-scales",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which RoPE dimension pairs change least between adjacent positions (with $\\Theta>1$)?",
+          "choices": [
+            "Pairs with the smallest index $i$",
+            "Pairs near the middle, $i\\approx H/4$",
+            "Pairs with the largest index $i$",
+            "None: every pair advances by the same angle"
+          ],
+          "correct": 2,
+          "explanation": "One position adds $\\theta_i=\\Theta^{-2i/H}$ to pair $i$'s angle, and this shrinks as $i$ grows, so the largest-$i$ pairs barely move and carry long-range information. Small-$i$ pairs ($\\theta_0=1$ radian per token) spin fast and separate nearby positions. A single shared angle is exactly what RoPE avoids: each pair gets its own frequency."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The RoPE pair with index $i=0$ is the one that tracks the longest distances.",
+          "answer": false,
+          "explanation": "$\\theta_0=\\Theta^0=1$ radian per position is the fastest pair: it wraps around every $2\\pi\\approx6.3$ positions, so it discriminates nearby tokens. Long range is carried by large $i$, where $\\theta_i=\\Theta^{-2i/H}$ is tiny and the phase changes little over many positions. The exponential spacing covers the scales in between."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.base-controls-slow-scales",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "What conventional RoPE base $\\Theta$ is used in the frequency schedule described here?",
+          "answer": 10000,
+          "tolerance": 0,
+          "explanation": "The usual base is $\\Theta=10^4=10000$ (`rotary_base` in HF), used in $\\theta_i=\\Theta^{-2i/H}$. As RoPE's only hyperparameter it sets the slowest frequency, about $\\Theta^{-1}$, and with it the longest distance the model natively distinguishes. The pairs range from $\\theta_0=1$ down to about $10^{-4}$ radians per position."
+        },
+        {
+          "kind": "recall",
+          "prompt": "If $\\Theta$ increases with $H$ fixed, what happens to RoPE frequencies for $i>0$?",
+          "answer": "They decrease, so those pairs rotate more slowly and have longer periods; the $i=0$ frequency remains 1.",
+          "explanation": "For $i>0$ the exponent in $\\theta_i=\\Theta^{-2i/H}$ is negative, so a larger base lowers $\\theta_i$ and lengthens every period $2\\pi/\\theta_i$. The slowest pair's period, about $2\\pi\\Theta$, grows in proportion, which extends the longest distance the model natively distinguishes. Only $\\theta_0=\\Theta^0=1$ is unaffected."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.rotation-period-relation",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How many positions make one RoPE pair complete a full rotation at frequency $\\theta_i$?",
+          "answer": "A period of $2\\pi/\\theta_i$ positions in the continuous-position formula.",
+          "explanation": "A full turn satisfies $m\\theta_i=2\\pi$, hence $m=2\\pi/\\theta_i$. Smaller frequencies therefore produce longer periods, linking slow pairs to longer positional scales. ⚠️ Note: the source's $d\\pi/\\theta_i$ expression is a typo, and discrete integer positions need not land exactly on a full turn."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "With $\\Theta=10^4$, about how many positions does the slowest RoPE pair need for one full turn?",
+          "answer": 62832,
+          "tolerance": 0.05,
+          "unit": "positions",
+          "explanation": "A full turn needs $m\\theta_i=2\\pi$; with the slowest frequency $\\Theta^{-1}$, $$m=\\frac{2\\pi}{\\Theta^{-1}}=2\\pi\\Theta\\approx62{,}832.$$ This is the longest distance the default base natively distinguishes. ⚠️ Note: the last pair is $i=H/2-1$, so exactly $\\theta=\\Theta^{-1+2/H}$, slightly faster than $\\Theta^{-1}$; the notes use the large-$H$ value."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.complex-rotation-equivalence",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which complex operation rotates a coordinate pair $z=x_{2i}+ix_{2i+1}$ by angle $\\theta$?",
+          "choices": [
+            "$z(\\cos\\theta+\\sin\\theta)$",
+            "$\\bar z\\,e^{i\\theta}$",
+            "$ze^{-i\\theta}$",
+            "$ze^{i\\theta}$"
+          ],
+          "correct": 3,
+          "explanation": "Euler gives $e^{i\\theta}=\\cos\\theta+i\\sin\\theta$, so $$(a+bi)e^{i\\theta}=(a\\cos\\theta-b\\sin\\theta)+i(a\\sin\\theta+b\\cos\\theta),$$ exactly the two outputs of $R_\\theta$. Dropping the $i$ gives a real scaling, not a rotation; conjugating $z$ first reflects the pair; $e^{-i\\theta}$ rotates by $-\\theta$."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can multiplying by a unit complex number replace a two-coordinate RoPE matrix multiplication?",
+          "answer": "Its real and imaginary parts reproduce the same sine/cosine coordinate mixing as the rotation matrix.",
+          "explanation": "With $z=a+bi$, $ze^{i\\theta}=(a\\cos\\theta-b\\sin\\theta)+i(a\\sin\\theta+b\\cos\\theta)$. The real part matches the first rotated coordinate and the imaginary part matches the second. This is an algebraic reformulation of each independent pair rotation, not an extra learned transformation."
+        }
+      ]
+    },
+    {
+      "id": "transformer.rope.elementwise-rotation-form",
+      "section": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "To rotate $[x_1,x_2]$ elementwise, $[x_1,x_2]\\odot\\cos(m\\theta)$ is added to which vector times $\\sin(m\\theta)$?",
+          "answer": "$[-x_2,x_1]$.",
+          "explanation": "The identity is $[x_1,x_2]\\cos\\theta+[-x_2,x_1]\\sin\\theta=[x_1\\cos\\theta-x_2\\sin\\theta,\\;x_2\\cos\\theta+x_1\\sin\\theta]$. A plain swap without the minus sign would not implement the rotation. This elementwise form avoids constructing the full block-diagonal matrix."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "RoPE's pair rotations can be computed with elementwise products without constructing an $H\\times H$ matrix.",
+          "answer": true,
+          "explanation": "For each pair, combine $[x_1,x_2]\\cos\\theta$ with $[-x_2,x_1]\\sin\\theta$. This produces the same two outputs as the $2\\times2$ rotation block, and repeating it handles the whole head. The block-diagonal mathematical description therefore does not require a dense matrix allocation."
+        }
+      ]
+    }
+  ]
+}

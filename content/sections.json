@@ -109,7 +109,8 @@
     "title": "The modern transformer LM",
     "level": 1,
     "order": 13,
-    "hash": "1425fafa2c6c5bc786a92b098223777eaf4626b6142abe4874d9febe49cf71d5"
+    "hash": "1425fafa2c6c5bc786a92b098223777eaf4626b6142abe4874d9febe49cf71d5",
+    "coveredHash": "1425fafa2c6c5bc786a92b098223777eaf4626b6142abe4874d9febe49cf71d5"
   },
   {
     "id": "2e57eb87-3605-8073-848b-d08ea5f13e59",
@@ -117,7 +118,8 @@
     "title": "Architecture",
     "level": 2,
     "order": 14,
-    "hash": "7945b4ef6fed8814a325d674ddf14008941ae5f138e856056d410746264545ba"
+    "hash": "7945b4ef6fed8814a325d674ddf14008941ae5f138e856056d410746264545ba",
+    "coveredHash": "7945b4ef6fed8814a325d674ddf14008941ae5f138e856056d410746264545ba"
   },
   {
     "id": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
@@ -125,7 +127,8 @@
     "title": "Implementation notes",
     "level": 2,
     "order": 15,
-    "hash": "2dcc86d6d7da315c9bb69ae79c4cb2e0f7c976d0a8a76fdaecf8fd9effa5af84"
+    "hash": "2dcc86d6d7da315c9bb69ae79c4cb2e0f7c976d0a8a76fdaecf8fd9effa5af84",
+    "coveredHash": "2dcc86d6d7da315c9bb69ae79c4cb2e0f7c976d0a8a76fdaecf8fd9effa5af84"
   },
   {
     "id": "3027eb87-3605-803c-be9a-f8980c3ba36a",
@@ -133,7 +136,8 @@
     "title": "Accounting",
     "level": 2,
     "order": 16,
-    "hash": "ad8e27980bbdc7931639c06a9ad9814bd063d915d6199fc9addd517bfd019c2b"
+    "hash": "ad8e27980bbdc7931639c06a9ad9814bd063d915d6199fc9addd517bfd019c2b",
+    "coveredHash": "ad8e27980bbdc7931639c06a9ad9814bd063d915d6199fc9addd517bfd019c2b"
   },
   {
     "id": "3027eb87-3605-805d-b53d-dbd0eee537d6",
@@ -141,7 +145,8 @@
     "title": "Model parameters",
     "level": 3,
     "order": 17,
-    "hash": "459c62227882eabff3f1cbe51e3f5fafbeb3a78070edbfba4b7803878ad40daf"
+    "hash": "459c62227882eabff3f1cbe51e3f5fafbeb3a78070edbfba4b7803878ad40daf",
+    "coveredHash": "459c62227882eabff3f1cbe51e3f5fafbeb3a78070edbfba4b7803878ad40daf"
   },
   {
     "id": "3027eb87-3605-803c-a1a7-e0d4c3070d10",
@@ -149,7 +154,8 @@
     "title": "Model activations",
     "level": 3,
     "order": 18,
-    "hash": "81fe516ef143d452e8595723f629bf8caa20497f1dc3d4b77abdc8d3e667d96a"
+    "hash": "81fe516ef143d452e8595723f629bf8caa20497f1dc3d4b77abdc8d3e667d96a",
+    "coveredHash": "81fe516ef143d452e8595723f629bf8caa20497f1dc3d4b77abdc8d3e667d96a"
   },
   {
     "id": "3027eb87-3605-803e-9fdf-ff2be7333715",
@@ -157,7 +163,8 @@
     "title": "FLOPs in forward pass",
     "level": 3,
     "order": 19,
-    "hash": "015dcf8ac14fc6ad5439e28487308118f96e4d4fbe4f5fd3fd9af623f9cac9af"
+    "hash": "015dcf8ac14fc6ad5439e28487308118f96e4d4fbe4f5fd3fd9af623f9cac9af",
+    "coveredHash": "015dcf8ac14fc6ad5439e28487308118f96e4d4fbe4f5fd3fd9af623f9cac9af"
   },
   {
     "id": "3177eb87-3605-8082-8e62-dbd2adc0435f",
@@ -165,7 +172,8 @@
     "title": "FLOPs in backward pass",
     "level": 3,
     "order": 20,
-    "hash": "9cec11876a7a77d74f6861a8f747c6a785e39d2b675141f325657df3ccf4a31c"
+    "hash": "9cec11876a7a77d74f6861a8f747c6a785e39d2b675141f325657df3ccf4a31c",
+    "coveredHash": "9cec11876a7a77d74f6861a8f747c6a785e39d2b675141f325657df3ccf4a31c"
   },
   {
     "id": "2f47eb87-3605-8051-b5f0-d769aebd66cc",
@@ -173,7 +181,8 @@
     "title": "Inference memory use",
     "level": 3,
     "order": 21,
-    "hash": "fe21378cae2733d1f27d6c85c9930a137370b03184e7968c43344c564f43ed36"
+    "hash": "fe21378cae2733d1f27d6c85c9930a137370b03184e7968c43344c564f43ed36",
+    "coveredHash": "fe21378cae2733d1f27d6c85c9930a137370b03184e7968c43344c564f43ed36"
   },
   {
     "id": "3027eb87-3605-80ff-a857-e851e773b3f6",
@@ -181,7 +190,8 @@
     "title": "Train memory use",
     "level": 3,
     "order": 22,
-    "hash": "5fd003a1e60b8ffb19756a6b6e28d5530bbd87be351f1085e8bd2296ff0aed9c"
+    "hash": "5fd003a1e60b8ffb19756a6b6e28d5530bbd87be351f1085e8bd2296ff0aed9c",
+    "coveredHash": "5fd003a1e60b8ffb19756a6b6e28d5530bbd87be351f1085e8bd2296ff0aed9c"
   },
   {
     "id": "2f47eb87-3605-800d-8a09-c1899537be9f",
@@ -189,7 +199,8 @@
     "title": "Attention",
     "level": 2,
     "order": 23,
-    "hash": "f9904aa3c558974c760868eff34c9a94ab39f96312e71756d58ab12a23580982"
+    "hash": "f9904aa3c558974c760868eff34c9a94ab39f96312e71756d58ab12a23580982",
+    "coveredHash": "f9904aa3c558974c760868eff34c9a94ab39f96312e71756d58ab12a23580982"
   },
   {
     "id": "3027eb87-3605-80eb-9698-c24b98e22833",
@@ -197,7 +208,8 @@
     "title": "RMSNorm",
     "level": 2,
     "order": 24,
-    "hash": "a63fc7b0c529a561f56fbc6eef4842cae3303f1845d81395b1acceaa3a872303"
+    "hash": "a63fc7b0c529a561f56fbc6eef4842cae3303f1845d81395b1acceaa3a872303",
+    "coveredHash": "a63fc7b0c529a561f56fbc6eef4842cae3303f1845d81395b1acceaa3a872303"
   },
   {
     "id": "3027eb87-3605-80af-8e23-c14452b10898",
@@ -205,7 +217,8 @@
     "title": "SwiGLU FFN",
     "level": 2,
     "order": 25,
-    "hash": "fd8dbf4fc608edfe86f6cdc191da24d69942f2af33149c413e56bc6d34a7ecfa"
+    "hash": "fd8dbf4fc608edfe86f6cdc191da24d69942f2af33149c413e56bc6d34a7ecfa",
+    "coveredHash": "fd8dbf4fc608edfe86f6cdc191da24d69942f2af33149c413e56bc6d34a7ecfa"
   },
   {
     "id": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
@@ -213,7 +226,8 @@
     "title": "RoPE",
     "level": 2,
     "order": 26,
-    "hash": "11f2eab5d8fa2a1f2baec06f80234caa089607f2d666c22a646bf48b4b86b944"
+    "hash": "11f2eab5d8fa2a1f2baec06f80234caa089607f2d666c22a646bf48b4b86b944",
+    "coveredHash": "11f2eab5d8fa2a1f2baec06f80234caa089607f2d666c22a646bf48b4b86b944"
   },
   {
     "id": "2ed7eb87-3605-8082-9d65-f39c901c2ef2",
