@@ -33,6 +33,8 @@ export interface CheckResult {
 }
 
 const RECALL_MAX = 400;
+const PROMPT_MAX = 180;
+const CHOICE_MAX = 90;
 const VERBATIM_MIN = 5;
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -145,6 +147,15 @@ export function checkBank(files: BankFile[], sections: Section[]): CheckResult {
         const where = (field: string) => `variants[${vi}].${field}`;
         for (const f of textFields(q)) {
           for (const m of checkMathInText(f.value)) err(`${where(f.label)}: ${m}`, label);
+        }
+        // Calibrated style (GUIDE §2.1): short, plain prompts; the difficulty is in knowing.
+        if (r.retired !== true && typeof q.prompt === 'string' && q.prompt.length > PROMPT_MAX) {
+          warn(`${where('prompt')}: prompt is ${q.prompt.length} characters (> ${PROMPT_MAX}); make it shorter and plainer`, label);
+        }
+        if (r.retired !== true && q.kind === 'mcq' && Array.isArray(q.choices)) {
+          q.choices.forEach((c, ci) => {
+            if (typeof c === 'string' && c.length > CHOICE_MAX) warn(`${where(`choices[${ci}]`)}: choice is ${c.length} characters (> ${CHOICE_MAX})`, label);
+          });
         }
         if (q.kind === 'recall' && typeof q.answer === 'string' && typeof q.prompt === 'string') {
           if (q.answer.length > RECALL_MAX) warn(`${where('answer')}: recall answer is ${q.answer.length} characters (> ${RECALL_MAX})`, label);

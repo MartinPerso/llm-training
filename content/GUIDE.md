@@ -10,6 +10,30 @@ Inputs you read: `.cache/book/*.md` (one file per section, gitignored) and `.cac
 
 ## 2. Quality bar
 
+### 2.1 Calibrated style (from the reader's feedback: this overrides anything below)
+
+After playing the first chapter, the reader asked for the opposite of what it had: **questions easy to understand, hard to answer.** The difficulty must come from *knowing* something in the notes, never from decoding the prompt or doing arithmetic.
+
+- **Short, plain prompts.** One or two sentences, ideally under 150 characters (the checker warns above 180). No scenario to set up, no list of given values to parse. If you need a setup paragraph, the question is wrong.
+- **The answer is a specific piece of knowledge from the notes**: a mechanism, a fact, a formula, a number the notes state or that follows from one fact. Someone with general common sense but who hasn't retained the notes should not be able to answer.
+- **Numeric only when the number is the knowledge.** Good: "How many times does standard attention move the $N\times N$ matrix through HBM?" (4: you must know the write/read/write/read pattern). Bad: giving every input and asking for the product. Arithmetic, if any, is a one-liner the reader could do in their head.
+- **No "common-sense calculations"** (throughput = requests × speed, percentages of idle time). The reader flagged these as not interesting.
+- **True/false statements are one short line** that states a plausible misconception or its correction. The trap is in the content, not in the phrasing.
+- **MCQ choices are short** (a few words, under 90 characters each): the reader should spend time deciding, not reading.
+- Plain fact recall is acceptable **if the fact is non-obvious** (it can't be guessed). Pure definitions of a term remain banned.
+
+Calibrated examples (Inference):
+
+| Too hard to read / too easy to answer | Calibrated |
+|---|---|
+| "4 requests at 40 tok/s each; the batch grows to 8 at 25 tok/s each. Aggregate throughput?" | Retired: only arithmetic. |
+| "Four requests generate 10, 10, 20 and 460 tokens in a batch released when the slowest finishes… what % of slot-time is useful?" | recall: "One sequence in a batch finishes. What does continuous batching do that traditional batching doesn't?" |
+| mcq with 4 sentence-long choices on why selective batching works | truefalse: "Prefill is memory-bound and decode is compute-bound." (false: the reverse, which is why mixing them pays off) |
+| "After concatenating several short training examples into one long sequence, the ordinary causal mask by itself is enough to keep each example independent of the others." | truefalse: "With sequence packing, the usual causal mask is enough." (false) |
+| "Model with $L=24$, $K=16$, $H=64$, 2 bytes, $B=32$, $S=2048$: KV cache size?" | numeric: "A 32-head model switches from MHA to MQA. By what factor does the KV cache shrink?" (32) |
+| — | numeric: "A drafted token has $p(x)>q(x)$. Probability it is accepted?" (1) |
+| — | recall: "A drafted token is rejected. From which distribution is the replacement sampled?" ($\max(0,p-q)$, renormalized) |
+
 ### Do
 
 1. **Test understanding, not recognition.** Ask for a mechanism ("why"), a consequence ("what breaks if..."), a comparison ("X vs Y: which one and why"), a number that matters (memory, FLOPs, shapes, orders of magnitude), or a misconception (a trap that sounds right).
@@ -34,18 +58,7 @@ Inputs you read: `.cache/book/*.md` (one file per section, gitignored) and `.cac
 
 ### Bad to good rewrites
 
-| Bad (recognition, gives away, or trivia) | Good (needs the idea) |
-|---|---|
-| "What does the KV cache store?" | "Decoding token 501 of a prompt, which tensors from the previous 500 steps are reused, and which per-token computation is still done fresh?" |
-| "What is a vanishing gradient?" | "Why does stacking 50 sigmoid layers make early layers learn far slower than late ones, even if each layer's weights are well scaled? Give the bound that drives it." |
-| "Softmax turns logits into a probability distribution. True or false?" (trivially true) | "True or false: adding the same constant $c$ to every logit changes the softmax output." (False, and it is why subtracting the max is safe.) |
-| "What is the formula for LoRA rank?" (formula recall with no use) | "A frozen $d\times d$ weight gets a rank-$r$ update. For $d=4096$, $r=16$, how many trainable parameters does one such matrix add?" (numeric: $2dr$) |
-| "Flash attention is faster because it is optimized. True or false?" | "Flash attention does not reduce the number of attention FLOPs. What does it reduce, and why does that make it faster in practice?" |
-| "Which optimizer uses momentum? A) SGD B) Adam C) Adam with momentum D) All of the above" | "Adam keeps two running statistics per parameter. Which one rescales the step per parameter, and what does that do to parameters with consistently large gradients?" |
-| "GQA stands for?" | MCQ: "A model has 32 query heads and 8 KV heads. By what factor is its KV cache smaller than full multi-head attention?" with 4 close numeric distractors (2, 4, 8, 32) |
-| "Why is the learning rate important?" (vague) | "You double the learning rate and the loss curve starts spiking after warmup, then recovers. Give one mechanism-level reason spikes are more likely at a higher rate." |
-| "Describe PPO." | "PPO clips the probability ratio $r_t$. For a positive advantage, at what value of $r_t$ does the gradient stop pushing the probability up, and why is that desirable?" |
-| "How many bytes is FP16?" (trivial) | "A 7B-parameter model is served in BF16. How many GB do the weights take, ignoring everything else?" (numeric, $\approx 14$ GB) |
+See the calibrated examples in §2.1. The general pattern: cut the scenario, ask for the one thing the reader must have retained.
 
 ## 3. Choosing the kind
 
@@ -58,7 +71,7 @@ Each concept has 1 to 3 **variants**; each variant is one of four kinds:
 | `mcq` | Telling apart **confusable** things (two optimizers, two parallelism schemes, MQA vs GQA vs MLA) | Exactly 4 choices, one correct. |
 | `truefalse` | Misconceptions and traps: statements that sound right but are subtly wrong | Aim for about half false. Avoid double negatives and absolute words ("always", "never") that give the answer away. |
 
-Target mix across a chapter's variants (adapt to the section; never force a kind the section does not support): about **30% recall, 25% numeric, 25% mcq, 20% truefalse**. If a chapter has little quantitative content (for example Multimodality), shift the numeric share to recall and mcq. Do not invent numbers to hit the quota.
+Target mix across a chapter's variants (adapt to the section; never force a kind the section does not support): about **35% recall, 15% numeric, 25% mcq, 25% truefalse**. Numeric must pass the §2.1 test (the number is the knowledge); when in doubt, use recall. If a chapter has little quantitative content (for example Multimodality), shift the numeric share to recall and mcq. Do not invent numbers to hit the quota.
 
 ### Kind-specific rules
 
@@ -99,7 +112,7 @@ The book's text must never be committed, and the question bank is public.
 - All text fields are **Markdown** with KaTeX: `$inline$` and `$$display$$`. Use `$$...$$` sparingly (a prompt that needs it is probably too long).
 - In JSON strings every backslash is doubled: `"$\\frac{1}{2}$"`, `"$\\mathbb{R}^{n}$"`. A literal dollar sign is written `\\$` in the JSON (so `"costs \\$5"`); an unescaped lone `$` is an error. Inside math, write `\\%` for a percent sign.
 - Newlines inside a string are `\n`. Prefer single paragraphs.
-- Keep **prompts under about 300 characters** and **explanations to 1-3 sentences**.
+- Keep **prompts under about 150 characters** (the checker warns above 180), **MCQ choices under 90**, and **explanations to 1-3 sentences**. See §2.1.
 - Plain Markdown only: no raw HTML, no images, no tables. Bold and inline code are fine.
 - `npm run bank:check` renders every `$...$` and `$$...$$` with KaTeX and fails on errors, so fix what it reports. It also warns when a recall answer exceeds 400 characters or a prompt contains its own answer verbatim: treat those warnings as defects.
 
@@ -219,13 +232,14 @@ For example, the file for "The modern transformer LM" is `content/questions/tran
 
 ## 12. Self-check before you finish a chapter
 
-- [ ] Could the reader answer any question just by recognising a phrase from the book? Rewrite it.
+- [ ] Is every prompt short and plain (§2.1), so that the time goes into recalling, not reading?
+- [ ] Could the reader answer any question just by recognising a phrase from the book, or by common sense? Rewrite it.
 - [ ] Does any prompt contain its own answer, or a hint at it?
 - [ ] Is every numeric answer derivable from the notes, with units and assumptions in the prompt and the arithmetic in the explanation?
 - [ ] Do all MCQ distractors represent a real confusion, with a balanced correct index and similar lengths?
 - [ ] Are true/false statements about half false, and are the false ones plausible?
 - [ ] Is every claim in a prompt, answer or explanation supported by the notes (or clearly marked as general context / `⚠️ Note:`)?
 - [ ] Is the prose my own, with notation identical to the book?
-- [ ] Is the kind mix close to 30/25/25/20 where the section allows?
+- [ ] Is the kind mix close to 35/15/25/25 (recall/numeric/mcq/truefalse) where the section allows, and does every numeric pass the §2.1 test?
 - [ ] Are ids unique, permanent and in the `<chapter>.<section>.<idea>` form, and does each `section` belong to the file's chapter?
 - [ ] Does `npm run bank:check` pass, and did I then run `npm run book:covered -- <chapter-slug>`?
