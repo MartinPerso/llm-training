@@ -9,6 +9,9 @@ const sections: Section[] = [
   { id: 'sec-3', chapter: 'Precision', title: 'Precision', level: 1, order: 2, hash: 'h3', coveredHash: 'old' },
 ];
 
+// Explanations must be rich (>= 120 chars) to pass without warnings.
+const rich = (s: string) => `${s} The rest of this sentence only pads the explanation comfortably past the checker's minimum length for a rich, teaching explanation.`;
+
 const valid: ChapterFile = {
   chapter: 'Inference',
   concepts: [
@@ -16,16 +19,16 @@ const valid: ChapterFile = {
       id: 'inference.kv-cache.bytes-per-token',
       section: 'sec-2',
       variants: [
-        { kind: 'numeric', prompt: 'How many bytes per token for $L=2$ layers?', answer: 8, tolerance: 0, unit: 'bytes', explanation: 'Because $2L \\cdot 2$.' },
-        { kind: 'recall', prompt: 'Why does the cache help?', answer: 'It avoids recomputing keys and values.' },
+        { kind: 'numeric', prompt: 'How many bytes per token for $L=2$ layers?', answer: 8, tolerance: 0, unit: 'bytes', explanation: rich('Because $2L \\cdot 2$.') },
+        { kind: 'recall', prompt: 'Why does the cache help?', answer: 'It avoids recomputing keys and values.', explanation: rich('Past keys and values do not change.') },
       ],
     },
     {
       id: 'inference.kv-cache.growth',
       section: 'sec-2',
       variants: [
-        { kind: 'mcq', prompt: 'Which grows with $S$?', choices: ['A', 'B', 'C', 'D'], correct: 2, explanation: 'C does.' },
-        { kind: 'truefalse', prompt: 'The cache is free.', answer: false, explanation: 'It costs memory: \\$ matters.' },
+        { kind: 'mcq', prompt: 'Which grows with $S$?', choices: ['A', 'B', 'C', 'D'], correct: 2, explanation: rich('C does.') },
+        { kind: 'truefalse', prompt: 'The cache is free.', answer: false, explanation: rich('It costs memory: \\$ matters.') },
       ],
     },
   ],
@@ -42,6 +45,12 @@ describe('checkBank', () => {
     expect(r.stats.totalConcepts).toBe(2);
     expect(r.stats.totalVariants).toBe(4);
     expect(r.stats.kinds).toEqual({ numeric: 1, recall: 1, mcq: 1, truefalse: 1 });
+  });
+
+  it('warns on a thin or missing explanation', () => {
+    const thin = { ...valid, concepts: [{ ...valid.concepts[1], variants: [{ kind: 'truefalse', prompt: 'The cache is free.', answer: false, explanation: 'No.' }] }] };
+    const r = run(thin);
+    expect(r.warnings.map((w) => w.message).join('\n')).toMatch(/explanation is 3 characters/);
   });
 
   it('passes with no files', () => {
