@@ -151,7 +151,7 @@
           "kind": "truefalse",
           "prompt": "After a rejection, the replacement token is sampled directly from the target distribution $p$.",
           "answer": false,
-          "explanation": "False. Accepted drafts already supply $\\min(q(x),p(x))$ of each token's probability, so the replacement should supply only the shortfall $\\max(0,p(x)-q(x))$. Drawing from $p$ would count tokens the draft already covers twice and skew the output away from $p$. The renormalized residual is the one distribution for which the two routes add up exactly to $p$."
+          "explanation": "False. The accept route delivers $q(x)\\min\\left(1,\\frac{p(x)}{q(x)}\\right)=\\min(q(x),p(x))$, so the shortfall the replacement must cover is $$p(x)-q(x)\\min\\left(1,\\tfrac{p(x)}{q(x)}\\right)=p(x)-\\min(q(x),p(x))=\\max(p(x)-q(x),0).$$ Drawing from $p$ instead would add mass to tokens the accept route already covers, and the output would drift away from $p$."
         }
       ]
     },
