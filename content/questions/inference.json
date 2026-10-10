@@ -102,13 +102,13 @@
             "The longest sequence's length alone"
           ],
           "correct": 2,
-          "explanation": "The budget is checked after padding every sequence to the longest one in its batch, so it is effectively batch size times that longest length. Counting only real tokens would let padding slip past the cap, counting sequences ignores their length, and the longest length alone ignores how many sequences share the batch. Sequence packing attacks the same padding waste by concatenating examples instead of bounding the padded total."
+          "explanation": "The budget constrains the padded batch: $$B\\cdot L_{\\max}\\le\\text{budget},$$ where $B$ is the number of sequences and $L_{\\max}$ the longest one in the batch (everything is padded to it). Counting real tokens would let padding slip past the cap, $B$ alone ignores lengths, and $L_{\\max}$ alone ignores how many sequences share the batch. Sequence packing attacks the same padding waste by concatenating examples instead."
         },
         {
           "kind": "recall",
           "prompt": "Why does capping the total tokens per batch make sense for GPU memory?",
           "answer": "Memory is determined by batch_size × sequence_length, so bounding the padded token count bounds memory whatever the mix of lengths.",
-          "explanation": "Memory grows with the product batch_size × sequence_length, so a fixed ceiling on that product keeps every batch inside the same memory envelope, whether it holds many short sequences or a few long ones. A cap on batch size alone would not do this, since a few long sequences could still overflow. ⚠️ Note: the notes put this technique in the Inference chapter but describe it as mostly a finetuning practice."
+          "explanation": "Memory grows with the padded size of the batch, so $$\\text{memory}\\propto B\\cdot L_{\\max}\\le\\text{budget}$$ keeps every batch in the same envelope: $B=64$ short sequences and $B=4$ long ones can cost the same. A cap on $B$ alone would not do this, since a few long sequences could still overflow. ⚠️ Note: the notes put this technique in the Inference chapter but describe it as mostly a finetuning practice."
         }
       ]
     },
@@ -121,7 +121,7 @@
           "prompt": "A drafted token has $p(x)>q(x)$. With what probability is it accepted?",
           "answer": 1,
           "tolerance": 0,
-          "explanation": "The acceptance probability is $\\min(1,p(x)/q(x))$, and when $p(x)>q(x)$ the ratio exceeds 1, so the token is definitely kept: the target likes it at least as much as the draft did, so there is nothing to correct. Only tokens the draft over-proposes ($q>p$) are accepted with a probability below 1, which is what pulls the output toward $p$."
+          "explanation": "With $r=\\frac{p(x)}{q(x)}$, $$\\min\\left(1,\\tfrac{p(x)}{q(x)}\\right)=\\min(1,r)=1\\quad\\text{when } p(x)>q(x)\\ (r>1),$$ and the accepted mass is then $q(x)\\cdot 1=q(x)=\\min(q(x),p(x))$. The target likes the token at least as much as the draft did, so nothing needs thinning. Only over-proposed tokens ($q>p$, so $r<1$) are accepted with probability $p/q$, which pulls the output toward $p$."
         },
         {
           "kind": "mcq",
@@ -133,7 +133,7 @@
             "$\\max(0,p(x)-q(x))$"
           ],
           "correct": 1,
-          "explanation": "Accept with probability $\\min(1,p(x)/q(x))$: the target in the numerator means tokens the draft over-proposes are thinned out while under-proposed ones are always kept. The flipped ratio $q/p$ would do the opposite and bare $p(x)$ ignores the draft. The last choice is the unnormalized distribution used to resample after a rejection, not the acceptance test."
+          "explanation": "$$q(x)\\cdot\\min\\left(1,\\tfrac{p(x)}{q(x)}\\right)=\\min(q(x),p(x))\\le p(x),$$ so accepted drafts never deliver more than the target's $p(x)$: over-proposed tokens ($q>p$) are thinned by $p/q$, under-proposed ones are always kept. The flipped ratio $\\min(1,q/p)$ would keep an over-proposed token with probability 1 and deliver $q(x)>p(x)$. Bare $p(x)$ ignores the draft, and $\\max(0,p-q)$ is the unnormalized residual used after a rejection."
         }
       ]
     },
@@ -145,7 +145,7 @@
           "kind": "recall",
           "prompt": "A drafted token is rejected. From which distribution is the replacement sampled?",
           "answer": "From $\\max(0,p(x)-q(x))$, renormalized so it sums to 1.",
-          "explanation": "The residual $\\max(0,p(x)-q(x))$ holds exactly the probability mass that accepted drafts under-supply, so sampling from it (after renormalizing) tops each token up to its target value. Sampling from $p$ itself would over-count tokens that drafts already cover. The resampling starts at the first rejected position, and this top-up is what makes the overall output match $p$."
+          "explanation": "Accepted drafts deliver $\\min(q(x),p(x))$, so what the replacement must still supply is $$p(x)-q(x)\\min\\left(1,\\tfrac{p(x)}{q(x)}\\right)=p(x)-\\min(q(x),p(x))=\\max(p(x)-q(x),0).$$ Sampling from this residual (renormalized by $\\sum_{x'}\\max(0,p(x')-q(x'))$) tops each token up to exactly $p(x)$, whereas sampling from $p$ would double-count tokens drafts already cover. Resampling starts at the first rejected position."
         },
         {
           "kind": "truefalse",
@@ -163,13 +163,13 @@
           "kind": "truefalse",
           "prompt": "A poor draft model slows speculative decoding down but does not change the distribution of the output tokens.",
           "answer": true,
-          "explanation": "True: the output follows $p$ whatever $q$ is, because accepted drafts and residual resamples add up to $p(x)$ for every token. A weak draft only means more rejections, so each target pass yields fewer tokens and the speedup shrinks. Quality is never traded for speed here; the draft quality only controls how much speed you gain."
+          "explanation": "True: for every token $x$, $$P(\\text{emit }x)=\\underbrace{\\min(q(x),p(x))}_{\\text{accepted draft}}+\\underbrace{\\max(0,p(x)-q(x))}_{\\text{residual resample}}=p(x),$$ since $q\\ge p$ gives $p+0$ and $q<p$ gives $q+(p-q)$. The draft $q$ cancels out of the total, so a poor draft only means more rejections, hence fewer tokens per target pass and a smaller speedup. Quality is never traded for speed."
         },
         {
           "kind": "recall",
           "prompt": "A token has $q(x)<p(x)$, so accepted drafts give it only $q(x)$. Where does the rest of $p(x)$ come from?",
           "answer": "From the rejection route: the replacement distribution $\\max(0,p-q)$ contributes exactly $p(x)-q(x)$ for it.",
-          "explanation": "Accepted drafts give this token only $\\min(q(x),p(x))=q(x)$, so the shortfall must come from rejections. Rejection happens with total probability $\\sum_{x'}\\max(0,p(x')-q(x'))$ (equal to the sum of $\\max(0,q-p)$ because both distributions sum to 1), and the renormalized residual then picks $x$ with exactly the share that makes the product $p(x)-q(x)$. The two routes add up to $p(x)$."
+          "explanation": "Accepted drafts give $q(x)\\min(1,\\frac{p(x)}{q(x)})=q(x)$ here. A rejection happens with probability $Z=\\sum_{x'}\\max(0,p(x')-q(x'))$ (equal to $\\sum_{x'}\\max(0,q(x')-p(x'))$ because $p$ and $q$ both sum to 1), and the renormalized residual picks $x$ with probability $\\frac{p(x)-q(x)}{Z}$, so $$Z\\cdot\\frac{p(x)-q(x)}{Z}=p(x)-q(x),\\qquad q(x)+\\big(p(x)-q(x)\\big)=p(x).$$ The rejection route supplies exactly the shortfall."
         }
       ]
     },
@@ -182,7 +182,7 @@
           "prompt": "A target pass verifies $K=4$ drafted tokens and accepts all of them. How many tokens does the round emit?",
           "answer": 5,
           "tolerance": 0,
-          "explanation": "The 4 accepted drafts plus one extra token make 5. The extra comes from scoring: when the target runs over the drafts it also produces next-token logits after the last one, at no additional cost. So a round always ends with one token sampled from the target, giving between 1 and $K+1$ tokens per target pass."
+          "explanation": "$$\\underbrace{K}_{\\text{accepted drafts}}+\\underbrace{1}_{\\text{target's free sample}}=4+1=5.$$ The extra token comes from the target's next-token logits after the last draft, which scoring produces at no additional cost. If draft $j$ is the first rejection, the round yields $(j-1)+1=j$ tokens (accepted prefix plus the resample), so a round gives between $1$ and $K+1$ tokens per target pass."
         },
         {
           "kind": "mcq",
@@ -194,13 +194,13 @@
             "A second target pass over the accepted tokens"
           ],
           "correct": 2,
-          "explanation": "Scoring the drafts in one pass also gives the target's next-token logits after the last draft, so one more token is sampled from the target at no extra cost. It does not come from the draft model (that would skip verification), nor from $\\max(0,p-q)$ (only used after a rejection), and no second target pass is needed."
+          "explanation": "$$\\text{tokens per round}=\\underbrace{K}_{\\text{drafts}}+\\underbrace{1}_{\\text{from the target}}=K+1.$$ Scoring the $K$ drafts in one pass also gives the target's next-token logits after the last draft, so one more token is sampled from the target at no extra cost. It does not come from the draft model (that would skip verification), nor from $\\max(0,p-q)$ (only used after a rejection), and no second target pass is needed."
         },
         {
           "kind": "recall",
           "prompt": "Draft token 3 of 5 is rejected. What happens to drafts 4 and 5, and why?",
           "answer": "They are discarded: they were generated after token 3, which is now replaced, so they continue a prefix that is never emitted.",
-          "explanation": "Drafts are generated one after another, so drafts 4 and 5 were conditioned on token 3 as the draft model proposed it. Once token 3 is rejected and replaced by a resampled one, they continue a prefix that is never emitted and their verdicts mean nothing, so the round stops at the first rejected position. The next round drafts afresh from the corrected prefix."
+          "explanation": "Drafts are generated one after another, so drafts 4 and 5 were conditioned on token 3 as the draft proposed it. Once token 3 is rejected and resampled, they continue a prefix that is never emitted and their verdicts mean nothing: $$\\underbrace{(3-1)}_{\\text{accepted}}+\\underbrace{1}_{\\text{resample}}=3\\text{ tokens emitted, not }K+1=6.$$ The round stops at the first rejected position, and the next round drafts afresh from the corrected prefix."
         }
       ]
     },
@@ -236,13 +236,13 @@
             "$2\\cdot L\\cdot K\\cdot H$"
           ],
           "correct": 3,
-          "explanation": "Each layer stores $K\\cdot H$ values for the keys and the same for the values, so $2\\cdot K\\cdot H$ per layer and $2\\cdot L\\cdot K\\cdot H$ per token. Dropping the 2 forgets V, dropping $L$ counts a single layer, and the version with $S$ is the total for a whole sequence rather than per token. ⚠️ Note: the formula counts values, not bytes, so multiply by the dtype size; the notes' code allocates num_heads heads (plain MHA), where GQA would use $K$."
+          "explanation": "Per layer, keys and values each hold $K\\cdot H$ values: $$\\underbrace{K\\cdot H}_{\\text{keys}}+\\underbrace{K\\cdot H}_{\\text{values}}=2\\cdot K\\cdot H,\\qquad L\\cdot 2KH=2\\cdot L\\cdot K\\cdot H\\text{ per token}.$$ Dropping the 2 forgets V, dropping $L$ counts one layer, and the version with $S$ is the total for a whole sequence. ⚠️ Note: this counts values, so multiply by the dtype size; the notes' code allocates num_heads heads (plain MHA), where GQA would use $K$."
         },
         {
           "kind": "truefalse",
           "prompt": "In GQA, the KV cache size is set by the number of query heads $N$, not by $K$.",
           "answer": false,
-          "explanation": "False: only keys and values are cached, so the size scales with the number of KV heads $K$. Query heads matter for compute, but queries are recomputed for the new token at each step and never stored. That is why GQA and MQA shrink the cache by lowering $K$ below $N$ while keeping all $N$ query heads."
+          "explanation": "False: only K and V are cached, so $$\\text{cache per token}=2\\cdot L\\cdot K\\cdot H,$$ with no $N$ anywhere. MHA is $K=N$, MQA is $K=1$, and GQA lowers $K$ below $N$, shrinking the cache by $N/K$ while all $N$ query heads stay. Queries matter for compute but are recomputed for the new token at each step and never stored."
         }
       ]
     },
@@ -297,7 +297,7 @@
           "prompt": "A 32-head model switches from MHA to MQA. By what factor does its KV cache shrink?",
           "answer": 32,
           "tolerance": 0,
-          "explanation": "MQA keeps one shared K and V instead of one pair per head, so the cache drops from 32 heads' worth to 1: a factor of num_heads, here 32. The query heads are untouched; only what gets stored changes. GQA sits between MHA and this extreme, so its saving is a smaller factor."
+          "explanation": "Only the number of cached K/V heads changes: $$\\frac{\\text{MHA cache}}{\\text{MQA cache}}=\\frac{2\\cdot L\\cdot N\\cdot H}{2\\cdot L\\cdot 1\\cdot H}=N=32.$$ MQA keeps one shared K and V instead of one pair per head, so the cache shrinks by num_heads. The query heads are untouched; only what gets stored changes. GQA sits between MHA and this extreme, so its saving is a smaller factor."
         },
         {
           "kind": "mcq",
@@ -309,14 +309,14 @@
             "$K=N/2$"
           ],
           "correct": 2,
-          "explanation": "$K=1$ gives a single shared K/V for all 32 query heads, which is MQA (group size $G=N//K=32$). $K=N$ gives every query head its own K/V, plain MHA, and $K=N/2$ is a mild GQA setting. $G=1$ is the trap: groups of one head each means no sharing at all, which is MHA again."
+          "explanation": "With group size $G=N/K$ (query heads per K/V pair): $$K=1\\Rightarrow G=\\tfrac{32}{1}=32\\ (\\text{MQA}),\\qquad K=N\\Rightarrow G=\\tfrac{32}{32}=1\\ (\\text{MHA}).$$ So $K=1$ is the single shared K/V of MQA. $K=N$ gives every query head its own K/V, and $K=N/2$ is a mild GQA setting. $G=1$ is the trap: groups of one head each mean no sharing at all, which is MHA again."
         },
         {
           "kind": "numeric",
           "prompt": "A 32-head model uses GQA with $K=8$ KV heads. By what factor is its KV cache smaller than MHA's?",
           "answer": 4,
           "tolerance": 0,
-          "explanation": "The cache scales linearly with the number of KV heads, so going from 32 to 8 divides it by $32/8=4$; equivalently each K/V pair is shared by $G=32//8=4$ query heads. MHA is the case $K=32$ (factor 1) and MQA the case $K=1$ (factor 32), with GQA interpolating between them."
+          "explanation": "The cache is proportional to the number of KV heads, so $$\\frac{\\text{MHA cache}}{\\text{GQA cache}}=\\frac{2\\cdot L\\cdot N\\cdot H}{2\\cdot L\\cdot K\\cdot H}=\\frac{N}{K}=\\frac{32}{8}=4,$$ equivalently each K/V pair is shared by $G=N/K=4$ query heads. MHA is $K=32$ (factor 1) and MQA is $K=1$ (factor 32), with GQA interpolating between them."
         }
       ]
     },
@@ -400,7 +400,7 @@
           "kind": "truefalse",
           "prompt": "Cross-layer attention shrinks the KV cache along the same axis as GQA does.",
           "answer": false,
-          "explanation": "False: the per-token cache $2\\cdot L\\cdot K\\cdot H$ has separate factors. Cross-layer attention cuts $L$ (fewer distinct K/V sets across layers), while GQA cuts $K$ (fewer KV heads inside each layer). They are different levers on the same product, which is why the two names should not be conflated."
+          "explanation": "False: the per-token cache $2\\cdot L\\cdot K\\cdot H$ has separate factors. GQA lowers $K$ (fewer KV heads inside each layer): $2\\cdot L\\cdot K'\\cdot H$ with $K'<K$. Cross-layer attention lowers $L$ (fewer distinct K/V sets across layers): $2\\cdot L'\\cdot K\\cdot H$ with $L'<L$. They are different levers on the same product, which is why the two names should not be conflated."
         }
       ]
     },
@@ -412,7 +412,7 @@
           "kind": "truefalse",
           "prompt": "With local attention, the KV cache size does not depend on sequence length.",
           "answer": true,
-          "explanation": "True: a token that has slid out of the window will never be attended to again, so its K and V can be thrown away and the cache never holds more than a window's worth of tokens, however long the sequence grows. Under standard attention the cache grows with every token. The price is that tokens beyond the window are no longer visible."
+          "explanation": "True: with a window of $W$ tokens, $$\\text{tokens cached}=\\min(S,W)\\le W,\\qquad\\text{vs. standard attention: } S,$$ so the cache stays at most $2\\cdot L\\cdot K\\cdot H\\cdot W$ values per sequence however long it grows. A token that slid out of the window will never be attended to again, so its K and V can be thrown away. The price is that tokens beyond the window are no longer visible."
         },
         {
           "kind": "recall",
@@ -450,13 +450,13 @@
           "kind": "truefalse",
           "prompt": "Raising the temperature can enlarge the set of tokens that top-p keeps.",
           "answer": true,
-          "explanation": "True: top-p keeps tokens until their cumulative probability passes $p$. A higher temperature flattens the distribution, so the mass is spread over more tokens and more of them are needed to reach $p$; a lower temperature does the reverse. Top-k differs in that it keeps a fixed count of tokens whatever the shape of the distribution."
+          "explanation": "True. With $p_i=\\frac{e^{z_i/T}}{\\sum_j e^{z_j/T}}$, two tokens satisfy $$\\frac{p_i}{p_j}=e^{(z_i-z_j)/T},$$ so a larger $T$ shrinks the gaps and flattens the distribution, and more tokens are needed before the cumulative sum $\\sum_{j\\le i}p_{(j)}$ passes the top-p threshold; a lower $T$ does the reverse. Top-k differs: it keeps a fixed count of tokens whatever the shape."
         },
         {
           "kind": "recall",
           "prompt": "Why can't changing the temperature change which tokens top-k keeps?",
           "answer": "Dividing logits by a positive temperature preserves their order, so the same $k$ highest logits remain.",
-          "explanation": "Dividing logits by a positive temperature sharpens or flattens the gaps but cannot reorder tokens, so the $k$ highest logits are the same $k$ tokens at any temperature. Top-p behaves differently because it reads cumulative probabilities, which do depend on how flat the distribution is. That is why the sampler applies temperature first: it shapes what the filters then cut."
+          "explanation": "For $T>0$, $$z_i>z_j\\iff\\frac{z_i}{T}>\\frac{z_j}{T},$$ and softmax is increasing, so the order of the tokens never changes: the $k$ highest logits are the same $k$ tokens at any temperature. Only the gaps $(z_i-z_j)/T$ change. Top-p behaves differently because it reads cumulative probabilities, which depend on how flat the distribution is. That is why the sampler applies temperature first."
         }
       ]
     },
@@ -468,14 +468,14 @@
           "kind": "truefalse",
           "prompt": "In top-p, the first token whose cumulative probability exceeds $p$ is removed.",
           "answer": false,
-          "explanation": "False: the token that pushes the cumulative sum past $p$ is kept. The code shifts the removal flags one position down, so only tokens after the crossing are dropped, and the first token is always kept. Without the shift the set could come out too small, or empty when the top token alone exceeds $p$. ⚠️ Note: the code comment says tokens above the threshold are removed, which is loosely worded."
+          "explanation": "False. Sort the probabilities, let $c_i=\\sum_{j\\le i}p_{(j)}$ and $m_i=[c_i>p]$. The code shifts the flags down, $$\\text{remove}_i=m_{i-1},\\qquad\\text{remove}_1=\\text{False},$$ so the first token with $c_i>p$ has $\\text{remove}_i=m_{i-1}=\\text{False}$ and is kept; only later tokens are dropped. Without the shift the set could be empty when the top token alone exceeds $p$. ⚠️ Note: the code comment is loosely worded."
         },
         {
           "kind": "numeric",
           "prompt": "The top token alone has probability 0.6 and top_p is 0.3. How many tokens can be sampled?",
           "answer": 1,
           "tolerance": 0,
-          "explanation": "The top token's cumulative probability (0.6) already exceeds 0.3, so it is the crossing token and is kept, while everything after it is removed. The code also forces the first flag to False, so the top token can never be removed. A very small top_p therefore ends up as greedy decoding rather than an empty set."
+          "explanation": "The cumulative sum is $c_1=0.6>0.3$, so $m_1=\\text{True}$. After the shift, $$\\text{remove}_1=\\text{False}\\ (\\text{forced}),\\qquad\\text{remove}_2=m_1=\\text{True},$$ and every later token is removed too, leaving exactly 1 token. The crossing token is kept and the top token can never be dropped, so a very small top_p ends up as greedy decoding rather than an empty set."
         }
       ]
     },
@@ -487,13 +487,13 @@
           "kind": "recall",
           "prompt": "When both top-k and top-p are set, which probabilities does top-p's cumulative sum use?",
           "answer": "The softmax over the tokens that survived top-k (the rest are set to $-\\infty$), so it is renormalized over those $k$ tokens.",
-          "explanation": "After top-k, every other logit is $-\\infty$, so the softmax inside top-p gives them probability 0 and renormalizes over the $k$ survivors. The cumulative sum is therefore measured within the top-k set, not over the full vocabulary, and climbs faster than it would otherwise, so top-p tends to trim more."
+          "explanation": "After top-k, every other logit is $-\\infty$ and $e^{-\\infty}=0$, so the softmax inside top-p is $$p_i=\\frac{e^{z_i}}{\\sum_{j\\in\\text{top-}k}e^{z_j}},\\qquad c_i=\\frac{\\sum_{j\\le i}e^{z_j}}{\\sum_{j\\in\\text{top-}k}e^{z_j}}.$$ The denominator only sums the $k$ survivors, which is smaller than the full-vocabulary sum, so $c_i$ climbs faster than it would otherwise and top-p tends to trim more."
         },
         {
           "kind": "truefalse",
           "prompt": "With top-k applied first, top-p can still keep more than $k$ tokens.",
           "answer": false,
-          "explanation": "False: top-k sets every logit outside the $k$ best to $-\\infty$, so those tokens have probability 0 in top-p's softmax and cannot be revived. Top-p can only trim the survivors further, so the final set has at most $k$ tokens. The two filters combine by intersection, after the temperature scaling that precedes both."
+          "explanation": "False: top-k sets every logit outside the $k$ best to $-\\infty$, and $e^{-\\infty}=0$ gives those tokens probability 0 in top-p's softmax, so they cannot be revived: $$S_{\\text{final}}=S_{\\text{top-}p}\\cap S_{\\text{top-}k}\\ \\Rightarrow\\ |S_{\\text{final}}|\\le k.$$ Top-p can only trim the survivors further. The two filters combine by intersection, after the temperature scaling that precedes both."
         }
       ]
     },
@@ -511,7 +511,7 @@
             "Temperature, top-k, top-p"
           ],
           "correct": 3,
-          "explanation": "The code divides the logits by the temperature first, then applies top-k, then top-p, and finally softmaxes and samples. Temperature goes first so the filters, top-p in particular, see the reshaped distribution; top-k goes before top-p so that top-p's cumulative sum is taken over the survivors. Putting top-p first would measure cumulative mass over the full vocabulary instead."
+          "explanation": "The code composes the steps as $$z\\ \\to\\ \\frac{z}{T}\\ \\to\\ \\text{top-}k\\ \\to\\ \\text{top-}p\\ \\to\\ \\text{softmax}\\ \\to\\ \\text{sample}.$$ Temperature goes first so the filters, top-p in particular, see the reshaped distribution; top-k goes before top-p so that top-p's cumulative sum is taken over the survivors. Putting top-p first would measure cumulative mass over the full vocabulary instead."
         }
       ]
     },
@@ -529,7 +529,7 @@
             "2x, 2x"
           ],
           "correct": 2,
-          "explanation": "Standard attention materializes an $N\\times N$ matrix per head, so doubling $N$ quadruples it ($O(n^2)$). FlashAttention never builds that matrix and only keeps tiles, bringing attention activation memory to $O(n)$, so it merely doubles. \"4x, 1x\" is wrong because even the output grows with length, and the options with 2x for standard attention understate the quadratic growth."
+          "explanation": "Standard attention stores an $N\\times N$ matrix per head, so $$(2N)^2=4N^2\\ \\Rightarrow\\ 4\\times,$$ while FlashAttention keeps only tiles and the output, $O(2N)=2\\cdot O(N)\\Rightarrow 2\\times$. \"4x, 1x\" is wrong because even the output grows with length, and the options with 2x for standard attention understate the quadratic growth."
         },
         {
           "kind": "numeric",
@@ -537,7 +537,7 @@
           "answer": 4.3,
           "tolerance": 0.1,
           "unit": "GB",
-          "explanation": "$8192^2\\times 32\\times 2\\text{ bytes}\\approx 4.3$ GB (the notes say about 4 GB): $8192^2\\approx 6.7\\times 10^{7}$ scores per head, times 32 heads, times 2 bytes for FP16. Doubling $S$ would quadruple this, which is why the matrix, not the weights, becomes the memory problem at long context."
+          "explanation": "$$8192^2\\times 32\\times 2\\text{ B}=2^{26}\\cdot 2^{5}\\cdot 2^{1}\\text{ B}=2^{32}\\text{ B}\\approx 4.3\\text{ GB}$$ (the notes say about 4 GB): $2^{26}\\approx 6.7\\times10^7$ scores per head, times 32 heads, times 2 bytes for FP16. Doubling $S$ would quadruple this, which is why the matrix, not the weights, becomes the memory problem at long context."
         }
       ]
     },
@@ -550,7 +550,7 @@
           "prompt": "How many times does standard attention move the $N\\times N$ matrix through HBM?",
           "answer": 4,
           "tolerance": 0,
-          "explanation": "The matrix makes four trips: written to HBM after the scores, read back for the softmax, written again, and read again for the product with the values. These are slow main-memory trips that grow quadratically with $N$, which is why standard attention is memory-bound rather than arithmetic-bound. FlashAttention removes them by keeping tiles in SRAM."
+          "explanation": "The matrix makes four trips: $$\\underbrace{\\text{write}}_{\\text{scores}}+\\underbrace{\\text{read}}_{\\text{softmax}}+\\underbrace{\\text{write}}_{\\text{weights}}+\\underbrace{\\text{read}}_{\\text{times }V}=4\\text{ passes of }N^2,$$ so HBM traffic grows like $4N^2$ per head. These slow trips, not the arithmetic, make standard attention memory-bound. FlashAttention removes them by keeping tiles in SRAM and writing only the $N\\times\\text{head\\_dim}$ output."
         },
         {
           "kind": "recall",
@@ -580,7 +580,7 @@
           "kind": "recall",
           "prompt": "A row's softmax needs all $S$ scores, but a tile in SRAM holds only some. What trick makes tiling still correct?",
           "answer": "The online softmax: keep running per-row statistics (max and sum of exponentials) and rescale partial results as each new tile arrives.",
-          "explanation": "Softmax over a row needs the row's global max and sum of exponentials, but both can be kept as running values: for each new tile, update them and rescale the partial output accumulated so far to match. After the last tile the result equals the full softmax times V, so a row can be processed in pieces without ever holding all $S$ scores at once."
+          "explanation": "Keep a running max $m$, sum $\\ell$ and output $o$ per row. For a new tile with scores $s$ and values $v$, with $m'=\\max(m,\\max s)$: $$\\ell'=e^{m-m'}\\ell+\\sum e^{s-m'},\\qquad o'=e^{m-m'}o+\\sum e^{s-m'}v,$$ and after the last tile $o/\\ell$ equals the full softmax times $V$. The rescaling by $e^{m-m'}$ corrects earlier tiles for the new max, so a row is processed in pieces without ever holding all $S$ scores. (The update formulas are general math, not spelled out in the notes.)"
         },
         {
           "kind": "mcq",
@@ -610,7 +610,7 @@
           "kind": "recall",
           "prompt": "Why would passing FlashAttention an explicit $S\\times S$ mask hurt its memory savings?",
           "answer": "The mask has $S^2$ entries, so it brings back quadratic memory and its reads, even if the scores are never stored.",
-          "explanation": "A mask has one entry per query-key pair, so $S^2$ entries: the same quadratic size as the score matrix FlashAttention avoids, and it must be stored and read as the kernel loops over tiles. Passing it brings back quadratic memory and traffic even though the scores themselves are never stored, which is why the fused flag is preferred."
+          "explanation": "A mask has one entry per query-key pair: $$S\\times S=S^2\\ \\text{entries}\\quad(S=8192:\\ 2^{26}\\approx 6.7\\times10^7),$$ the same count as one head's score matrix, and it must be stored and read as the kernel loops over tiles. Passing it brings back quadratic memory and traffic even though the scores themselves are never stored, which is why the fused is_causal flag is preferred."
         }
       ]
     }
