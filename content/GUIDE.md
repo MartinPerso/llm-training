@@ -20,6 +20,10 @@ After playing the first chapter, the reader asked for the opposite of what it ha
 - **No "common-sense calculations"** (throughput = requests × speed, percentages of idle time). The reader flagged these as not interesting.
 - **True/false statements are one short line** that states a plausible misconception or its correction. The trap is in the content, not in the phrasing.
 - **MCQ choices are short** (a few words, under 90 characters each): the reader should spend time deciding, not reading.
+- **Short prompt, rich explanation.** The explanation is where the reader learns, especially after a miss, so it is the opposite of the prompt: 2-4 sentences (about 200-450 characters) that (1) explain *why* the answer is right, with the mechanism, (2) say why the tempting wrong answer or each distractor is wrong, and (3) connect the idea to a neighbouring one from the notes. Never just list names. Every variant has one, recall included (the checker warns under 120 characters).
+  - Thin: "That is sequence packing. Token-budget batching caps tokens per batch, and the other two schedule requests."
+  - Rich: "Sequence packing concatenates short examples into one max-length sequence so no compute is spent on padding; the catch is that it needs attention masks so tokens cannot attend across example boundaries. Token-budget batching fights the same padding waste differently: examples stay separate and batches are formed so that batch size × longest length stays under a budget. Continuous and selective batching are inference schedulers: they decide which requests run together, not how training examples are laid out."
+- **The answer must not be implied by the name of the thing.** "Which tensors does a KV cache keep?" or "With local attention, does the cache depend on sequence length?" answer themselves.
 - Plain fact recall is acceptable **if the fact is non-obvious** (it can't be guessed). Pure definitions of a term remain banned.
 
 Calibrated examples (Inference):
@@ -40,7 +44,7 @@ Calibrated examples (Inference):
 2. **One idea per concept.** If you need "and" to describe the answer, split it into two concepts.
 3. **The prompt never gives away the answer.** Do not put the key term, the formula's result, or a paraphrase of the answer in the question.
 4. **State assumptions and units** in numeric prompts (dtype, which symbols are given, per token or per layer, ...).
-5. **Explain the why** in every explanation, in 1-3 sentences. The explanation is what the reader learns from a miss.
+5. **Explain the why** in every explanation, in 2-4 sentences (§2.1). The explanation is what the reader learns from a miss.
 6. **Prefer "what happens if" over "what is".** Perturb the setup: halve a dimension, drop a term, swap an order, change a dtype.
 7. **Use the book's notation** (`$B$, $S$, $D$, $L$, $N$, $K$, $H$, $F$, $V$, ...) so the question matches what the reader saw.
 8. **Make each variant self-contained.** The app shows one variant per review. Variant 2 must not need variant 1 to be understood, and must not leak variant 1's answer.
@@ -112,7 +116,7 @@ The book's text must never be committed, and the question bank is public.
 - All text fields are **Markdown** with KaTeX: `$inline$` and `$$display$$`. Use `$$...$$` sparingly (a prompt that needs it is probably too long).
 - In JSON strings every backslash is doubled: `"$\\frac{1}{2}$"`, `"$\\mathbb{R}^{n}$"`. A literal dollar sign is written `\\$` in the JSON (so `"costs \\$5"`); an unescaped lone `$` is an error. Inside math, write `\\%` for a percent sign.
 - Newlines inside a string are `\n`. Prefer single paragraphs.
-- Keep **prompts under about 150 characters** (the checker warns above 180), **MCQ choices under 90**, and **explanations to 1-3 sentences**. See §2.1.
+- Keep **prompts under about 150 characters** (the checker warns above 180), **MCQ choices under 90**, and **explanations to 2-4 sentences** (about 200-450 characters, see §2.1: short prompt, rich explanation).
 - Plain Markdown only: no raw HTML, no images, no tables. Bold and inline code are fine.
 - `npm run bank:check` renders every `$...$` and `$$...$$` with KaTeX and fails on errors, so fix what it reports. It also warns when a recall answer exceeds 400 characters or a prompt contains its own answer verbatim: treat those warnings as defects.
 

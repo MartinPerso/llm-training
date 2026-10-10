@@ -35,6 +35,7 @@ export interface CheckResult {
 const RECALL_MAX = 400;
 const PROMPT_MAX = 180;
 const CHOICE_MAX = 90;
+const EXPLANATION_MIN = 120;
 const VERBATIM_MIN = 5;
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -151,6 +152,10 @@ export function checkBank(files: BankFile[], sections: Section[]): CheckResult {
         // Calibrated style (GUIDE §2.1): short, plain prompts; the difficulty is in knowing.
         if (r.retired !== true && typeof q.prompt === 'string' && q.prompt.length > PROMPT_MAX) {
           warn(`${where('prompt')}: prompt is ${q.prompt.length} characters (> ${PROMPT_MAX}); make it shorter and plainer`, label);
+        }
+        if (r.retired !== true) {
+          const ex = typeof q.explanation === 'string' ? q.explanation.trim() : '';
+          if (ex.length < EXPLANATION_MIN) warn(`${where('explanation')}: explanation is ${ex.length ? `${ex.length} characters` : 'missing'} (< ${EXPLANATION_MIN}); explain why the answer is right and the tempting ones wrong`, label);
         }
         if (r.retired !== true && q.kind === 'mcq' && Array.isArray(q.choices)) {
           q.choices.forEach((c, ci) => {
