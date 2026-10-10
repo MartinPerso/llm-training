@@ -30,7 +30,7 @@
           "kind": "recall",
           "prompt": "One sequence in a batch finishes. What does continuous batching do that traditional batching doesn't?",
           "answer": "It immediately slots a waiting request into the freed place, so the batch stays full. Traditional batching leaves that slot idle until every sequence in the batch is done.",
-          "explanation": "A short sequence no longer waits for the longest one. ⚠️ Note: the notes say the batch is \"always full\", which only holds while requests are actually queued."
+          "explanation": "Continuous batching refills a finished sequence's slot with a waiting request straight away, whereas traditional batching holds the slot idle until the slowest sequence is done (a 10-token reply sits behind a 500-token one). The gain is that short requests no longer pay for long neighbours. ⚠️ Note: the notes say the batch is \"always full\", which only holds while requests are actually queued."
         },
         {
           "kind": "mcq",
@@ -42,7 +42,7 @@
             "Continuous batching"
           ],
           "correct": 3,
-          "explanation": "Continuous batching swaps a new request in as soon as a sequence ends. Traditional batching waits for the whole batch; selective and token-budget batching address other problems."
+          "explanation": "Continuous batching swaps a new request in the moment a sequence ends, while traditional batching leaves the slot empty until the whole batch finishes. Selective batching is about mixing prefill and decode sequences, and token-budget batching is about capping the padded token count of a batch, so neither one refills slots."
         }
       ]
     },
@@ -54,12 +54,13 @@
           "kind": "truefalse",
           "prompt": "Prefill is memory-bound and decode is compute-bound.",
           "answer": false,
-          "explanation": "It is the reverse: prefill is compute-heavy and decode is memory-bound. That contrast is why selective batching mixes the two phases."
+          "explanation": "It is the reverse: prefill is compute-heavy, while decode is memory-bound, meaning each step waits on memory rather than on arithmetic. Because the two phases stress different resources, selective batching mixes them so that prefill work can use the arithmetic that decode leaves spare. Swapping the labels would make that whole motivation backwards."
         },
         {
           "kind": "recall",
           "prompt": "Selective batching mixes prefill and decode sequences in one batch. Why does that help?",
-          "answer": "Decode steps are memory-bound and leave the arithmetic units underused, while prefill is compute-heavy and can fill that spare compute."
+          "answer": "Decode steps are memory-bound and leave the arithmetic units underused, while prefill is compute-heavy and can fill that spare compute.",
+          "explanation": "Decode handles one new token per sequence per step, so it is memory-bound and its arithmetic units are partly idle; prefill is compute-heavy and can soak up that slack when it shares the batch. Running each phase alone wastes one resource or the other. The same prefill-versus-generation contrast is what speculative decoding exploits when it verifies drafted tokens in a prefill-like pass."
         }
       ]
     },
@@ -71,7 +72,7 @@
           "kind": "truefalse",
           "prompt": "With sequence packing, the usual causal mask is enough.",
           "answer": false,
-          "explanation": "A causal mask alone lets a token attend to earlier examples packed in the same sequence. Extra attention masks are needed to stop cross-contamination between examples."
+          "explanation": "Packing concatenates several examples into one sequence, and a causal mask only forbids looking at later positions, so a token in the second example could still attend to every token of the first one before it. Extra attention masks block those cross-example links so each example behaves as if it were alone. Without them, the padding savings would come at the cost of leaking context between unrelated examples."
         },
         {
           "kind": "mcq",
@@ -83,7 +84,7 @@
             "Selective batching"
           ],
           "correct": 0,
-          "explanation": "That is sequence packing. Token-budget batching caps tokens per batch, and the other two schedule requests."
+          "explanation": "Sequence packing concatenates examples up to the maximum sequence length so no compute is spent on padding, and relies on attention masks to keep the examples apart. Token-budget batching fights padding differently: examples stay separate and the padded token count of a batch is capped. Continuous and selective batching are schedulers that decide which requests run together, not how examples are laid out."
         }
       ]
     },
@@ -101,13 +102,13 @@
             "The longest sequence's length alone"
           ],
           "correct": 2,
-          "explanation": "The count is taken after padding to the longest sequence in the batch, so it is effectively batch size times that length."
+          "explanation": "The budget is checked after padding every sequence to the longest one in its batch, so it is effectively batch size times that longest length. Counting only real tokens would let padding slip past the cap, counting sequences ignores their length, and the longest length alone ignores how many sequences share the batch. Sequence packing attacks the same padding waste by concatenating examples instead of bounding the padded total."
         },
         {
           "kind": "recall",
           "prompt": "Why does capping the total tokens per batch make sense for GPU memory?",
           "answer": "Memory is determined by batch_size × sequence_length, so bounding the padded token count bounds memory whatever the mix of lengths.",
-          "explanation": "⚠️ Note: the notes put this technique in the Inference chapter but describe it as mostly a finetuning practice."
+          "explanation": "Memory grows with the product batch_size × sequence_length, so a fixed ceiling on that product keeps every batch inside the same memory envelope, whether it holds many short sequences or a few long ones. A cap on batch size alone would not do this, since a few long sequences could still overflow. ⚠️ Note: the notes put this technique in the Inference chapter but describe it as mostly a finetuning practice."
         }
       ]
     },
@@ -120,7 +121,7 @@
           "prompt": "A drafted token has $p(x)>q(x)$. With what probability is it accepted?",
           "answer": 1,
           "tolerance": 0,
-          "explanation": "The acceptance probability is $\\min(1,p(x)/q(x))$, which is 1 whenever $p(x)>q(x)$."
+          "explanation": "The acceptance probability is $\\min(1,p(x)/q(x))$, and when $p(x)>q(x)$ the ratio exceeds 1, so the token is definitely kept: the target likes it at least as much as the draft did, so there is nothing to correct. Only tokens the draft over-proposes ($q>p$) are accepted with a probability below 1, which is what pulls the output toward $p$."
         },
         {
           "kind": "mcq",
@@ -132,7 +133,7 @@
             "$\\max(0,p(x)-q(x))$"
           ],
           "correct": 1,
-          "explanation": "Accept with probability $\\min(1,p(x)/q(x))$. The last choice is the residual used for resampling after a rejection, not the acceptance rule."
+          "explanation": "Accept with probability $\\min(1,p(x)/q(x))$: the target in the numerator means tokens the draft over-proposes are thinned out while under-proposed ones are always kept. The flipped ratio $q/p$ would do the opposite and bare $p(x)$ ignores the draft. The last choice is the unnormalized distribution used to resample after a rejection, not the acceptance test."
         }
       ]
     },
@@ -144,13 +145,13 @@
           "kind": "recall",
           "prompt": "A drafted token is rejected. From which distribution is the replacement sampled?",
           "answer": "From $\\max(0,p(x)-q(x))$, renormalized so it sums to 1.",
-          "explanation": "This is what makes the overall output match $p$."
+          "explanation": "The residual $\\max(0,p(x)-q(x))$ holds exactly the probability mass that accepted drafts under-supply, so sampling from it (after renormalizing) tops each token up to its target value. Sampling from $p$ itself would over-count tokens that drafts already cover. The resampling starts at the first rejected position, and this top-up is what makes the overall output match $p$."
         },
         {
           "kind": "truefalse",
           "prompt": "After a rejection, the replacement token is sampled directly from the target distribution $p$.",
           "answer": false,
-          "explanation": "It is drawn from the renormalized $\\max(0,p-q)$. Drawing from $p$ would over-count tokens the draft already covers through accepted drafts."
+          "explanation": "False. Accepted drafts already supply $\\min(q(x),p(x))$ of each token's probability, so the replacement should supply only the shortfall $\\max(0,p(x)-q(x))$. Drawing from $p$ would count tokens the draft already covers twice and skew the output away from $p$. The renormalized residual is the one distribution for which the two routes add up exactly to $p$."
         }
       ]
     },
@@ -162,13 +163,13 @@
           "kind": "truefalse",
           "prompt": "A poor draft model slows speculative decoding down but does not change the distribution of the output tokens.",
           "answer": true,
-          "explanation": "Output tokens follow $p$ exactly. A bad draft only lowers the acceptance rate, so there are fewer gains."
+          "explanation": "True: the output follows $p$ whatever $q$ is, because accepted drafts and residual resamples add up to $p(x)$ for every token. A weak draft only means more rejections, so each target pass yields fewer tokens and the speedup shrinks. Quality is never traded for speed here; the draft quality only controls how much speed you gain."
         },
         {
           "kind": "recall",
           "prompt": "A token has $q(x)<p(x)$, so accepted drafts give it only $q(x)$. Where does the rest of $p(x)$ come from?",
           "answer": "From the rejection route: the replacement distribution $\\max(0,p-q)$ contributes exactly $p(x)-q(x)$ for it.",
-          "explanation": "Together, $q(x)+p(x)-q(x)=p(x)$."
+          "explanation": "Accepted drafts give this token only $\\min(q(x),p(x))=q(x)$, so the shortfall must come from rejections. Rejection happens with total probability $\\sum_{x'}\\max(0,p(x')-q(x'))$ (equal to the sum of $\\max(0,q-p)$ because both distributions sum to 1), and the renormalized residual then picks $x$ with exactly the share that makes the product $p(x)-q(x)$. The two routes add up to $p(x)$."
         }
       ]
     },
@@ -181,7 +182,7 @@
           "prompt": "A target pass verifies $K=4$ drafted tokens and accepts all of them. How many tokens does the round emit?",
           "answer": 5,
           "tolerance": 0,
-          "explanation": "The 4 accepted drafts plus one extra token, sampled from the target logits that scoring the drafts gives for free."
+          "explanation": "The 4 accepted drafts plus one extra token make 5. The extra comes from scoring: when the target runs over the drafts it also produces next-token logits after the last one, at no additional cost. So a round always ends with one token sampled from the target, giving between 1 and $K+1$ tokens per target pass."
         },
         {
           "kind": "mcq",
@@ -193,12 +194,13 @@
             "A second target pass over the accepted tokens"
           ],
           "correct": 2,
-          "explanation": "Scoring the drafts already yields the target's next-token logits at the end, so one more token comes for free."
+          "explanation": "Scoring the drafts in one pass also gives the target's next-token logits after the last draft, so one more token is sampled from the target at no extra cost. It does not come from the draft model (that would skip verification), nor from $\\max(0,p-q)$ (only used after a rejection), and no second target pass is needed."
         },
         {
           "kind": "recall",
           "prompt": "Draft token 3 of 5 is rejected. What happens to drafts 4 and 5, and why?",
-          "answer": "They are discarded: they were generated after token 3, which is now replaced, so they continue a prefix that is never emitted."
+          "answer": "They are discarded: they were generated after token 3, which is now replaced, so they continue a prefix that is never emitted.",
+          "explanation": "Drafts are generated one after another, so drafts 4 and 5 were conditioned on token 3 as the draft model proposed it. Once token 3 is rejected and replaced by a resampled one, they continue a prefix that is never emitted and their verdicts mean nothing, so the round stops at the first rejected position. The next round drafts afresh from the corrected prefix."
         }
       ]
     },
@@ -209,13 +211,14 @@
         {
           "kind": "recall",
           "prompt": "Why is it cheaper for the target model to verify $K$ drafted tokens than to generate $K$ tokens itself?",
-          "answer": "Verifying is like prefill: all $K$ tokens are known, so their distributions come out of one parallel pass. Generating needs $K$ sequential passes."
+          "answer": "Verifying is like prefill: all $K$ tokens are known, so their distributions come out of one parallel pass. Generating needs $K$ sequential passes.",
+          "explanation": "Verifying is prefill-like: all $K$ drafted tokens are already known, so the target gets its distribution at every position in one parallel pass. Generating them itself would take $K$ sequential passes, each waiting on the previous token and each memory-bound. This is the prefill-versus-generation gap speculative decoding exploits, and the same contrast motivates selective batching."
         },
         {
           "kind": "truefalse",
           "prompt": "The target model verifies all $K$ drafted tokens with a single forward pass.",
           "answer": true,
-          "explanation": "All positions are known, so one pass scores them in parallel, the way prefill does. Generating them would take $K$ sequential passes."
+          "explanation": "True. The drafted tokens are all known in advance, so the target can run them as one sequence and read off its distribution at every position at once, as in prefill, instead of waiting for each token before computing the next. The sequential work is pushed onto the cheap draft model $q$, and the extra token at the end comes out of this same pass."
         }
       ]
     },
@@ -233,13 +236,13 @@
             "$2\\cdot L\\cdot K\\cdot H$"
           ],
           "correct": 3,
-          "explanation": "Each layer stores $K\\cdot H$ values for both keys and values (the 2). ⚠️ Note: the notes' formula counts values, not bytes, so multiply by the dtype size; and their code allocates num_heads heads (plain MHA), where GQA would use $K$."
+          "explanation": "Each layer stores $K\\cdot H$ values for the keys and the same for the values, so $2\\cdot K\\cdot H$ per layer and $2\\cdot L\\cdot K\\cdot H$ per token. Dropping the 2 forgets V, dropping $L$ counts a single layer, and the version with $S$ is the total for a whole sequence rather than per token. ⚠️ Note: the formula counts values, not bytes, so multiply by the dtype size; the notes' code allocates num_heads heads (plain MHA), where GQA would use $K$."
         },
         {
           "kind": "truefalse",
           "prompt": "In GQA, the KV cache size is set by the number of query heads $N$, not by $K$.",
           "answer": false,
-          "explanation": "Only key/value heads are cached, so the size scales with $K$. Query heads are not stored."
+          "explanation": "False: only keys and values are cached, so the size scales with the number of KV heads $K$. Query heads matter for compute, but queries are recomputed for the new token at each step and never stored. That is why GQA and MQA shrink the cache by lowering $K$ below $N$ while keeping all $N$ query heads."
         }
       ]
     },
@@ -251,12 +254,13 @@
           "kind": "truefalse",
           "prompt": "A cache pre-allocated to max_seq_len holds its full memory even when the sequence is still short.",
           "answer": true,
-          "explanation": "The buffer is reserved for max_seq_len whatever the current position, so the memory stays tied up."
+          "explanation": "True: the buffer is created at the maximum length up front (zeros of shape (batch, num_heads, max_seq_len, head_dim) in the notes' code), and decoding only fills and attends to the slots up to the current position. The memory for unfilled positions is already reserved, so a short sequence costs as much cache as a maximal one: the footprint is set by max_seq_len, not by the current length."
         },
         {
           "kind": "recall",
           "prompt": "What shape is one layer's pre-allocated K cache?",
-          "answer": "(batch, num_heads, max_seq_len, head_dim); the V cache has the same shape."
+          "answer": "(batch, num_heads, max_seq_len, head_dim); the V cache has the same shape.",
+          "explanation": "The sequence axis is allocated at the maximum length so that each decoding step can write the new token's k and v into its position and then attend over the slots up to the current one. There is one K and one V buffer per layer, with identical shapes. This is the plain MHA layout: with GQA the second axis would hold the $K$ KV heads instead of num_heads."
         }
       ]
     },
@@ -267,7 +271,8 @@
         {
           "kind": "recall",
           "prompt": "In cached decoding, why are keys and values stored but not queries?",
-          "answer": "Only the new token's query is needed, to attend over all earlier K and V. Past queries would only recompute outputs already produced."
+          "answer": "Only the new token's query is needed, to attend over all earlier K and V. Past queries would only recompute outputs already produced.",
+          "explanation": "At each step only the newest token needs an output, and that output is its query attending over every earlier key and value. Earlier tokens' queries were used once, to produce outputs that are already computed, so nothing ever reads them again, while K and V are re-read at every later step. This is why the size formula $2\\cdot L\\cdot K\\cdot H$ has a K and V term but no query term."
         },
         {
           "kind": "mcq",
@@ -279,7 +284,7 @@
             "Attention weights"
           ],
           "correct": 1,
-          "explanation": "Each step reuses all earlier keys and values; the query and attention weights are recomputed for the new token only."
+          "explanation": "Each new token's query must attend over all earlier keys and values, so those are reused at every step. Past queries are never needed again, which rules out the two choices containing queries. Attention weights depend on the new query, so they are recomputed against the cached keys at each step rather than stored."
         }
       ]
     },
@@ -292,7 +297,7 @@
           "prompt": "A 32-head model switches from MHA to MQA. By what factor does its KV cache shrink?",
           "answer": 32,
           "tolerance": 0,
-          "explanation": "MQA keeps one K and V for all heads, so the cache shrinks by the number of heads."
+          "explanation": "MQA keeps one shared K and V instead of one pair per head, so the cache drops from 32 heads' worth to 1: a factor of num_heads, here 32. The query heads are untouched; only what gets stored changes. GQA sits between MHA and this extreme, so its saving is a smaller factor."
         },
         {
           "kind": "mcq",
@@ -304,14 +309,14 @@
             "$K=N/2$"
           ],
           "correct": 2,
-          "explanation": "$K=1$ means one shared K/V, i.e. group size $G=N//K=32$. $K=N$ is plain MHA."
+          "explanation": "$K=1$ gives a single shared K/V for all 32 query heads, which is MQA (group size $G=N//K=32$). $K=N$ gives every query head its own K/V, plain MHA, and $K=N/2$ is a mild GQA setting. $G=1$ is the trap: groups of one head each means no sharing at all, which is MHA again."
         },
         {
           "kind": "numeric",
           "prompt": "A 32-head model uses GQA with $K=8$ KV heads. By what factor is its KV cache smaller than MHA's?",
           "answer": 4,
           "tolerance": 0,
-          "explanation": "The cache scales with $K$, so going from 32 to 8 KV heads divides it by $32/8=4$."
+          "explanation": "The cache scales linearly with the number of KV heads, so going from 32 to 8 divides it by $32/8=4$; equivalently each K/V pair is shared by $G=32//8=4$ query heads. MHA is the case $K=32$ (factor 1) and MQA the case $K=1$ (factor 32), with GQA interpolating between them."
         }
       ]
     },
@@ -322,7 +327,8 @@
         {
           "kind": "recall",
           "prompt": "What does multi-head latent attention cache instead of full keys and values?",
-          "answer": "A smaller latent vector per token (latent_dim), which is projected back up to full-size K and V at each decoding step."
+          "answer": "A smaller latent vector per token (latent_dim), which is projected back up to full-size K and V at each decoding step.",
+          "explanation": "MLA stores one smaller latent vector per token (size latent_dim) and projects it back up to full-size K and V at every decoding step. The cache saving is paid for with extra compute, unlike MQA and GQA, which just share K/V. Each head still gets its own K and V, so the latent is a compression rather than a sharing, which is the key contrast with MQA."
         },
         {
           "kind": "mcq",
@@ -334,13 +340,13 @@
             "Local attention"
           ],
           "correct": 2,
-          "explanation": "MLA must expand the latent back to keys and values at each step. MQA and GQA just share K/V, and local attention drops old tokens."
+          "explanation": "MLA must expand its cached latent back into keys and values at every step, so it saves memory but pays compute. MQA and GQA shrink the cache simply by sharing K/V across heads, with no extra projection. Local attention shrinks it by dropping tokens that left the window, again with no extra compute per step."
         },
         {
           "kind": "truefalse",
           "prompt": "Multi-head latent attention works with RoPE without any special handling.",
           "answer": false,
-          "explanation": "The notes state MLA is not compatible with RoPE. ⚠️ Note: no reason or workaround is given. (General context, not from the notes: DeepSeek-V2 uses a separate, decoupled RoPE component.)"
+          "explanation": "False: the notes list MLA as not compatible with RoPE. ⚠️ Note: no reason or workaround is given. (General context, not from the notes: RoPE rotates keys by position, which does not commute with the latent up-projection, so DeepSeek-V2 keeps a separate decoupled RoPE component.)"
         }
       ]
     },
@@ -351,7 +357,8 @@
         {
           "kind": "recall",
           "prompt": "MQA and GQA shrink the KV cache by sharing K and V across query heads. What do they give up?",
-          "answer": "Some representational capacity per head, since heads reuse the same keys and values."
+          "answer": "Some representational capacity per head, since heads reuse the same keys and values.",
+          "explanation": "Heads that share K and V look at identical keys and values, so each has less freedom to specialise: representational capacity per head is lost. That is the price of dividing the cache by num_heads (MQA) or by the group size (GQA). MLA avoids this sharing by keeping a separate K/V per head compressed through a latent, but it pays in extra compute instead."
         },
         {
           "kind": "mcq",
@@ -363,13 +370,13 @@
             "Only keys and values"
           ],
           "correct": 3,
-          "explanation": "All heads share one K and V, while each keeps its own Q."
+          "explanation": "In MQA every head keeps its own queries but uses the same single K and V, so heads still ask different questions of the same keys and values. Sharing only the queries has it backwards, and sharing Q as well (alone or with K) would collapse the heads' attention patterns. The sharing is only of K and V because that is what the cache stores."
         },
         {
           "kind": "truefalse",
           "prompt": "Like MQA, multi-head latent attention uses a single K and V shared by all heads.",
           "answer": false,
-          "explanation": "MLA keeps a separate K/V per head, compressed through a shared latent space."
+          "explanation": "False: a single shared K and V is MQA. MLA keeps a separate K and V per head but stores them compressed through a shared latent space, projecting back up at each step. So MLA shrinks the cache without forcing heads to use identical K/V, at the cost of that extra projection compute."
         }
       ]
     },
@@ -387,13 +394,13 @@
             "Multi-query attention"
           ],
           "correct": 2,
-          "explanation": "Cross-layer attention reuses K/V between layers. GQA and MQA share across heads, and MLA compresses into a latent."
+          "explanation": "Cross-layer attention lets different layers reuse the same K/V, which cuts the $L$ factor of the cache. MQA and GQA share across the heads of a layer (cutting $K$), and MLA shares nothing but compresses K/V into a latent vector. The four options attack different parts of the same cache."
         },
         {
           "kind": "truefalse",
           "prompt": "Cross-layer attention shrinks the KV cache along the same axis as GQA does.",
           "answer": false,
-          "explanation": "Cross-layer attention reduces the layer axis ($L$), while GQA reduces the number of KV heads ($K$)."
+          "explanation": "False: the per-token cache $2\\cdot L\\cdot K\\cdot H$ has separate factors. Cross-layer attention cuts $L$ (fewer distinct K/V sets across layers), while GQA cuts $K$ (fewer KV heads inside each layer). They are different levers on the same product, which is why the two names should not be conflated."
         }
       ]
     },
@@ -405,12 +412,13 @@
           "kind": "truefalse",
           "prompt": "With local attention, the KV cache size does not depend on sequence length.",
           "answer": true,
-          "explanation": "Tokens that leave the window are thrown away, so the cache stays bounded by the window."
+          "explanation": "True: a token that has slid out of the window will never be attended to again, so its K and V can be thrown away and the cache never holds more than a window's worth of tokens, however long the sequence grows. Under standard attention the cache grows with every token. The price is that tokens beyond the window are no longer visible."
         },
         {
           "kind": "recall",
           "prompt": "Standard attention is $O(n^2)$. What does local attention make independent of sequence length, and how?",
-          "answer": "The KV cache size: only tokens inside the window are kept, and older ones are dropped."
+          "answer": "The KV cache size: only tokens inside the window are kept, and older ones are dropped.",
+          "explanation": "It is the KV cache size: each token only attends within the window, so older keys and values can be dropped and the cache is bounded by the window. This works on a different axis from the other tricks: head sharing, cross-layer sharing and latent compression shrink the bytes kept per token, whereas local attention limits how many tokens are kept."
         }
       ]
     },
@@ -442,12 +450,13 @@
           "kind": "truefalse",
           "prompt": "Raising the temperature can enlarge the set of tokens that top-p keeps.",
           "answer": true,
-          "explanation": "A higher temperature flattens the distribution, so more tokens are needed to reach cumulative probability $p$."
+          "explanation": "True: top-p keeps tokens until their cumulative probability passes $p$. A higher temperature flattens the distribution, so the mass is spread over more tokens and more of them are needed to reach $p$; a lower temperature does the reverse. Top-k differs in that it keeps a fixed count of tokens whatever the shape of the distribution."
         },
         {
           "kind": "recall",
           "prompt": "Why can't changing the temperature change which tokens top-k keeps?",
-          "answer": "Dividing logits by a positive temperature preserves their order, so the same $k$ highest logits remain."
+          "answer": "Dividing logits by a positive temperature preserves their order, so the same $k$ highest logits remain.",
+          "explanation": "Dividing logits by a positive temperature sharpens or flattens the gaps but cannot reorder tokens, so the $k$ highest logits are the same $k$ tokens at any temperature. Top-p behaves differently because it reads cumulative probabilities, which do depend on how flat the distribution is. That is why the sampler applies temperature first: it shapes what the filters then cut."
         }
       ]
     },
@@ -459,14 +468,14 @@
           "kind": "truefalse",
           "prompt": "In top-p, the first token whose cumulative probability exceeds $p$ is removed.",
           "answer": false,
-          "explanation": "It is kept: the removal flags are shifted down one place, so only tokens after the crossing are dropped. ⚠️ Note: the code comment in the notes says tokens above the threshold are removed, which is loosely worded."
+          "explanation": "False: the token that pushes the cumulative sum past $p$ is kept. The code shifts the removal flags one position down, so only tokens after the crossing are dropped, and the first token is always kept. Without the shift the set could come out too small, or empty when the top token alone exceeds $p$. ⚠️ Note: the code comment says tokens above the threshold are removed, which is loosely worded."
         },
         {
           "kind": "numeric",
           "prompt": "The top token alone has probability 0.6 and top_p is 0.3. How many tokens can be sampled?",
           "answer": 1,
           "tolerance": 0,
-          "explanation": "The first (top) token is never removed, and every token after the crossing is dropped, so exactly one remains."
+          "explanation": "The top token's cumulative probability (0.6) already exceeds 0.3, so it is the crossing token and is kept, while everything after it is removed. The code also forces the first flag to False, so the top token can never be removed. A very small top_p therefore ends up as greedy decoding rather than an empty set."
         }
       ]
     },
@@ -477,13 +486,14 @@
         {
           "kind": "recall",
           "prompt": "When both top-k and top-p are set, which probabilities does top-p's cumulative sum use?",
-          "answer": "The softmax over the tokens that survived top-k (the rest are set to $-\\infty$), so it is renormalized over those $k$ tokens."
+          "answer": "The softmax over the tokens that survived top-k (the rest are set to $-\\infty$), so it is renormalized over those $k$ tokens.",
+          "explanation": "After top-k, every other logit is $-\\infty$, so the softmax inside top-p gives them probability 0 and renormalizes over the $k$ survivors. The cumulative sum is therefore measured within the top-k set, not over the full vocabulary, and climbs faster than it would otherwise, so top-p tends to trim more."
         },
         {
           "kind": "truefalse",
           "prompt": "With top-k applied first, top-p can still keep more than $k$ tokens.",
           "answer": false,
-          "explanation": "Top-k already set every other logit to $-\\infty$, so top-p can only keep tokens among the $k$ survivors."
+          "explanation": "False: top-k sets every logit outside the $k$ best to $-\\infty$, so those tokens have probability 0 in top-p's softmax and cannot be revived. Top-p can only trim the survivors further, so the final set has at most $k$ tokens. The two filters combine by intersection, after the temperature scaling that precedes both."
         }
       ]
     },
@@ -501,7 +511,7 @@
             "Temperature, top-k, top-p"
           ],
           "correct": 3,
-          "explanation": "Logits are divided by the temperature first, then filtered by top-k, then by top-p, before the final softmax and sampling."
+          "explanation": "The code divides the logits by the temperature first, then applies top-k, then top-p, and finally softmaxes and samples. Temperature goes first so the filters, top-p in particular, see the reshaped distribution; top-k goes before top-p so that top-p's cumulative sum is taken over the survivors. Putting top-p first would measure cumulative mass over the full vocabulary instead."
         }
       ]
     },
@@ -519,7 +529,7 @@
             "2x, 2x"
           ],
           "correct": 2,
-          "explanation": "Standard attention stores an $N\\times N$ matrix, which is $O(n^2)$. FlashAttention brings it down to $O(n)$."
+          "explanation": "Standard attention materializes an $N\\times N$ matrix per head, so doubling $N$ quadruples it ($O(n^2)$). FlashAttention never builds that matrix and only keeps tiles, bringing attention activation memory to $O(n)$, so it merely doubles. \"4x, 1x\" is wrong because even the output grows with length, and the options with 2x for standard attention understate the quadratic growth."
         },
         {
           "kind": "numeric",
@@ -527,7 +537,7 @@
           "answer": 4.3,
           "tolerance": 0.1,
           "unit": "GB",
-          "explanation": "$8192^2\\times 32\\times 2\\text{ bytes}\\approx 4.3$ GB (the notes say about 4 GB)."
+          "explanation": "$8192^2\\times 32\\times 2\\text{ bytes}\\approx 4.3$ GB (the notes say about 4 GB): $8192^2\\approx 6.7\\times 10^{7}$ scores per head, times 32 heads, times 2 bytes for FP16. Doubling $S$ would quadruple this, which is why the matrix, not the weights, becomes the memory problem at long context."
         }
       ]
     },
@@ -540,19 +550,19 @@
           "prompt": "How many times does standard attention move the $N\\times N$ matrix through HBM?",
           "answer": 4,
           "tolerance": 0,
-          "explanation": "It is written, read back for the softmax, written again, and read again for the product with values."
+          "explanation": "The matrix makes four trips: written to HBM after the scores, read back for the softmax, written again, and read again for the product with the values. These are slow main-memory trips that grow quadratically with $N$, which is why standard attention is memory-bound rather than arithmetic-bound. FlashAttention removes them by keeping tiles in SRAM."
         },
         {
           "kind": "recall",
           "prompt": "Standard attention is memory-bound. Which traffic causes that, and how does FlashAttention avoid it?",
           "answer": "The $N\\times N$ score matrix is repeatedly written to and read from HBM. FlashAttention works tile by tile in fast SRAM and writes only the final output.",
-          "explanation": "⚠️ Note: the notes say it is faster \"because memory bandwidth isn't the bottleneck\", which is loosely worded: the traffic is cut, not the arithmetic."
+          "explanation": "The time goes into shuttling the quadratic matrix through slow HBM, not into arithmetic, so removing those trips is what helps. The tile-by-tile loop in SRAM (made possible by the online softmax) never builds the full matrix, so only the output is written. ⚠️ Note: the notes say it is faster \"because memory bandwidth isn't the bottleneck\", which is loosely worded: the traffic is cut, not the arithmetic."
         },
         {
           "kind": "truefalse",
           "prompt": "FlashAttention is faster mainly because it needs fewer arithmetic operations.",
           "answer": false,
-          "explanation": "It cuts memory traffic by keeping tiles in SRAM. (General context, not from the notes: the operation count stays about the same.)"
+          "explanation": "False: the gain comes from memory traffic, not from fewer operations. The score matrix stays in SRAM tiles, so the slow HBM round trips disappear while the same scores are still computed. (General context, not from the notes: the operation count stays about the same.) This is why standard attention is described as memory-bound rather than compute-bound."
         }
       ]
     },
@@ -564,12 +574,13 @@
           "kind": "truefalse",
           "prompt": "FlashAttention gives exactly the same result as standard attention.",
           "answer": true,
-          "explanation": "It is an exact method, not an approximation: it just works tile by tile with the online softmax trick."
+          "explanation": "True: FlashAttention changes the order in which attention is computed (tile by tile, with the online softmax), not what is computed, so it returns the same output as standard attention. It saves memory traffic rather than dropping information, unlike an approximation. (General context, not from the notes: floating-point rounding can still differ slightly because the arithmetic is reordered.)"
         },
         {
           "kind": "recall",
           "prompt": "A row's softmax needs all $S$ scores, but a tile in SRAM holds only some. What trick makes tiling still correct?",
-          "answer": "The online softmax: keep running per-row statistics (max and sum of exponentials) and rescale partial results as each new tile arrives."
+          "answer": "The online softmax: keep running per-row statistics (max and sum of exponentials) and rescale partial results as each new tile arrives.",
+          "explanation": "Softmax over a row needs the row's global max and sum of exponentials, but both can be kept as running values: for each new tile, update them and rescale the partial output accumulated so far to match. After the last tile the result equals the full softmax times V, so a row can be processed in pieces without ever holding all $S$ scores at once."
         },
         {
           "kind": "mcq",
@@ -581,7 +592,7 @@
             "The running max and sum for every tile"
           ],
           "correct": 1,
-          "explanation": "Scores and weights stay in SRAM, and only the finished output goes to HBM."
+          "explanation": "Per the tiling loop, the scores, the softmax and the product with V all happen in SRAM, and only the finished output goes to HBM. Writing scores or normalized weights would bring back the $N\\times N$ traffic. The running max and sum are bookkeeping for the loop, not part of the output that gets written."
         }
       ]
     },
@@ -593,12 +604,13 @@
           "kind": "truefalse",
           "prompt": "A fused causal flag lets FlashAttention apply causal masking without storing an $S\\times S$ mask.",
           "answer": true,
-          "explanation": "The is_causal flag is fused into the kernel, so no mask matrix is stored."
+          "explanation": "True: with the is_causal flag the masking is fused into the kernel, so causality is applied inside the computation and no mask matrix is ever built or read. A hand-made mask would be an $S\\times S$ matrix as large as the score matrix. This is the same principle as the whole method: avoid materializing anything quadratic in $S$."
         },
         {
           "kind": "recall",
           "prompt": "Why would passing FlashAttention an explicit $S\\times S$ mask hurt its memory savings?",
-          "answer": "The mask has $S^2$ entries, so it brings back quadratic memory and its reads, even if the scores are never stored."
+          "answer": "The mask has $S^2$ entries, so it brings back quadratic memory and its reads, even if the scores are never stored.",
+          "explanation": "A mask has one entry per query-key pair, so $S^2$ entries: the same quadratic size as the score matrix FlashAttention avoids, and it must be stored and read as the kernel loops over tiles. Passing it brings back quadratic memory and traffic even though the scores themselves are never stored, which is why the fused flag is preferred."
         }
       ]
     }
