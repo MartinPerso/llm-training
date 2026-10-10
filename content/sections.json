@@ -1,0 +1,442 @@
+[
+  {
+    "id": "2d17eb87-3605-800a-9149-c2c8aec7252c",
+    "chapter": "Neural net basics",
+    "title": "Neural net basics",
+    "level": 1,
+    "order": 0,
+    "hash": "2a60a6ae4cceb602f8fdd21850f882f4b79e3f0a12d1dfe90de1808bbf94e8a2"
+  },
+  {
+    "id": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+    "chapter": "Neural net basics",
+    "title": "Multi-layer perceptrons",
+    "level": 2,
+    "order": 1,
+    "hash": "35792dfdc5dd8f64310961154c1c042212987bbef0d3e41daec5ce102575906d"
+  },
+  {
+    "id": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+    "chapter": "Neural net basics",
+    "title": "Activation functions",
+    "level": 2,
+    "order": 2,
+    "hash": "659b720504814923512eb38d13acc506ae2f6dedb9a12e74051dcea4b8d9b6b3"
+  },
+  {
+    "id": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+    "chapter": "Neural net basics",
+    "title": "Gradients",
+    "level": 2,
+    "order": 3,
+    "hash": "3cc4e236da3a6fdb7f5723cda112100a25c7e4914f5c158b3979163317dc75bd"
+  },
+  {
+    "id": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+    "chapter": "Neural net basics",
+    "title": "Backpropagation",
+    "level": 2,
+    "order": 4,
+    "hash": "68430d7364ca4827c2055ee49a6cebe0171d891cba37d09e6d9cf292de8ffbfd"
+  },
+  {
+    "id": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+    "chapter": "Neural net basics",
+    "title": "Optimizers",
+    "level": 2,
+    "order": 5,
+    "hash": "c2dab0cbbbdd6f5b59f1e5b975df4cc5011ac7800efa9bf4c0b2968fc5ec6b1b"
+  },
+  {
+    "id": "2e67eb87-3605-8023-9773-dcff11b7d150",
+    "chapter": "Neural net basics",
+    "title": "Learning rate",
+    "level": 2,
+    "order": 6,
+    "hash": "d9665712f339918d48f1931e0d4866d1f7f9f7041e85624fb01ddc990a3b8bb2"
+  },
+  {
+    "id": "2e97eb87-3605-808e-acce-f0dd14a6d040",
+    "chapter": "Mathy things",
+    "title": "Mathy things",
+    "level": 1,
+    "order": 7,
+    "hash": "82652394d0cd18af506f394ae00a3f19677636dd41f30b693cd228ea31e6036c"
+  },
+  {
+    "id": "2e97eb87-3605-8077-b09d-ea853f62c399",
+    "chapter": "Mathy things",
+    "title": "Information theory",
+    "level": 2,
+    "order": 8,
+    "hash": "f67fb610dc735963c7704ba042e7b2aa8d3071a683249135ee0114616aa2323a"
+  },
+  {
+    "id": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+    "chapter": "Mathy things",
+    "title": "Numerical stability and other tricks",
+    "level": 2,
+    "order": 9,
+    "hash": "70cc586dd0b3db027edf863fe46b8ae83fdbdef3efd84d2cf3eb8da13abeff09"
+  },
+  {
+    "id": "3177eb87-3605-8067-a52f-f9173b9a162f",
+    "chapter": "Mathy things",
+    "title": "Basic statistics",
+    "level": 2,
+    "order": 10,
+    "hash": "17db52e2fe63fb073ec48dccf710ff61ff5b8b43117996065c0b1d6a09241d8d"
+  },
+  {
+    "id": "3247eb87-3605-8072-88eb-ee2a3f885894",
+    "chapter": "Mathy things",
+    "title": "Gradient flow through sampling",
+    "level": 2,
+    "order": 11,
+    "hash": "375f08380975948ec28b34d4ea6962327946604a0c391e28b025d9a160fd8f23"
+  },
+  {
+    "id": "33e7eb87-3605-8070-994c-e9236def4d12",
+    "chapter": "Mathy things",
+    "title": "Theoretical CS",
+    "level": 2,
+    "order": 12,
+    "hash": "bf170f64d9f209187cf3efaaec154ee704d6ae232426bf82800ddf1f2238eb21"
+  },
+  {
+    "id": "2d17eb87-3605-805e-a70f-eaa44f632886",
+    "chapter": "The modern transformer LM",
+    "title": "The modern transformer LM",
+    "level": 1,
+    "order": 13,
+    "hash": "1425fafa2c6c5bc786a92b098223777eaf4626b6142abe4874d9febe49cf71d5"
+  },
+  {
+    "id": "2e57eb87-3605-8073-848b-d08ea5f13e59",
+    "chapter": "The modern transformer LM",
+    "title": "Architecture",
+    "level": 2,
+    "order": 14,
+    "hash": "7945b4ef6fed8814a325d674ddf14008941ae5f138e856056d410746264545ba"
+  },
+  {
+    "id": "2fe7eb87-3605-80c5-8a76-ea5e941e5b65",
+    "chapter": "The modern transformer LM",
+    "title": "Implementation notes",
+    "level": 2,
+    "order": 15,
+    "hash": "2dcc86d6d7da315c9bb69ae79c4cb2e0f7c976d0a8a76fdaecf8fd9effa5af84"
+  },
+  {
+    "id": "3027eb87-3605-803c-be9a-f8980c3ba36a",
+    "chapter": "The modern transformer LM",
+    "title": "Accounting",
+    "level": 2,
+    "order": 16,
+    "hash": "ad8e27980bbdc7931639c06a9ad9814bd063d915d6199fc9addd517bfd019c2b"
+  },
+  {
+    "id": "3027eb87-3605-805d-b53d-dbd0eee537d6",
+    "chapter": "The modern transformer LM",
+    "title": "Model parameters",
+    "level": 3,
+    "order": 17,
+    "hash": "459c62227882eabff3f1cbe51e3f5fafbeb3a78070edbfba4b7803878ad40daf"
+  },
+  {
+    "id": "3027eb87-3605-803c-a1a7-e0d4c3070d10",
+    "chapter": "The modern transformer LM",
+    "title": "Model activations",
+    "level": 3,
+    "order": 18,
+    "hash": "81fe516ef143d452e8595723f629bf8caa20497f1dc3d4b77abdc8d3e667d96a"
+  },
+  {
+    "id": "3027eb87-3605-803e-9fdf-ff2be7333715",
+    "chapter": "The modern transformer LM",
+    "title": "FLOPs in forward pass",
+    "level": 3,
+    "order": 19,
+    "hash": "015dcf8ac14fc6ad5439e28487308118f96e4d4fbe4f5fd3fd9af623f9cac9af"
+  },
+  {
+    "id": "3177eb87-3605-8082-8e62-dbd2adc0435f",
+    "chapter": "The modern transformer LM",
+    "title": "FLOPs in backward pass",
+    "level": 3,
+    "order": 20,
+    "hash": "9cec11876a7a77d74f6861a8f747c6a785e39d2b675141f325657df3ccf4a31c"
+  },
+  {
+    "id": "2f47eb87-3605-8051-b5f0-d769aebd66cc",
+    "chapter": "The modern transformer LM",
+    "title": "Inference memory use",
+    "level": 3,
+    "order": 21,
+    "hash": "fe21378cae2733d1f27d6c85c9930a137370b03184e7968c43344c564f43ed36"
+  },
+  {
+    "id": "3027eb87-3605-80ff-a857-e851e773b3f6",
+    "chapter": "The modern transformer LM",
+    "title": "Train memory use",
+    "level": 3,
+    "order": 22,
+    "hash": "5fd003a1e60b8ffb19756a6b6e28d5530bbd87be351f1085e8bd2296ff0aed9c"
+  },
+  {
+    "id": "2f47eb87-3605-800d-8a09-c1899537be9f",
+    "chapter": "The modern transformer LM",
+    "title": "Attention",
+    "level": 2,
+    "order": 23,
+    "hash": "f9904aa3c558974c760868eff34c9a94ab39f96312e71756d58ab12a23580982"
+  },
+  {
+    "id": "3027eb87-3605-80eb-9698-c24b98e22833",
+    "chapter": "The modern transformer LM",
+    "title": "RMSNorm",
+    "level": 2,
+    "order": 24,
+    "hash": "a63fc7b0c529a561f56fbc6eef4842cae3303f1845d81395b1acceaa3a872303"
+  },
+  {
+    "id": "3027eb87-3605-80af-8e23-c14452b10898",
+    "chapter": "The modern transformer LM",
+    "title": "SwiGLU FFN",
+    "level": 2,
+    "order": 25,
+    "hash": "fd8dbf4fc608edfe86f6cdc191da24d69942f2af33149c413e56bc6d34a7ecfa"
+  },
+  {
+    "id": "2cd7eb87-3605-803c-b4e3-edc14b32806c",
+    "chapter": "The modern transformer LM",
+    "title": "RoPE",
+    "level": 2,
+    "order": 26,
+    "hash": "11f2eab5d8fa2a1f2baec06f80234caa089607f2d666c22a646bf48b4b86b944"
+  },
+  {
+    "id": "2ed7eb87-3605-8082-9d65-f39c901c2ef2",
+    "chapter": "Inference",
+    "title": "Inference",
+    "level": 1,
+    "order": 27,
+    "hash": "7094867f50b1fd2a528f8f7bd5edfaeb5a25d0cb87f12d63900e193e2c365560"
+  },
+  {
+    "id": "31f7eb87-3605-80ed-9ab6-d1362937edab",
+    "chapter": "Inference",
+    "title": "Batching & packing",
+    "level": 2,
+    "order": 28,
+    "hash": "33ddb08d82752f5f93412fb20b6cc9027b59cde89cc986f5abcd52c7451de60a"
+  },
+  {
+    "id": "3057eb87-3605-80f5-9033-ef9b30a9f4de",
+    "chapter": "Inference",
+    "title": "Speculative decoding",
+    "level": 2,
+    "order": 29,
+    "hash": "da7aff0f2cee0931ad30537ae0f8dedbc7c41cb9832a401632219e5ae194f822"
+  },
+  {
+    "id": "2f47eb87-3605-80c1-a4a4-d8dc201f202c",
+    "chapter": "Inference",
+    "title": "KV cache",
+    "level": 2,
+    "order": 30,
+    "hash": "b65d3481b3a66384320f46a301a9aceba0e6b83cd2742151edce815978eede3f"
+  },
+  {
+    "id": "2ed7eb87-3605-809d-b091-c7cde03bd832",
+    "chapter": "Inference",
+    "title": "Reducing KV cache size",
+    "level": 3,
+    "order": 31,
+    "hash": "0749d1b4a71f124cca2d9f0ac0a11d44ded27432e73c6ba30f1402fd0e25a672"
+  },
+  {
+    "id": "2f47eb87-3605-80d3-b655-fe168af1f680",
+    "chapter": "Inference",
+    "title": "Sampling strategies",
+    "level": 2,
+    "order": 32,
+    "hash": "863d5270d42fc8daa16618b1dff793ba0688518cc6fdbedee97e2928a4c4fc2d"
+  },
+  {
+    "id": "2ed7eb87-3605-8050-81b5-fb3febc78021",
+    "chapter": "Inference",
+    "title": "Flash Attention",
+    "level": 2,
+    "order": 33,
+    "hash": "3293113055764c28e822acce5f7f5c2eed7a8ccfac53a46a7d80e7056e599fb4"
+  },
+  {
+    "id": "2f67eb87-3605-80f2-90ed-fea352bbe7f4",
+    "chapter": "Scaling laws",
+    "title": "Scaling laws",
+    "level": 1,
+    "order": 34,
+    "hash": "a8297f6074391e8f8613d95adfa7a4902a2fa11f171a64488417025abd84849c"
+  },
+  {
+    "id": "2ec7eb87-3605-8041-b513-ffee83df71a2",
+    "chapter": "GPUs",
+    "title": "GPUs",
+    "level": 1,
+    "order": 35,
+    "hash": "339b26fff2a9afc2b44baff28531f537fa60ead058dce59abf4ddea80b92bd00"
+  },
+  {
+    "id": "2f67eb87-3605-8035-aa12-e6287c770476",
+    "chapter": "Other architectures",
+    "title": "Other architectures",
+    "level": 1,
+    "order": 36,
+    "hash": "92143cdb8224fdfcd099090e92bb657eb66c3f410ecc144decbdaab06e388e6f"
+  },
+  {
+    "id": "33e7eb87-3605-80c2-855a-dff786bf513f",
+    "chapter": "Other architectures",
+    "title": "RNNs",
+    "level": 2,
+    "order": 37,
+    "hash": "c83efb557c36e5c0e6d8605aa5e549ac182e5f05e9615b9d3682477241890bfd"
+  },
+  {
+    "id": "33e7eb87-3605-801a-921b-e0292847ac89",
+    "chapter": "Other architectures",
+    "title": "Vanilla RNN",
+    "level": 3,
+    "order": 38,
+    "hash": "dd599f625b0ddd600b3c2adbce6c6d10a5fedb161f803d48957fd550698457c1"
+  },
+  {
+    "id": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
+    "chapter": "Other architectures",
+    "title": "LSTM",
+    "level": 3,
+    "order": 39,
+    "hash": "7d8f28c4e577630d63155596f8f27fdf3f2d83bb38d1c90dde2dff1bfeb97843"
+  },
+  {
+    "id": "33e7eb87-3605-80e5-8207-eb2fde2e3b1b",
+    "chapter": "Other architectures",
+    "title": "vs. transformers",
+    "level": 3,
+    "order": 40,
+    "hash": "57b84686fe60572ec93100c5f400c9239fe3746c4ded6ee2a28fed3a84c07fb8"
+  },
+  {
+    "id": "2d17eb87-3605-804f-80df-ee0f622e523f",
+    "chapter": "Other architectures",
+    "title": "State space models",
+    "level": 2,
+    "order": 41,
+    "hash": "490db1f732e0d575bcc6a13e4c744333043f32c1cbbedf29c328ec4854a5063b"
+  },
+  {
+    "id": "2e67eb87-3605-80f7-88b3-c1d5221a620d",
+    "chapter": "Post-training",
+    "title": "Post-training",
+    "level": 1,
+    "order": 42,
+    "hash": "9f7c220ca367d516b545d83e78900becebcfb166db400925842c2b7fc4082227"
+  },
+  {
+    "id": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+    "chapter": "Post-training",
+    "title": "policy gradients",
+    "level": 2,
+    "order": 43,
+    "hash": "c376ae29dead3d7b8402263ed7338977bab9de64f2db6dde9064305c83f3339d"
+  },
+  {
+    "id": "3107eb87-3605-8077-bac9-c9ad27069800",
+    "chapter": "Post-training",
+    "title": "PPO",
+    "level": 2,
+    "order": 44,
+    "hash": "46deb0708735a7539617754a08009606cdaa1bc010aa4efd98fbef275419c6d0"
+  },
+  {
+    "id": "2f87eb87-3605-805f-9001-da500440584a",
+    "chapter": "Post-training",
+    "title": "RLHF",
+    "level": 2,
+    "order": 45,
+    "hash": "a4cf88935db4b57dbc50ddb3cf02d006840b6b14d0b198472d9ad0d56ff39696"
+  },
+  {
+    "id": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+    "chapter": "Post-training",
+    "title": "GRPO",
+    "level": 2,
+    "order": 46,
+    "hash": "77240485b533f1434822de48d59fb25dd7c067e3b179f0a52320a30d22ffaacc"
+  },
+  {
+    "id": "3107eb87-3605-8041-aa30-f602184a1b4c",
+    "chapter": "Post-training",
+    "title": "DPO",
+    "level": 2,
+    "order": 47,
+    "hash": "94d867c366b0ba3a9163b63d8d0a7d5c3b80070b910f19a7699bcf01c7aa780e"
+  },
+  {
+    "id": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+    "chapter": "Precision",
+    "title": "Precision",
+    "level": 1,
+    "order": 48,
+    "hash": "4907aa967cde9d46d8430af75000beee7f45f3224c18ab1b1d3b9b95b57f4ba4"
+  },
+  {
+    "id": "2f47eb87-3605-8007-adf0-fa9cd014bd65",
+    "chapter": "Parallelism",
+    "title": "Parallelism",
+    "level": 1,
+    "order": 49,
+    "hash": "1dfe341c09af393e5fe90b598e38ea22f483b1029fb3147c702666f8e0001d9f"
+  },
+  {
+    "id": "3177eb87-3605-80a1-9179-f841ade2c241",
+    "chapter": "Parallelism",
+    "title": "Background: core collective operations",
+    "level": 2,
+    "order": 50,
+    "hash": "a65c5f22b535a1d3adaab3f21037a630db5ee27320a1bd7dbbbe4cfa5ffbd091"
+  },
+  {
+    "id": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+    "chapter": "Parallelism",
+    "title": "Data parallelism",
+    "level": 2,
+    "order": 51,
+    "hash": "c4260a2ea3a60af6c5fe6ffca203a7c9f9198c261705e0393c78677404ed6ec1"
+  },
+  {
+    "id": "2f47eb87-3605-80a9-82d9-ea011260abbb",
+    "chapter": "Parallelism",
+    "title": "Pipeline parallelism",
+    "level": 2,
+    "order": 52,
+    "hash": "49e9f327e6af1be91f6d5e4f5e9e552afe80f4c284925de7bf240e76f63006dd"
+  },
+  {
+    "id": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+    "chapter": "Parallelism",
+    "title": "Tensor parallelism",
+    "level": 2,
+    "order": 53,
+    "hash": "9e9b2cfe28cf196e41b2b1feb7e6139c12edcfe1bdfe10b5a39bbca6d2505092"
+  },
+  {
+    "id": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+    "chapter": "Multimodality",
+    "title": "Multimodality",
+    "level": 1,
+    "order": 54,
+    "hash": "08c9dbfe93b88409476c01d8bbad9343dede5a4c79887fc6432787004f894b99"
+  }
+]

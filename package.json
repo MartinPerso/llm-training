@@ -11,7 +11,8 @@
     "test": "vitest run --maxWorkers=4",
     "book:fetch": "node scripts/fetch-book.ts",
     "book:diff": "node scripts/book-diff.ts",
-    "bank:check": "node scripts/check-bank.ts"
+    "bank:check": "node scripts/check-bank.ts",
+    "book:covered": "node scripts/mark-covered.ts"
   },
   "dependencies": {
     "idb-keyval": "^6.3.0",
