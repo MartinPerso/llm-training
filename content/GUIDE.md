@@ -189,12 +189,12 @@ Complete example with all four kinds (valid against the checker; the facts are o
 
 ## 10. Workflow, chapter by chapter
 
-1. `npm run book:diff` to see what needs questions (sections are listed per chapter).
+1. `npm run bank:status` shows every chapter's status (`todo`, `in progress`, `done`, `outdated`); `npm run book:diff` lists the sections that need questions. `npm run bank:task -- <chapter-slug>` prints a self-contained brief for the chapter (add `-- --section <id-or-slug>` for one section, `-- --review` for the reviewer brief); it is the entry point for agents, see `AGENTS.md`.
 2. Read every `.cache/book/<NN>-<slug>.md` file of the chapter (`index.md` maps chapters to files).
 3. Draft concepts section by section, following sections 2-9. Write `content/questions/<chapter-slug>.json`.
 4. Run `npm run bank:check` until it exits 0 with no warnings you can fix. Add `-- --stats` to see counts per chapter and kind: `npm run bank:check -- --stats`.
 5. Re-read your questions once against the checklist in section 12.
-6. Mark the chapter's sections as covered: `node scripts/mark-covered.ts <chapter-slug>` sets `coveredHash = hash` for every section of that chapter in `content/sections.json` (run it only when the chapter is finished; heading-only sections are covered too). Prefix node commands with the project's Node 24 setup (`nvm use 24`).
+6. Mark the chapter's sections as covered: `npm run book:covered -- <chapter-slug>` (that is `node scripts/mark-covered.ts <chapter-slug>`; add `--section <id>` for a single section) sets `coveredHash = hash` for every section of that chapter in `content/sections.json` (run it only when the chapter is finished; heading-only sections are covered too). Prefix node commands with the project's Node 24 setup (`nvm use 24`).
 7. When the book changes: `npm run book:fetch` refreshes hashes while keeping `coveredHash`; `npm run book:diff` then lists sections whose text changed. Write questions only for new or changed material, keep existing ids for unchanged ideas, retire (do not delete) concepts whose idea is gone.
 
 ## 11. Chapters and slugs
@@ -228,4 +228,4 @@ For example, the file for "The modern transformer LM" is `content/questions/tran
 - [ ] Is the prose my own, with notation identical to the book?
 - [ ] Is the kind mix close to 30/25/25/20 where the section allows?
 - [ ] Are ids unique, permanent and in the `<chapter>.<section>.<idea>` form, and does each `section` belong to the file's chapter?
-- [ ] Does `npm run bank:check` pass, and did I then run `node scripts/mark-covered.ts <chapter-slug>`?
+- [ ] Does `npm run bank:check` pass, and did I then run `npm run book:covered -- <chapter-slug>`?

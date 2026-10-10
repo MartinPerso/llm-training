@@ -12,6 +12,8 @@
     "book:fetch": "node scripts/fetch-book.ts",
     "book:diff": "node scripts/book-diff.ts",
     "bank:check": "node scripts/check-bank.ts",
+    "bank:status": "node scripts/bank-status.ts",
+    "bank:task": "node scripts/bank-task.ts",
     "book:covered": "node scripts/mark-covered.ts"
   },
   "dependencies": {
