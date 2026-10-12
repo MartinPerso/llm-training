@@ -547,7 +547,7 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "How many times does standard attention move the $N\\times N$ matrix through HBM?",
+          "prompt": "How many times does standard attention move the $N\\times N$ score matrix ($N$ = sequence length) through HBM?",
           "answer": 4,
           "tolerance": 0,
           "explanation": "The matrix makes four trips: $$\\underbrace{\\text{write}}_{\\text{scores}}+\\underbrace{\\text{read}}_{\\text{softmax}}+\\underbrace{\\text{write}}_{\\text{weights}}+\\underbrace{\\text{read}}_{\\text{times }V}=4\\text{ passes of }N^2,$$ so HBM traffic grows like $4N^2$ per head. These slow trips, not the arithmetic, make standard attention memory-bound. FlashAttention removes them by keeping tiles in SRAM and writing only the $N\\times\\text{head\\_dim}$ output."
@@ -555,7 +555,7 @@
         {
           "kind": "recall",
           "prompt": "Standard attention is memory-bound. Which traffic causes that, and how does FlashAttention avoid it?",
-          "answer": "The $N\\times N$ score matrix is repeatedly written to and read from HBM. FlashAttention works tile by tile in fast SRAM and writes only the final output.",
+          "answer": "The $N\\times N$ score matrix ($N$ = sequence length) is repeatedly written to and read from HBM. FlashAttention works tile by tile in fast SRAM and writes only the final output.",
           "explanation": "The time goes into shuttling the quadratic matrix through slow HBM, not into arithmetic, so removing those trips is what helps. The tile-by-tile loop in SRAM (made possible by the online softmax) never builds the full matrix, so only the output is written. ⚠️ Note: the notes say it is faster \"because memory bandwidth isn't the bottleneck\", which is loosely worded: the traffic is cut, not the arithmetic."
         },
         {

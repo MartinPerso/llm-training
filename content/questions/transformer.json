@@ -35,7 +35,8 @@
           "answer": false,
           "explanation": "The addition uses $\\mathbf X^{(\\ell)}+\\mathbf O_{\\text{proj}}$, not $\\bar{\\mathbf X}^{(\\ell)}+\\mathbf O_{\\text{proj}}$. The bar denotes the copy used to form projections, while the unbarred state follows the skip path. Confusing the two changes the block's computation before the FFN begins."
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "transformer.architecture.gqa-projection-widths",
@@ -389,7 +390,8 @@
           "answer": true,
           "explanation": "The fill operation acts exactly where its selector is True. Under an allowed-position convention, those are the entries that should survive, so direct use reverses the intended behavior. Inverting the mask aligns the fill operation with the causal constraint before normalization."
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "transformer.implementation-notes.trigonometric-cache",
@@ -615,11 +617,16 @@
       "section": "3027eb87-3605-805d-b53d-dbd0eee537d6",
       "variants": [
         {
-          "kind": "numeric",
-          "prompt": "A SwiGLU FFN with $F=8D/3$ has as many parameters as a plain two-matrix FFN of width $F'$. What is $F'/D$?",
-          "answer": 4,
-          "tolerance": 0,
-          "explanation": "SwiGLU has three $D\\times F$-sized matrices (up, gate, down): $$3DF=3D\\cdot\\tfrac{8D}{3}=8D^2=2D\\cdot4D.$$ So $F=8D/3$ matches two matrices of width $4D$, the generic $F=4D$ of the symbol table, and gives the FFN's $8D^2$ in the $12LD^2$ total. (General context, not from the notes: this parameter matching is the usual reason SwiGLU models pick $F\\approx8D/3$.)"
+          "kind": "recall",
+          "prompt": "SwiGLU FFNs use $F=8D/3$ rather than the usual $F=4D$. What does that choice keep unchanged?",
+          "answer": "The FFN parameter count: three $D\\times F$ matrices give $3D\\cdot\\tfrac{8D}{3}=8D^2$, the same as a two-matrix FFN of width $4D$.",
+          "explanation": "The gate adds a third matrix next to up and down, so at equal width SwiGLU would cost $3DF$ instead of $2DF$. Shrinking the width compensates: $$3DF=3D\\cdot\\tfrac{8D}{3}=8D^2=2D\\cdot4D.$$ This $8D^2$ plus attention's $4D^2$ gives the $12LD^2$ in the model total. (General context, not from the notes: this matching is the usual stated reason for $F\\approx8D/3$.)"
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "At the same width $F$, a SwiGLU FFN has as many parameters as a plain two-matrix FFN.",
+          "answer": false,
+          "explanation": "False: SwiGLU has three $D\\times F$-sized matrices (up, gate and down), so it holds $3DF$ parameters against $2DF$, 1.5 times more. That is why its width is cut to $F=8D/3$: $3D\\cdot\\tfrac{8D}{3}=8D^2$ matches the plain FFN at $F=4D$. The gate is a full projection, not a cheap elementwise add-on."
         }
       ]
     },
@@ -647,10 +654,10 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "For dense prefill attention, what coefficient multiplies $BS^2D$ for $QK^\\top$ and $AV$ together?",
+          "prompt": "In prefill, how many FLOPs do $QK^\\top$ and $AV$ cost together, in units of $BS^2D$?",
           "answer": 4,
           "tolerance": 0,
-          "explanation": "Each product costs $2BS^2D$, so $2BS^2D+2BS^2D=4BS^2D$. This counts score formation and value aggregation, not the linear projections. With MHA projections included, the attention estimate becomes $8BSD^2+4BS^2D$ per layer."
+          "explanation": "Each is a batched matmul over the $N$ heads with $D=NH$: $$QK^\\top:\\ 2BNS^2H=2BS^2D,\\qquad AV:\\ 2BS^2D,$$ so together $4BS^2D$. Counting one FLOP per multiply-add instead of two gives the tempting 2. Adding the four projections ($8BSD^2$) gives the per-layer attention cost $8BSD^2+4BS^2D$."
         },
         {
           "kind": "mcq",
@@ -672,16 +679,16 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "For prefill with $F=8D/3$, what coefficient multiplies $BSD^2$ in one SwiGLU FFN's matmul FLOPs?",
+          "prompt": "In prefill with $F=8D/3$, how many matmul FLOPs does one SwiGLU FFN block cost, in units of $BSD^2$?",
           "answer": 16,
           "tolerance": 0,
           "explanation": "The three projections cost $3(2BSDF)=6BSDF=6BSD(8D/3)=16BSD^2$. Counting only up and down would omit the gate projection. This is twice the MHA projection-only cost $8BSD^2$, though attention also has its separate quadratic term."
         },
         {
           "kind": "truefalse",
-          "prompt": "A SwiGLU FFN's matmul cost includes the gate projection as well as the up and down projections.",
+          "prompt": "In prefill, a layer's FFN costs more matmul FLOPs than its four attention projections.",
           "answer": true,
-          "explanation": "Each of the three matrices costs $2BSDF$ in prefill, giving $6BSDF$ altogether. The gate's elementwise role does not eliminate the dense projection that produces it. Substituting $F=8D/3$ gives the FFN contribution $16BSD^2$ used in the layer total."
+          "explanation": "True, twice as much: the up, gate and down projections cost $$3\\cdot2BSDF=6BSD\\cdot\\tfrac{8D}{3}=16BSD^2,$$ against $8BSD^2$ for the $Q$, $K$, $V$ and $O$ projections. Attention adds its own $4BS^2D$ for scores and value mixing, so attention as a whole overtakes the FFN only when $4BS^2D>8BSD^2$, that is $S>2D$."
         }
       ]
     },
