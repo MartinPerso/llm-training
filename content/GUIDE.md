@@ -16,8 +16,14 @@ After playing the first chapter, the reader asked for the opposite of what it ha
 
 - **Short, plain prompts.** One or two sentences, ideally under 150 characters (the checker warns above 180). No scenario to set up, no list of given values to parse. If you need a setup paragraph, the question is wrong.
 - **The answer is a specific piece of knowledge from the notes**: a mechanism, a fact, a formula, a number the notes state or that follows from one fact. Someone with general common sense but who hasn't retained the notes should not be able to answer.
-- **Numeric only when the number is the knowledge.** Good: "How many times does standard attention move the $N\times N$ matrix through HBM?" (4: you must know the write/read/write/read pattern). Bad: giving every input and asking for the product. Arithmetic, if any, is a one-liner the reader could do in their head.
+- **Numeric only when the number is the knowledge.** Good: "How many times does standard attention move the $N\times N$ score matrix ($N$ = sequence length) through HBM?" (4: you must know the write/read/write/read pattern). Bad: giving every input and asking for the product. Arithmetic, if any, is a one-liner the reader could do in their head.
 - **No "common-sense calculations"** (throughput = requests × speed, percentages of idle time). The reader flagged these as not interesting.
+- **No algebra on a formula the prompt hands over.** If the prompt gives $F=8D/3$ and the answer is substituting it ($3DF=2DF'$, so $F'=4D$), it is arithmetic, not knowledge (flagged: "mostly arithmetics"). Ask for the reason instead: "SwiGLU uses $F=8D/3$ rather than $4D$. What does that preserve?" A coefficient question ("what multiplies $BS^2D$?") is fine only when the coefficient itself is what one must remember.
+- **The answer must teach something.** On reveal, a reader who knows the topic should not think "well, obviously". If the only way to miss the question is to misread the prompt, it is a bad question even when the reader gets it wrong (flagged: "the question is hard to parse, the answer is simple"; "nothing surprises me in the answer").
+- **Name the quantity, the scope and what is included.** Say what is counted (FLOPs, bytes, parameters) and per what (per layer, per token, forward pass, prefill). When a term has a narrow and a broad meaning, say which one: SwiGLU the activation vs the SwiGLU FFN with its up, gate and down projections (flagged: "could be clearer, eg mention FLOPs"; "is it obvious that the up is part of the SwiGLU?"). If naming the scope would give the answer away, the scope is the knowledge: ask about it directly.
+- **Gloss a symbol that clashes with the book's notation.** Keep the notes' symbol (§4), but when a section reuses a letter differently from the symbol table (the FlashAttention notes use $N$ for sequence length, while $N$ is the number of query heads and $S$ the sequence length everywhere else), say what it is in the prompt: "the $N\times N$ score matrix ($N$ = sequence length)" (flagged: "N is S here?").
+- **Plain words, not the notes' internal labels.** Write "the residual stream", "the RMSNorm output", "the attention output", not "the branch input", "the fill selector", "what the projections receive". The prompt should be understood on the first read without recalling which symbol carries a bar.
+- **No convention puzzles.** Boolean mask polarity (does True mean keep or fill?), which copy of a tensor carries a bar, sign conventions, an API's argument order: the difficulty is untangling a double negation, not recalling an idea. Ask about the consequence instead ("what does softmax see if the causal mask is applied with the wrong polarity?") or skip it.
 - **True/false statements are one short line** that states a plausible misconception or its correction. The trap is in the content, not in the phrasing.
 - **MCQ choices are short** (a few words, under 90 characters each): the reader should spend time deciding, not reading.
 - **Short prompt, rich explanation.** The explanation is where the reader learns, especially after a miss, so it is the opposite of the prompt: 2-4 sentences (about 200-450 characters) that (1) explain *why* the answer is right, with the mechanism, (2) say why the tempting wrong answer or each distractor is wrong, and (3) connect the idea to a neighbouring one from the notes. Never just list names. Every variant has one, recall included (the checker warns under 120 characters).
@@ -40,6 +46,16 @@ Calibrated examples (Inference):
 | "Model with $L=24$, $K=16$, $H=64$, 2 bytes, $B=32$, $S=2048$: KV cache size?" | numeric: "A 32-head model switches from MHA to MQA. By what factor does the KV cache shrink?" (32) |
 | — | numeric: "A drafted token has $p(x)>q(x)$. Probability it is accepted?" (1) |
 | — | recall: "A drafted token is rejected. From which distribution is the replacement sampled?" ($\max(0,p-q)$, renormalized) |
+
+Calibrated examples (The modern transformer LM, from the reader's flags):
+
+| Flagged | Calibrated |
+|---|---|
+| numeric: "A SwiGLU FFN with $F=8D/3$ has as many parameters as a plain two-matrix FFN of width $F'$. What is $F'/D$?" ("mostly arithmetics") | recall: "SwiGLU uses $F=8D/3$ rather than the usual $4D$. What does that choice preserve?" (the FFN's $8D^2$ parameters, as with two $D\times4D$ matrices) |
+| numeric: "For dense prefill attention, what coefficient multiplies $BS^2D$ for $QK^\top$ and $AV$ together?" ("mention FLOPs") | numeric: "In prefill, how many FLOPs do $QK^\top$ and $AV$ cost together, in units of $BS^2D$?" (4) |
+| recall: "If True means an attention position is allowed, which entries should a fill operation overwrite?" ("hard to parse, the answer is simple") | Retired: a convention puzzle. |
+| recall: "In a pre-norm attention block, what enters the projections and what bypasses them?" ("hard to understand, nothing surprises me") | Retired: notation bookkeeping; the real point (the residual stream is never normalized, hence the final norm) is asked elsewhere. |
+| numeric: "How many times does standard attention move the $N\times N$ matrix through HBM?" ("N is S here?") | Same question with "($N$ = sequence length)". |
 
 ### Do
 
@@ -102,7 +118,7 @@ Use 1 variant only for a genuinely narrow fact. Never more than 3. Each variant 
 - Stick to what the notes say. **Never invent facts** that are not in the notes.
 - When the notes look wrong, incomplete or ambiguous: write the question on the uncontroversial part and add a sentence starting with `⚠️ Note:` to the explanation saying what looks off and why.
 - General, well-known background may appear **only in explanations**, and must be marked as outside context, for example `(General context, not from the notes: ...)`.
-- Formulas, symbols and notation stay **identical** to the book. Do not rename `$S$` to `$T$` or restate a formula in another form unless the question is precisely about that equivalence.
+- Formulas, symbols and notation stay **identical** to the book. Do not rename `$S$` to `$T$` or restate a formula in another form unless the question is precisely about that equivalence. When a section uses a letter differently from the symbol table (for example $N$ as sequence length), keep it and gloss it in the prompt (§2.1).
 - If a section's notes are too thin to support a non-obvious question, write fewer concepts rather than padding with trivia.
 
 ## 5. Copyright
@@ -242,6 +258,8 @@ For example, the file for "The modern transformer LM" is `content/questions/tran
 - [ ] Is every prompt short and plain (§2.1), so that the time goes into recalling, not reading?
 - [ ] Could the reader answer any question just by recognising a phrase from the book, or by common sense? Rewrite it.
 - [ ] Does any prompt contain its own answer, or a hint at it?
+- [ ] Would a reader who knows the topic learn something on reveal, or would they think "obviously"? Is any question a convention, sign or boolean-polarity puzzle, or algebra on a formula the prompt gives?
+- [ ] Does every prompt name the quantity (FLOPs, bytes, parameters), the scope (per layer, per token, prefill) and what is included, and gloss any symbol used differently from the book's symbol table? Is it in plain words rather than the notes' internal labels?
 - [ ] Is every numeric answer derivable from the notes, with units and assumptions in the prompt and the arithmetic in the explanation?
 - [ ] Do all MCQ distractors represent a real confusion, with a balanced correct index and similar lengths?
 - [ ] Are true/false statements about half false, and are the false ones plausible?

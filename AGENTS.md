@@ -80,7 +80,7 @@ For writing questions in a chat (claude.ai, ChatGPT, Gemini...) with no coding a
 
 ## Reviewing questions
 
-When asked to review or audit a chapter's questions: `npm run bank:task -- <slug> --review` prints the reviewer brief. A reviewer is a different agent from the writer. It reads the chapter file and its source sections, audits every concept against `content/GUIDE.md` sections 2 to 6 and 12 (non-obviousness, faithfulness to the notes, answer leaks, distractor quality, copied phrasing), fixes problems in place (same ids; retire rather than delete), passes `bank:check`, commits only the chapter file as `Review questions: <Chapter title>`, and reports what it changed.
+When asked to review or audit a chapter's questions: `npm run bank:task -- <slug> --review` prints the reviewer brief. A reviewer is a different agent from the writer. It reads the chapter file and its source sections, audits every concept against `content/GUIDE.md` sections 2 to 6 and 12 (non-obviousness, clarity, faithfulness to the notes, answer leaks, distractor quality, copied phrasing), fixes problems in place (same ids; retire rather than delete), passes `bank:check`, commits only the chapter file as `Review questions: <Chapter title>`, and reports what it changed.
 
 ## Parallel work
 
