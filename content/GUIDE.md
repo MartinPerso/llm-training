@@ -148,6 +148,7 @@ Format: `<chapter-slug>.<section-slug>.<idea-slug>`, for example `inference.kv-c
 - `section-slug`: a short kebab-case slug of the section title (1-3 words), the same for every concept of that section, for example `kv-cache`, `grpo`, `train-memory`.
 - `idea-slug`: 2-4 words naming the idea, unique within the section.
 - **Ids are permanent.** Never rename or reuse one. To drop a concept, keep it and add `"retired": true`. If an idea's meaning changes, create a new id and retire the old one.
+- **A weak question is not an unimportant idea.** Before retiring one, try to ask the same idea as a mechanism, a consequence, a comparison or a number worth remembering. Retire without a replacement only when another live concept already tests the idea, or when the reader does not need it.
 - `section` is the section's Notion block id (the `section:` value in the first-line comment of `.cache/book/<file>.md`, also `id` in `content/sections.json`). The section must belong to the file's chapter.
 
 ## 8. File format
@@ -267,4 +268,5 @@ For example, the file for "The modern transformer LM" is `content/questions/tran
 - [ ] Is the prose my own, with notation identical to the book?
 - [ ] Is the kind mix close to 35/15/25/25 (recall/numeric/mcq/truefalse) where the section allows, and does every numeric pass the §2.1 test?
 - [ ] Are ids unique, permanent and in the `<chapter>.<section>.<idea>` form, and does each `section` belong to the file's chapter?
+- [ ] For every concept I retired, is its idea still tested by a live concept, or is it one the reader does not need?
 - [ ] Does `npm run bank:check` pass, and did I then run `npm run book:covered -- <chapter-slug>`?
