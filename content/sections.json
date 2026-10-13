@@ -68,7 +68,8 @@
     "title": "Mathy things",
     "level": 1,
     "order": 7,
-    "hash": "82652394d0cd18af506f394ae00a3f19677636dd41f30b693cd228ea31e6036c"
+    "hash": "82652394d0cd18af506f394ae00a3f19677636dd41f30b693cd228ea31e6036c",
+    "coveredHash": "82652394d0cd18af506f394ae00a3f19677636dd41f30b693cd228ea31e6036c"
   },
   {
     "id": "2e97eb87-3605-8077-b09d-ea853f62c399",
@@ -76,7 +77,8 @@
     "title": "Information theory",
     "level": 2,
     "order": 8,
-    "hash": "f67fb610dc735963c7704ba042e7b2aa8d3071a683249135ee0114616aa2323a"
+    "hash": "f67fb610dc735963c7704ba042e7b2aa8d3071a683249135ee0114616aa2323a",
+    "coveredHash": "f67fb610dc735963c7704ba042e7b2aa8d3071a683249135ee0114616aa2323a"
   },
   {
     "id": "3157eb87-3605-80ec-9b01-c45ffec58c03",
@@ -84,7 +86,8 @@
     "title": "Numerical stability and other tricks",
     "level": 2,
     "order": 9,
-    "hash": "70cc586dd0b3db027edf863fe46b8ae83fdbdef3efd84d2cf3eb8da13abeff09"
+    "hash": "70cc586dd0b3db027edf863fe46b8ae83fdbdef3efd84d2cf3eb8da13abeff09",
+    "coveredHash": "70cc586dd0b3db027edf863fe46b8ae83fdbdef3efd84d2cf3eb8da13abeff09"
   },
   {
     "id": "3177eb87-3605-8067-a52f-f9173b9a162f",
@@ -92,7 +95,8 @@
     "title": "Basic statistics",
     "level": 2,
     "order": 10,
-    "hash": "17db52e2fe63fb073ec48dccf710ff61ff5b8b43117996065c0b1d6a09241d8d"
+    "hash": "17db52e2fe63fb073ec48dccf710ff61ff5b8b43117996065c0b1d6a09241d8d",
+    "coveredHash": "17db52e2fe63fb073ec48dccf710ff61ff5b8b43117996065c0b1d6a09241d8d"
   },
   {
     "id": "3247eb87-3605-8072-88eb-ee2a3f885894",
@@ -100,7 +104,8 @@
     "title": "Gradient flow through sampling",
     "level": 2,
     "order": 11,
-    "hash": "375f08380975948ec28b34d4ea6962327946604a0c391e28b025d9a160fd8f23"
+    "hash": "375f08380975948ec28b34d4ea6962327946604a0c391e28b025d9a160fd8f23",
+    "coveredHash": "375f08380975948ec28b34d4ea6962327946604a0c391e28b025d9a160fd8f23"
   },
   {
     "id": "33e7eb87-3605-8070-994c-e9236def4d12",
@@ -108,7 +113,8 @@
     "title": "Theoretical CS",
     "level": 2,
     "order": 12,
-    "hash": "bf170f64d9f209187cf3efaaec154ee704d6ae232426bf82800ddf1f2238eb21"
+    "hash": "bf170f64d9f209187cf3efaaec154ee704d6ae232426bf82800ddf1f2238eb21",
+    "coveredHash": "bf170f64d9f209187cf3efaaec154ee704d6ae232426bf82800ddf1f2238eb21"
   },
   {
     "id": "2d17eb87-3605-805e-a70f-eaa44f632886",

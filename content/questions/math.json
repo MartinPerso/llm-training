@@ -1,0 +1,595 @@
+{
+  "chapter": "Mathy things",
+  "concepts": [
+    {
+      "id": "math.information-theory.cross-entropy-floor",
+      "section": "2e97eb87-3605-8077-b09d-ea853f62c399",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can cross-entropy stay positive when the model exactly matches the target distribution?",
+          "answer": "The irreducible target entropy remains: $\\operatorname{CE}(p,p)=H(p)$.",
+          "explanation": "$\\operatorname{CE}(p,q)=\\operatorname{KL}(p\\mid\\mid q)+H(p)$, so setting $q=p$ leaves $0+H(p)$. Matching the distribution removes mismatch, not uncertainty in the target. For fixed $p$, minimizing cross-entropy and KL therefore chooses the same model."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "For a fixed target distribution $p$, minimizing cross-entropy over models $q$ also minimizes $\\operatorname{KL}(p\\mid\\mid q)$.",
+          "answer": true,
+          "explanation": "$\\operatorname{CE}(p,q)-\\operatorname{KL}(p\\mid\\mid q)=H(p)$, which does not depend on $q$. Both objectives therefore rank candidate models identically. Their numerical values need not match; equality requires zero target entropy."
+        }
+      ]
+    },
+    {
+      "id": "math.information-theory.one-hot-likelihood",
+      "section": "2e97eb87-3605-8077-b09d-ea853f62c399",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does next-token cross-entropy reduce to negative log-likelihood?",
+          "answer": "Only the target token has nonzero target mass, so each position contributes $-\\log p(x_t\\mid x_{<t})$.",
+          "explanation": "The one-hot target eliminates every non-target term in the cross-entropy sum, giving $\\mathcal L(x)=-\\sum_{t=1}^T\\log p(x_t\\mid x_{<t})$. This is a sum over observed tokens, not over sampled alternatives. Zero target entropy also explains its equivalence to KL."
+        }
+      ]
+    },
+    {
+      "id": "math.information-theory.entropy-from-logits",
+      "section": "2e97eb87-3605-8077-b09d-ea853f62c399",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can softmax entropy be computed from logits without separately taking logs of all probabilities?",
+          "answer": "$H(p)=\\log\\sum_i e^{x_i}-\\frac{\\sum_i e^{x_i}x_i}{\\sum_i e^{x_i}}$.",
+          "explanation": "Substitute $\\log p_i=x_i-\\log\\sum_j e^{x_j}$ into $-\\sum_i p_i\\log p_i$ to obtain $H(p)=\\log\\sum_i e^{x_i}-\\mathbb E[x]$. The subtraction is essential: logsumexp alone is a normalization term. Stable logsumexp connects this identity to numerical stability."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which quantity must be subtracted from logsumexp of logits to obtain softmax entropy?",
+          "choices": [
+            "The maximum logit",
+            "The softmax-weighted logit mean",
+            "The unweighted mean of all logits",
+            "The log of the total vocabulary size"
+          ],
+          "correct": 1,
+          "explanation": "$H(p)=\\log\\sum_i e^{x_i}-\\sum_i p_i x_i$, where $p_i=e^{x_i}/\\sum_j e^{x_j}$. The weighting is by the resulting distribution, not uniform across logits. The maximum is useful for stable computation, while vocabulary size alone cannot describe a nonuniform distribution."
+        }
+      ]
+    },
+    {
+      "id": "math.information-theory.next-token-alignment",
+      "section": "2e97eb87-3605-8077-b09d-ea853f62c399",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can unshifted targets give a causal language model very low training loss but poor next-token generation?",
+          "answer": "The model can copy the token already present at each input position instead of predicting the following token. Low loss then measures the wrong task.",
+          "explanation": "The intended objective is $-\\sum_t\\log p(x_t\\mid x_{<t})$: the target must be absent from its prediction context. Pairing each output with the token at its own input position exposes the answer, allowing copying without learning next-token prediction. ⚠️ Note: generic cross-entropy does not shift labels automatically; the caller or model wrapper must supply aligned prediction/target pairs."
+        }
+      ]
+    },
+    {
+      "id": "math.information-theory.masked-loss-normalization",
+      "section": "2e97eb87-3605-8077-b09d-ea853f62c399",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In a batch with variable-length sequences, why does dividing the summed non-padding token loss by the total padded token count change the training objective?",
+          "answer": "It scales the loss and its gradients by the fraction of positions that contain real tokens, making their magnitude depend on padding and batch composition.",
+          "explanation": "For the mean loss per included token, both the sum and the denominator must exclude padding. Dividing by all allocated positions multiplies that mean by the real-token fraction. The same examples can therefore receive a smaller gradient merely because more padding was allocated. This is different from deliberately weighting sequences equally, which defines a different objective."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.softmax-common-shift",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does subtracting the same constant from every logit preserve softmax?",
+          "answer": "The common exponential factor cancels between numerator and denominator.",
+          "explanation": "$\\frac{e^{x_i-c}}{\\sum_j e^{x_j-c}}=\\frac{e^{-c}e^{x_i}}{e^{-c}\\sum_j e^{x_j}}=\\frac{e^{x_i}}{\\sum_j e^{x_j}}$. A shared shift changes numerical scale without changing probabilities. Dividing logits by a temperature is different: it changes relative exponential weights."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A common additive logit shift changes the sharpness of softmax.",
+          "answer": false,
+          "explanation": "$\\operatorname{softmax}(x-c)_i=e^{-c}e^{x_i}/(e^{-c}\\sum_j e^{x_j})=\\operatorname{softmax}(x)_i$. The common factor cancels, so sharpness is unchanged. This invariance is what allows a safe shift before exponentiation; it is not the effect of temperature scaling."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.maximum-shift-bound",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is subtracting the maximum logit safer than subtracting the mean before exponentiating logits for softmax?",
+          "answer": "The maximum shift bounds every exponential by 1, while a mean shift can leave large positive outliers that overflow.",
+          "explanation": "A common additive shift preserves softmax because its exponential factor cancels. Subtracting the maximum makes every shifted logit nonpositive and guarantees that at least one exponential equals 1. Mean-centering preserves the mathematical probabilities too, but provides no upper bound that prevents overflow. This argument assumes finite input logits."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.log-probability-underflow",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can `log(softmax(x))` return negative infinity when a stable log-softmax remains finite?",
+          "answer": "The intermediate probability can round to zero. Compute $x_i-\\operatorname{logsumexp}(x)$ directly instead.",
+          "explanation": "$\\log\\frac{e^{x_i}}{\\sum_j e^{x_j}}=x_i-\\log\\sum_j e^{x_j}$. This avoids forming the tiny probability whose rounded value may be zero. ⚠️ Note: the unstable operation described in the source is a separate log after softmax, not a properly implemented log-softmax."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.logsumexp-shift-correction",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why must stable logsumexp restore a subtracted maximum, whereas stable softmax does not?",
+          "answer": "Logsumexp retains the common scale as an additive term; softmax cancels it between numerator and denominator.",
+          "explanation": "$\\log\\sum_i e^{x_i}=x_\\text{max}+\\log\\sum_i e^{x_i-x_\\text{max}}$. Factoring the exponential scale out of the sum leaves its logarithm, so the maximum must be restored. Softmax is a ratio with the same factor above and below the fraction, where it cancels. Forgetting this difference yields numerically finite but incorrect log-probabilities."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.denominator-underflow-protection",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "All finite input logits are very negative. Why can max-shifting keep logsumexp finite even when most exponentials underflow?",
+          "answer": "At least one shifted logit is zero, so its exponential contributes 1 and the sum cannot vanish.",
+          "explanation": "The term for a maximum logit is $e^{x_\\text{max}-x_\\text{max}}=1$, even if all other terms round to zero. The logarithm therefore sees a sum of at least 1, and adding back the finite maximum recovers the scale. This prevents an avoidable $\\log(0)$; it does not claim that every tiny contribution is retained."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.near-one-precision",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can taking the log of a computed value very close to 1 lose useful information?",
+          "answer": "The value may have rounded to 1 before the logarithm, erasing the small deviation that the log should reveal.",
+          "explanation": "If a small deviation is lost before evaluation, the computed result becomes $\\log(1)=0$ rather than the intended nearby value. Stabilizing exponentials does not recover information already rounded away. ⚠️ Note: the source calls $\\log(1)$ unstable; its exact value is fine, and the issue is finite-precision input information."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.online-softmax-state",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which two running quantities let the normalization of one softmax vector be accumulated in a single scan of its logits?",
+          "answer": "$m_k=\\max(x_1,\\ldots,x_k)$ and $d_k=\\sum_{j=1}^k e^{x_j-m_k}$.",
+          "explanation": "The state combines a scale, $m_k$, with a sum measured at that scale, $d_k$. When the maximum changes, rescaling the existing sum preserves its meaning. Tracking only the raw sum risks overflow, while tracking only the maximum cannot recover normalization. Here $k$ is the number of logits processed so far."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which state lets one softmax normalization be accumulated stably in a single scan of its logits?",
+          "choices": [
+            "A running maximum and shifted sum",
+            "A running minimum and raw logit sum",
+            "A running mean and logit variance",
+            "A running maximum and token count"
+          ],
+          "correct": 0,
+          "explanation": "The normalizer retains $m_k=\\max(x_1,\\ldots,x_k)$ and $d_k=\\sum_{j=1}^k e^{x_j-m_k}$. The maximum supplies a safe scale and the shifted sum accumulates mass. Means, variances and counts do not determine the sum of exponentials needed by softmax. Here $k$ is the number of logits processed so far."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.denominator-rescale-factor",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In online softmax, why is adding a new shifted exponential to the old denominator incorrect when the incoming logit raises the running maximum?",
+          "answer": "The old and new contributions would be measured relative to different maxima. The old sum must be rescaled to the new maximum first.",
+          "explanation": "After $k$ logits ($k$ counts logits), $d_k=\\sum_{j=1}^k e^{x_j-m_k}$. A new maximum requires $d_k e^{m_k-m_{k+1}}$ before adding the new term; otherwise earlier logits retain too much mass. If the maximum is unchanged, the old sum already has the correct scale and needs no rescaling. The running sum thus avoids revisiting earlier logits in either case."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.unchanged-maximum-update",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "If the running maximum is unchanged, what factor multiplies old online-softmax mass?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "When $m_{k+1}=m_k$, $e^{m_k-m_{k+1}}=e^0=1$. Existing terms are already expressed in the correct scale, so only the new exponential is added. This is a special case of the same update, not a different normalization method."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Online softmax can keep old mass unchanged when the incoming logit does not raise the maximum.",
+          "answer": true,
+          "explanation": "$m_{k+1}=m_k$ implies $d_{k+1}=d_k+e^{x_{k+1}-m_k}$. No scale conversion is needed because old and new contributions use the same maximum. If the maximum rises instead, simply adding the new term would mix incompatible scales."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "math.numerical-stability-and.probability-output-pass",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does a memory-limited online softmax that stores only its running normalizer need to read the logits again to emit the full probability vector?",
+          "answer": "Each probability needs the final $m_S$ and $d_S$, which are unknown when an early logit first arrives.",
+          "explanation": "After normalization state is complete, each output is $e^{x_i-m_S}/d_S$. An early normalized probability would change when later logits add mass or raise the maximum. The online trick fuses maximum and denominator accumulation; a weighted output can instead be accumulated with an extra numerator. Here $S$ is the number of logits in the vector; the argument excludes retaining the full logit or output vector during the first scan."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.weighted-sum-ratio",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For one query, how can its softmax-weighted sum of value vectors be written so it can be accumulated without storing individual attention probabilities?",
+          "answer": "$o=\\frac{\\sum_i e^{x_i}v_i}{\\sum_i e^{x_i}}$.",
+          "explanation": "$\\sum_i p_i v_i=\\sum_i\\frac{e^{x_i}}{\\sum_j e^{x_j}}v_i=\\frac{\\sum_i e^{x_i}v_i}{\\sum_i e^{x_i}}$. The shared denominator can be factored out, leaving one vector numerator and one scalar denominator. This is the algebra that allows attention output to be accumulated online."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.weighted-numerator-rescaling",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In streamed attention for one query, why must a new running maximum rescale both the weighted-value sum and the softmax denominator?",
+          "answer": "Both accumulators use the same shifted exponential weights. Rescaling just one changes their ratio and therefore the attention output.",
+          "explanation": "The weighted-value numerator is $o_k=\\sum_{i=1}^k e^{x_i-m_k}v_i$ and the denominator is $d_k=\\sum_{i=1}^k e^{x_i-m_k}$. Both old sums must be multiplied by $e^{m_k-m_{k+1}}$ before adding the next value and logit contributions. Here $k$ counts processed key/value positions. The source has an index typo in its numerator update: the updated accumulator is $o_{k+1}$, not $o_k$."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.final-attention-normalization",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "After streamed attention has processed one query, why can it produce the normalized output without restoring the exponential of its final running maximum?",
+          "answer": "The numerator and denominator contain the same exponential scale, which cancels in their ratio.",
+          "explanation": "After $N$ key/value positions ($N$ is the stream length here, not the number of query heads), the unnormalized value accumulator is $o_N=\\sum_i e^{x_i-m_N}v_i$ and the denominator is $d_N=\\sum_i e^{x_i-m_N}$. The output is $o_N/d_N$: both sums contain the same factor $e^{-m_N}$. Reintroducing $e^{m_N}$ is unnecessary and could undo the numerical protection of max-shifting."
+        }
+      ]
+    },
+    {
+      "id": "math.numerical-stability-and.online-output-memory",
+      "section": "3157eb87-3605-80ec-9b01-c45ffec58c03",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For one query with $H$-dimensional values, what running accumulator state lets streamed attention avoid storing all past probabilities? Exclude input storage.",
+          "answer": "Its state is one $H$-dimensional vector and two scalars; it does not grow with sequence length.",
+          "explanation": "$o_k\\in\\mathbb R^H$ stores the weighted numerator, while $m_k$ and $d_k$ are scalars. Thus the accumulator has $H+2$ entries regardless of how many logits have been processed. This counts accumulator state only, not storage for input keys, values or the rest of the attention computation."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which running accumulator state is sufficient for the attention output of one query with $H$-dimensional values, excluding input key/value storage?",
+          "choices": [
+            "All past logits and their probabilities",
+            "Two scalars and one $H$-vector",
+            "One scalar and every past value vector",
+            "Two $H$-vectors and all past logits"
+          ],
+          "correct": 1,
+          "explanation": "The two scalars hold $(m_k,d_k)$ and the vector holds $o_k=\\sum_{i=1}^k e^{x_i-m_k}v_i$. Their rescaling updates absorb each new item without retaining all earlier probabilities. The final output is $o_N/d_N$ ($N$ is the number of streamed key/value positions here); this state does not replace storage needed for input data elsewhere."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.p-value-direction",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does a small p-value not give the probability that the null hypothesis is false?",
+          "answer": "It conditions on the null and measures how extreme the data would be under that assumption; it does not condition on the data.",
+          "explanation": "A p-value measures a tail probability under the null, including outcomes at least as extreme as the observation. Reversing that conditional changes the question. This matters whichever test produced it: a mean comparison and a distribution comparison still report evidence under a null, not its posterior probability."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A p-value of 0.03 means the null hypothesis has probability 0.03 given the observed data.",
+          "answer": false,
+          "explanation": "The probability is evaluated assuming the null, rather than assigning a probability to the null after observing data. It also concerns outcomes at least as extreme as the observed statistic, not just the exact sample. Confusing these directions changes the interpretation of all the tests in this chapter."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.distribution-test-selection",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which test compares the entire distributions of two independent samples of a continuous variable?",
+          "choices": [
+            "Paired-sample Student t-test",
+            "Pearson chi-squared test",
+            "Paired-binary McNemar test",
+            "Kolmogorov–Smirnov test"
+          ],
+          "correct": 3,
+          "explanation": "Kolmogorov–Smirnov compares empirical CDFs using their largest vertical separation, so it can detect differences beyond means. A paired t-test targets mean differences; chi-squared handles categorical observations. McNemar addresses paired binary outcomes such as correctness on the same examples."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can a distribution test detect a difference that a two-sample t-test misses?",
+          "answer": "The distributions can differ in shape while having the same mean; Kolmogorov–Smirnov compares their CDFs, not just their means.",
+          "explanation": "A t-test asks about a mean difference, whereas Kolmogorov–Smirnov uses the maximum vertical gap between empirical CDFs. Equal means therefore do not imply the same distribution. Categorical frequencies instead call for a chi-squared comparison; arbitrary category labels should not be treated as continuous measurements."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.categorical-distribution-test",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which test fits a comparison of category frequencies across two independent groups?",
+          "choices": [
+            "Chi-squared test",
+            "Two-sample t-test",
+            "Pearson correlation test",
+            "Kolmogorov–Smirnov test"
+          ],
+          "correct": 0,
+          "explanation": "Chi-squared is the categorical distribution-comparison test, so category frequencies are its natural input. T-tests compare means of numerical observations, Pearson targets a linear association, and Kolmogorov–Smirnov is presented for continuous variables. The measurement type determines which question the test can answer."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.paired-mean-test",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is a paired t-test reducible to a one-sample t-test?",
+          "answer": "Form the difference for each matched item, then test whether the mean of those differences is zero.",
+          "explanation": "Pairing turns two measurements per item into a single sample of differences, with null mean zero. This preserves the matching that an unpaired comparison discards. ⚠️ Note: the source mentions differences in $\\{-1,0,1\\}$ but simplifies t-test assumptions; these discrete differences are not themselves normally distributed."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.multiple-group-means",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which test asks whether any means differ across more than two groups?",
+          "choices": [
+            "Pearson correlation test",
+            "ANOVA F-test",
+            "Kolmogorov–Smirnov test",
+            "Paired-sample t-test"
+          ],
+          "correct": 1,
+          "explanation": "ANOVA extends the mean-comparison question to several groups. Pearson tests linear association, Kolmogorov–Smirnov compares whole continuous distributions, and a paired t-test targets one set of matched differences. The distinction is the null being tested: equality of all group means."
+        },
+        {
+          "kind": "recall",
+          "prompt": "ANOVA rejects equality of the means of several groups. What can you conclude about individual pairs of groups?",
+          "answer": "At least one pair has different population means, but the omnibus result does not identify which pairs or establish that every pair differs.",
+          "explanation": "The ANOVA null is that all group means are equal. Rejecting that joint null establishes a difference somewhere, not a separate significance result for each pair. Identifying the pairs requires additional comparisons with appropriate control for multiple testing. The test concerns means, not arbitrary differences in distribution shape."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.paired-classifier-test",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Two classifiers answer the same examples correctly or incorrectly. Which test specifically fits this setup?",
+          "choices": [
+            "Unpaired two-sample t-test",
+            "Kolmogorov–Smirnov test",
+            "Pearson correlation test",
+            "McNemar test"
+          ],
+          "correct": 3,
+          "explanation": "McNemar is the test identified for paired binary results: each example supplies correctness for both classifiers. An unpaired test ignores that correspondence, a CDF comparison is intended for continuous observations, and correlation asks about association. Matching the test to the evaluation unit matters as much as the reported score."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why is classifier accuracy alone insufficient to express the pairing used by McNemar’s test?",
+          "answer": "McNemar uses the discordant pairs: examples where only the first model is correct versus examples where only the second model is correct.",
+          "explanation": "The null asks whether these two directions of disagreement are equally likely. Examples where both models are right or both are wrong do not distinguish their error rates. Separate accuracy totals do not recover the total number of discordant pairs, which controls the uncertainty of the paired comparison. This is why the same accuracy gap can provide different evidence on different shared test sets."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.pearson-blind-spots",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "A Pearson correlation near zero rules out a strong relationship between two continuous variables.",
+          "answer": false,
+          "explanation": "Pearson measures linear association; a symmetric parabolic relationship can have a near-zero coefficient despite strong dependence. Spearman broadens the target to monotonic association, and mutual information targets dependence more generally. ⚠️ Note: the source overstates this as missing nonlinear relationships entirely; some nonlinear relations have nonzero Pearson correlation."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can a perfect parabolic relationship have Pearson correlation near zero?",
+          "answer": "The increasing and decreasing portions can cancel in a linear-association measure.",
+          "explanation": "Pearson summarizes a linear trend, so opposing parts of a parabola can cancel even when the relationship is deterministic. Near-zero linear correlation is therefore weaker than independence. ⚠️ Note: the source example requires a suitable distribution of inputs, such as symmetry; it is not true of every sample from a parabola."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.spearman-rank-mechanism",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can Spearman detect a nonlinear monotonic relationship that Pearson understates?",
+          "answer": "It replaces each variable’s values by ranks and computes Pearson correlation on those ranks.",
+          "explanation": "Ranking preserves order while removing the original spacing between observations. A nonlinear monotonic relationship can therefore remain strong in rank space even when it is poorly summarized by a straight line in value space. This also explains the reduced sensitivity to extreme magnitudes compared with Pearson."
+        }
+      ]
+    },
+    {
+      "id": "math.basic-statistics.mutual-information-scope",
+      "section": "3177eb87-3605-8067-a52f-f9173b9a162f",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which measure targets general dependence beyond linear or monotonic association?",
+          "choices": [
+            "Mutual information",
+            "Pearson correlation",
+            "Spearman correlation",
+            "Two-sample t-statistic"
+          ],
+          "correct": 0,
+          "explanation": "Mutual information targets dependence without restricting its shape to a line or monotonic ordering. Pearson and Spearman impose those narrower association targets, while a t-test concerns means. A dependence measure alone does not provide a calibrated p-value; measuring association and testing a null are separate tasks."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Mutual information is a dependence measure, but does not by itself constitute a statistical significance test.",
+          "answer": true,
+          "explanation": "A dependence score and a test of a null hypothesis are different objects. Mutual information can express relationships outside the linear and monotonic patterns measured by Pearson and Spearman. A p-value instead measures how extreme a statistic would be under a null hypothesis; the two outputs answer different questions."
+        }
+      ]
+    },
+    {
+      "id": "math.gradient-flow-through.gumbel-max-sampling",
+      "section": "3247eb87-3605-8072-88eb-ee2a3f885894",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can sampling from the categorical distribution given by softmax of a logit vector be implemented using an argmax?",
+          "answer": "Add independent $\\operatorname{Gumbel}(0,1)$ noise to each logit, then take the argmax.",
+          "explanation": "The selected index is $\\arg\\max_i(z_i+g_i)$ with independent $g_i\\sim\\operatorname{Gumbel}(0,1)$. Without noise, argmax is deterministic and selects only the largest logit. The next step toward gradient-based optimization is replacing this hard argmax with a softmax relaxation."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which perturbation makes argmax of a logit vector sample from its softmax distribution?",
+          "choices": [
+            "One standard Gaussian draw shared by all logits",
+            "Independent standard uniform noise per logit",
+            "Independent standard Gumbel noise per logit",
+            "One standard Gumbel draw shared by all logits"
+          ],
+          "correct": 2,
+          "explanation": "The construction uses $\\arg\\max_i(z_i+g_i)$ with independent standard Gumbel draws. Shared noise cannot change relative ordering, so it leaves ordinary argmax unchanged. Uniform or Gaussian noise is not the categorical-sampling construction specified here; Gumbel-Softmax relaxes the resulting argmax."
+        }
+      ]
+    },
+    {
+      "id": "math.gradient-flow-through.stochastic-soft-relaxation",
+      "section": "3247eb87-3605-8072-88eb-ee2a3f885894",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What does Gumbel-Softmax add that ordinary softmax lacks?",
+          "answer": "A stochastic, approximately discrete sample with gradients, using noise and a temperature-controlled softmax.",
+          "explanation": "Ordinary $y=\\operatorname{softmax}(\\alpha)$ is deterministic; $y=\\operatorname{softmax}((\\alpha+G)/\\tau)$ varies with the noise. Softmax already supplies differentiability, so noise supplies exploration rather than creating differentiability by itself. Low temperature makes this relaxation resemble a categorical draw."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The role of Gumbel noise is to make an otherwise nondifferentiable ordinary softmax differentiable.",
+          "answer": false,
+          "explanation": "Ordinary softmax is already differentiable. In $y=\\operatorname{softmax}((\\alpha+G)/\\tau)$, noise makes the output stochastic while softmax provides the continuous gradient path. The nondifferentiable operation being relaxed is the hard sampling or argmax step, not softmax itself."
+        }
+      ]
+    },
+    {
+      "id": "math.gradient-flow-through.temperature-relaxation-tradeoff",
+      "section": "3247eb87-3605-8072-88eb-ee2a3f885894",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "What does lowering Gumbel-Softmax temperature do?",
+          "choices": [
+            "Makes the sample more nearly one-hot",
+            "Removes the randomness from the sample",
+            "Makes the output more nearly uniform",
+            "Replaces softmax with an exact argmax"
+          ],
+          "correct": 0,
+          "explanation": "For fixed perturbed logits, $\\operatorname{softmax}((\\alpha+G)/\\tau)$ becomes more concentrated as $\\tau$ decreases. The noise remains, and finite positive temperature still gives a soft result. ⚠️ Note: the source says low temperature gives discrete samples; exact discreteness belongs to the limiting or hard-sampling version."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A finite positive Gumbel-Softmax temperature produces a continuous relaxation, even when the output is nearly one-hot.",
+          "answer": true,
+          "explanation": "The expression $y=\\operatorname{softmax}((\\alpha+G)/\\tau)$ remains a soft vector at finite positive temperature. Lowering temperature concentrates it while higher temperature gives a smoother mixture. ⚠️ Note: the source describes low-temperature outputs as discrete; they are approximately discrete unless a hard operation is added."
+        }
+      ]
+    },
+    {
+      "id": "math.gradient-flow-through.straight-through-backward",
+      "section": "3247eb87-3605-8072-88eb-ee2a3f885894",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can an identity straight-through estimator train through a rounding operation whose ordinary derivative blocks learning, while keeping rounded values in the forward pass?",
+          "answer": "It keeps the discrete forward computation but substitutes an identity derivative during backpropagation, passing the upstream gradient through unchanged.",
+          "explanation": "The forward pass computes $y=f(x)$, while backward treats $\\partial y/\\partial x$ as 1. Therefore $\\partial\\mathcal L/\\partial x=\\partial\\mathcal L/\\partial y$, even though rounding has zero ordinary derivative almost everywhere. This is a surrogate gradient, not an exact derivative. Unlike a soft relaxation, it need not replace the discrete forward values with a continuous mixture."
+        }
+      ]
+    },
+    {
+      "id": "math.gradient-flow-through.straight-through-direction",
+      "section": "3247eb87-3605-8072-88eb-ee2a3f885894",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Does an increasing quantizer make its identity straight-through gradient exact or unbiased? Why or why not?",
+          "answer": "No. Monotonicity motivates the direction of the surrogate, but it does not make a derivative of 1 the true derivative or prove an unbiased gradient estimate.",
+          "explanation": "Rounding is flat between thresholds and discontinuous at them, so an identity derivative ignores its true structure. For a decreasing transformation, that surrogate can even push in the wrong direction: increasing the input lowers the output, whereas identity backward assumes it raises it. Monotonicity is a heuristic justification for common quantizers, not a proof of an unbiased or useful gradient."
+        }
+      ]
+    },
+    {
+      "id": "math.theoretical-cs.unbounded-nesting-memory",
+      "section": "33e7eb87-3605-8070-994c-e9236def4d12",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What extra mechanism allows a pushdown automaton to handle unbounded nesting beyond a finite-state machine?",
+          "answer": "A stack: unbounded memory with access restricted to its top.",
+          "explanation": "Finite state alone cannot store arbitrary nesting depth, while a stack records pending nested structure and removes it in reverse order. This supports the context-free examples of matched delimiters and nested calls. The added memory is constrained: it is not arbitrary access to everything stored."
+        }
+      ]
+    },
+    {
+      "id": "math.theoretical-cs.finite-language-regularity",
+      "section": "33e7eb87-3605-8070-994c-e9236def4d12",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is every finite language regular, even when its valid strings have complicated structure?",
+          "answer": "A finite automaton can encode the finite list of valid strings using sufficiently many states.",
+          "explanation": "Finite membership can be recognized by enumerating the allowed strings into a finite state structure. Complexity of individual strings does not change that finiteness argument. This differs from recognizing an unbounded family with arbitrary nesting, for which a stack may be needed."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A finite set of deeply nested valid strings can still be recognized by a finite automaton.",
+          "answer": true,
+          "explanation": "Only finitely many strings need to be accepted, so a machine with enough states can encode their membership. Arbitrarily deep structure in an unbounded language is a different requirement from a fixed finite collection. This distinction prevents confusing complicated examples with a need for unbounded machine memory."
+        }
+      ]
+    },
+    {
+      "id": "math.theoretical-cs.automaton-state-encoding",
+      "section": "33e7eb87-3605-8070-994c-e9236def4d12",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does a one-hot encoding of a $k$-state DFA need no sequence-length-dependent hidden memory?",
+          "answer": "It records only the current state in $k$ coordinates, which already summarizes the history relevant to future transitions.",
+          "explanation": "The state is an element of the fixed set $Q=\\{q_1,\\ldots,q_k\\}$, regardless of how much input has been read. A stack is needed for a different, unbounded-memory machine. ⚠️ Note: the source’s proposed additive ReLU transition weights can create spurious transitions; the state representation itself remains valid."
+        }
+      ]
+    }
+  ]
+}
