@@ -26,8 +26,14 @@
         {
           "kind": "recall",
           "prompt": "Why can the critical batch size limit useful data-parallel scaling?",
-          "answer": "More ranks need enough local examples to stay efficient. Increasing the global batch to supply them eventually conflicts with the useful training batch size.",
-          "explanation": "Data parallelism assigns different examples to different ranks; it does not divide one example’s layer computation. Once the useful global batch stops growing, additional ranks receive progressively less local work. ⚠️ Note: the source’s strict $M<B$ condition is too strong: $M=B$ can give one example to each of $M$ ranks."
+          "answer": "Each device needs its own examples ($M<B$), so adding devices means growing the batch $B$. Once $B$ would pass the critical batch size, more data-parallel devices stop being worth it.",
+          "explanation": "Data parallelism gives each of the $M$ devices its own slice of the batch, so the device count is tied to $B$. A batch larger than the critical batch size is undesirable, so data parallelism runs out of devices it can usefully feed. Model parallelism breaks the tie by splitting the computation of one forward pass instead of the batch."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Data parallelism needs the batch to hold more examples than there are devices.",
+          "answer": true,
+          "explanation": "Data parallelism splits the examples of a batch over the $M$ devices, so it requires $M<B$: a device without an example has nothing to compute. That ties the device count to $B$, and $B$ should stay below the critical batch size, which caps how far data parallelism alone can scale. Model parallelism avoids the cap by splitting one forward pass."
         }
       ]
     },
@@ -39,7 +45,7 @@
           "kind": "truefalse",
           "prompt": "ZeRO-3 parameter sharding also divides activation tensors across the same ranks.",
           "answer": false,
-          "explanation": "ZeRO-3 partitions model state and gathers parameters for local computation; each rank still produces activations for its own examples. Weight storage and activation storage are separate bottlenecks, which is why the chapter introduces sequence parallelism as an additional axis."
+          "explanation": "ZeRO-3 shards parameters, gradients and optimizer states and gathers each layer’s weights just in time, but every rank still runs the full forward pass on its own examples and stores their activations. Weight memory and activation memory are separate limits, so sharding model state cannot fix the second; splitting the sequence length across devices (sequence parallelism) targets it."
         },
         {
           "kind": "recall",
@@ -80,9 +86,45 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why can expert parallelism fit total MoE parameters across GPUs yet fail when one expert exceeds a GPU's memory?",
-          "answer": "It places different whole experts on different GPUs. This reduces the number of experts stored per GPU, but does not split an individual expert’s parameters.",
-          "explanation": "Expert placement reduces the local share of total MoE parameter storage by placing different experts on different devices. Splitting an individual expert’s matrices requires an additional form of parallelism, such as tensor parallelism. The scope matters: distributing a collection of experts does not itself partition each member."
+          "prompt": "With expert parallelism alone, what is the smallest piece of an MoE layer that one GPU must hold in full?",
+          "answer": "A whole expert. Expert parallelism assigns entire experts to devices and never splits one expert’s weights, so each expert must fit on its GPU; splitting an expert needs another axis such as tensor parallelism.",
+          "explanation": "Expert parallelism partitions an MoE layer by expert identity: different experts live on different devices, which spreads the total expert memory. It does nothing inside an expert, whose weight matrices stay whole. Tensor parallelism is the axis that splits individual weight matrices, so the two are combined when a single expert is too large for one device."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.parallelism.axis-scaling-targets",
+      "section": "2f47eb87-3605-8007-adf0-fa9cd014bd65",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which parallelism axis scales throughput rather than cutting the model or activation memory each device holds?",
+          "choices": [
+            "Data parallelism",
+            "Tensor parallelism",
+            "Pipeline parallelism",
+            "Sequence parallelism"
+          ],
+          "correct": 0,
+          "explanation": "Data parallelism replicates the model and gives each device different examples, so it adds throughput without shrinking per-device model memory. Tensor and pipeline parallelism split the model (weight matrices, or groups of layers) to cut model memory, and sequence parallelism splits the token dimension to cut activation memory. ⚠️ Note: the intro’s 5D list swaps the TP and PP definitions (and labels PP “TP”); the TP and PP sections confirm that TP splits weight matrices and PP places layers on different devices."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Pipeline parallelism, like tensor parallelism, is mainly a way to fit the model in memory rather than to raise throughput.",
+          "answer": true,
+          "explanation": "Both split the model itself, PP by placing groups of layers on different devices and TP by splitting weight matrices, so each device stores only part of the weights. Naive layer placement does not even raise throughput; micro-batching only recovers the idle time it creates. Scaling throughput is data parallelism’s job, and activation memory is sequence parallelism’s."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.parallelism.strong-scaling-per-chip",
+      "section": "2f47eb87-3605-8007-adf0-fa9cd014bd65",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "Perfect strong scaling keeps each chip’s FLOPs per second constant as chips are added.",
+          "answer": true,
+          "explanation": "Strong scaling means that training throughput (FLOPs/second) grows in proportion to the number of chips. If $M$ chips give $M$ times the throughput of one, each chip still delivers what it did alone, so the per-chip rate is unchanged. Anything that makes chips wait, such as communication or pipeline idle time, lowers the per-chip rate and breaks the proportionality."
         }
       ]
     },
@@ -108,8 +150,7 @@
           "answer": "Every rank contributes a different piece that must be assembled; broadcasting a single rank’s shard cannot reconstruct the whole tensor.",
           "explanation": "A broadcast duplicates one source, while an all-gather concatenates the distributed pieces into a full collection on each participant. FSDP uses the latter because parameter ownership is spread across ranks, even though computation temporarily needs the complete layer."
         }
-      ],
-      "retired": true
+      ]
     },
     {
       "id": "parallelism.background-core-collective.gather-removes-sharding",
@@ -157,6 +198,12 @@
           "prompt": "Why does ordinary DDP use all-reduce rather than reduce-scatter for gradients?",
           "answer": "Every rank updates the complete parameter vector, so each rank needs the complete aggregated gradient.",
           "explanation": "All-reduce combines local contributions and makes the final vector available on every rank. Reduce-scatter would leave only a subset, sufficient for a sharded optimizer but insufficient for DDP’s identical full-vector updates; the required output layout determines the collective."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "After the gradient sync in plain DDP, each rank holds only its own shard of the averaged gradient.",
+          "answer": false,
+          "explanation": "A sharded result is what reduce-scatter gives, and ZeRO-1 and ZeRO-2 rely on it. Plain DDP all-reduces, so every rank ends with the complete averaged gradient, because every rank then updates all the parameters with its own full copy of the optimizer state."
         }
       ]
     },
@@ -169,6 +216,12 @@
           "prompt": "Why can ring all-reduce be split into reduce-scatter followed by all-gather?",
           "answer": "The first phase computes the final reduced shards; the second replicates those shards so every rank gets the complete result.",
           "explanation": "A rank does not need the whole answer while reduction is in progress: it can finish the sum for one shard. Once each shard has an owner with its final value, all-gather distributes those values without further summation. This separation is what allows ZeRO-1 to insert shard-local parameter updates between the two collectives."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In ring all-reduce, the all-gather phase does the additions while reduce-scatter only moves data.",
+          "answer": false,
+          "explanation": "It is the reverse: reduce-scatter does all the arithmetic and leaves each GPU with one fully reduced chunk, then all-gather does pure copying so every GPU receives every reduced chunk. Neither phase repeats the other’s work, which is why the pair costs the same as one all-reduce and why ZeRO-1 can slot a sharded update between them."
         }
       ]
     },
@@ -200,6 +253,27 @@
           "prompt": "How can ring all-reduce combine every rank’s data without direct communication between every pair of ranks?",
           "answer": "Ranks forward and reduce chunks through neighboring ranks; contributions propagate around the ring over multiple steps.",
           "explanation": "Global participation does not require a direct link for each pair of participants. Each rank sends toward one neighbor and receives from another, allowing chunks to accumulate contributions as they travel. The ring topology therefore describes local exchanges, while the collective result still includes all ranks."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "parallelism.background-core-collective.comm-time-device-count",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "An all-reduce of a fixed-size array takes 10 ms on 8 GPUs. At the same per-GPU bandwidth, how long does it take on 64 GPUs?",
+          "answer": 10,
+          "tolerance": 0.05,
+          "unit": "ms",
+          "explanation": "For all-gather, reduce-scatter and all-reduce, communication time depends only on the array size and the bandwidth, not on how many devices the array is sharded over, so it stays at about 10 ms. The tempting 80 ms assumes cost grows with the number of participants. (General context, not from the notes: in a ring, each GPU sends about $\\frac{M-1}{M}$ of the array per phase, a fraction that barely changes with $M$; per-step latency is ignored.)"
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Running the same all-gather over twice as many GPUs leaves its communication time roughly unchanged.",
+          "answer": true,
+          "explanation": "The time of all-gather, reduce-scatter and all-reduce is set by the array size over the bandwidth; the device count drops out. Each GPU’s own shard shrinks as devices are added, but it still has to receive the rest of the array, so the bytes per GPU stay close to the full array size. (General context, not from the notes: this ignores the per-step latency, which does grow with the ring length.)"
         }
       ]
     },
@@ -251,21 +325,21 @@
       "variants": [
         {
           "kind": "mcq",
-          "prompt": "Each rank uses its own output of a differentiable sum all-reduce. Which collective combines gradients in backward?",
+          "prompt": "In the forward pass, every rank sums its tensor with the other ranks’ and keeps the full sum. Which collective does the backward pass need?",
           "choices": [
-            "All-reduce",
-            "Broadcast",
             "All-gather",
-            "Reduce-scatter"
+            "All-reduce",
+            "Reduce-scatter",
+            "Broadcast"
           ],
-          "correct": 0,
-          "explanation": "A sum all-reduce creates a reduced output on every rank, so gradients from all those outputs must be added and supplied to each contributing input. All-gather lacks the addition, reduce-scatter lacks full replication, and broadcast ignores independent gradient contributions."
+          "correct": 1,
+          "explanation": "Every rank’s output depends on every rank’s input, so each input’s gradient is the sum of the upstream gradients of all ranks, needed on every rank: another all-reduce. Equivalently, all-reduce is reduce-scatter then all-gather, and backward reverses the order and swaps each for its partner, giving reduce-scatter then all-gather again. All-gather alone would copy without summing, and reduce-scatter would leave each rank only a shard."
         },
         {
           "kind": "recall",
-          "prompt": "Why does differentiating a sum all-reduce, with a downstream use on each rank, require another all-reduce?",
-          "answer": "Reverse the phases: all-gather becomes reduce-scatter, then reduce-scatter becomes all-gather. The backward is another all-reduce.",
-          "explanation": "Forward is reduce-scatter followed by all-gather. Backward reverses order and replaces each with its adjoint, producing reduce-scatter followed by all-gather again; the same combination both sums contributions and replicates the complete result."
+          "prompt": "Using the two phases of ring all-reduce, derive what the backward pass of an all-reduce is.",
+          "answer": "All-reduce is reduce-scatter then all-gather. Backward runs them in reverse, each replaced by its partner: the all-gather’s backward is a reduce-scatter, then the reduce-scatter’s backward is an all-gather. So the backward is again an all-reduce.",
+          "explanation": "An all-gather fans each shard out to every device, so its backward sums the gradients back onto the owner (reduce-scatter); a reduce-scatter sums many inputs into one chunk, so its backward copies the chunk’s gradient to every contributor (all-gather). Reversing reduce-scatter then all-gather therefore gives reduce-scatter then all-gather: fan-out becomes a sum and a sum becomes a fan-out."
         }
       ]
     },
@@ -296,7 +370,15 @@
           "kind": "recall",
           "prompt": "When can a distributed matrix multiplication compute its output blocks without communicating between ranks?",
           "answer": "When each rank has the full contracting dimension for its assigned output rows and columns; only the non-contracting dimensions are sharded.",
-          "explanation": "Every output element sums over the contracting dimension. If that dimension is complete locally, the rank has every term for its output block, even when other ranks own other rows or columns. Splitting the contraction instead produces incomplete sums that must be combined."
+          "explanation": "Every output element sums over the contracting dimension. If that dimension is complete locally, the rank has every term for its output block, even when other ranks own other rows or columns. Column-parallel linear layers are this case: each device computes a complete slice of the output. Splitting the contraction instead produces incomplete sums that must be combined."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "How many collective operations does $\\mathbf A[I_X,J]\\cdot\\mathbf B[J,K_Y]\\rightarrow\\mathbf C[I_X,K_Y]$ need?",
+          "answer": 0,
+          "tolerance": 0,
+          "unit": "collectives",
+          "explanation": "The contracting dimension $J$ is unsharded, so the device at mesh position $(x,y)$ holds full rows of $\\mathbf A$ (block $I_x$) and full columns of $\\mathbf B$ (block $K_y$), and computes its block of $\\mathbf C$ locally, already sharded as $[I_X,K_Y]$. Communication is only needed when $J$ is sharded: an all-gather if one operand is, an all-reduce of partial sums if both are."
         }
       ]
     },
@@ -318,15 +400,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Both operands of a matrix product are split along matching portions of the contracting dimension. Why can each local output have the full shape but be incomplete?",
-          "answer": "Each rank has summed only its portion of the contracting dimension; its result is a contribution to every output entry, not a disjoint output slice.",
-          "explanation": "The full product adds all the local products. Thus all-reduce can complete and replicate the result, whereas all-gather would concatenate overlapping partial results without adding them. Output shape alone does not tell you whether a distributed multiplication is finished."
+          "prompt": "In $\\mathbf A[I,J_X]\\cdot\\mathbf B[J_X,K]$, what does each device hold after its local matmul, and what completes the product?",
+          "answer": "A full-shape $[I,K]$ partial sum over its slice of $J$, written $\\mathbf C[I,K]\\{U_X\\}$. An all-reduce over $X$ adds the partial sums and gives every device the complete product.",
+          "explanation": "The full product is the sum of the local products, $\\mathbf C=\\sum_x\\mathbf A[I,J_x]\\mathbf B[J_x,K]$. An all-reduce completes and replicates it, whereas an all-gather would concatenate overlapping partial results without adding them. The row-parallel down projection of a tensor-parallel MLP is this case: $y=h_0W2_0+h_1W2_1$."
         },
         {
           "kind": "truefalse",
-          "prompt": "Matching shards of a matmul’s contracting dimension produce complete disjoint output slices.",
-          "answer": false,
-          "explanation": "Each rank sums only part of the contracting dimension, so its output overlaps the full result rather than forming a disjoint slice. The needed combination is a sum, $\\mathbf C=\\sum_X\\mathbf A[:,J_X]\\mathbf B[J_X,:]$, not concatenation; this is the same structure used by row-parallel projections."
+          "prompt": "When both matmul operands are sharded along the contracting dimension, each device’s local product already has the full output shape.",
+          "answer": true,
+          "explanation": "Each device multiplies $\\mathbf A[I,J_x]$ by $\\mathbf B[J_x,K]$, a full $I\\times K$ result, but it sums only over its slice of $J$. The shape is complete while the values are partial, $\\mathbf C[I,K]\\{U_X\\}$, so an all-reduce over $X$ must add them; concatenating would be wrong. Output shape alone does not tell you whether a distributed matmul is finished."
         }
       ]
     },
@@ -359,10 +441,10 @@
             "Forward activations at every layer",
             "Weights before every linear layer",
             "Gradients during backward",
-            "Optimizer moments during forward"
+            "Updated parameters after the step"
           ],
           "correct": 2,
-          "explanation": "Each rank already holds a full model for its local forward pass, so the simplified loop synchronizes the gradients produced by backward. Per-layer weight gathering belongs to FSDP, and activation transfers between assigned stages belong to pipeline parallelism. ⚠️ Note: this describes gradient synchronization, not every possible implementation-level communication."
+          "explanation": "Each rank holds the full model, so its forward pass needs nothing from other ranks; the only exchange is the gradient all-reduce, which happens during backward. Per-layer weight gathering is FSDP’s extra cost, activation hand-offs between devices belong to pipeline parallelism, and gathering updated parameters after the step is what ZeRO-1 adds."
         },
         {
           "kind": "recall",
@@ -370,8 +452,7 @@
           "answer": "Every rank already holds the entire parameter vector.",
           "explanation": "DDP replicates weights and computes all layers locally on its assigned examples. Only the separately computed gradient contributions need to be reconciled for the update; FSDP saves weight storage by changing this assumption and gathering missing layer parameters when required."
         }
-      ],
-      "retired": true
+      ]
     },
     {
       "id": "parallelism.data-parallelism.zero-one-ownership",
@@ -382,6 +463,18 @@
           "prompt": "What redundant state and work does ZeRO-1 remove from each DDP rank?",
           "answer": "It shards optimizer state, so each rank stores the state and performs updates for only its assigned parameters.",
           "explanation": "DDP duplicates the optimizer state and the complete update on every rank. ZeRO-1 distributes that ownership while leaving the model usable as a full replica for local computation; reduced gradient slices go to their owners, and updated parameter slices are gathered afterward."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Going from plain DDP to ZeRO stage 1, which per-device memory shrinks?",
+          "choices": [
+            "Adam moment vectors",
+            "Full gradient buffers",
+            "Parameter replicas",
+            "Stored activations"
+          ],
+          "correct": 0,
+          "explanation": "ZeRO-1 gives each of the $M$ devices $1/M$ of the Adam vectors and lets it update only the matching parameters. Full gradients are still computed and held until the reduce-scatter (sharding them is ZeRO-2), parameters stay replicated (sharding them is ZeRO-3), and no ZeRO stage splits activations."
         }
       ]
     },
@@ -393,13 +486,13 @@
           "kind": "mcq",
           "prompt": "Which sequence implements the ZeRO-1 update after local gradients are computed?",
           "choices": [
-            "All-gather, full update, then broadcast",
             "Reduce-scatter, update, all-gather",
-            "All-reduce, shard weights, then broadcast",
-            "Broadcast, full update, then reduce-scatter"
+            "All-gather, update, reduce-scatter",
+            "All-reduce, then full update",
+            "Reduce-scatter, update, all-reduce"
           ],
-          "correct": 1,
-          "explanation": "Reduce-scatter routes aggregated gradient slices to the ranks owning the corresponding optimizer state. Each owner updates its parameters, then all-gather reconstructs the updated model replicas; gathering before the update would leave other ranks with stale parameter values."
+          "correct": 0,
+          "explanation": "Reduce-scatter leaves each rank the summed gradient for exactly the parameters whose Adam state it owns; it updates those, then all-gather rebuilds the full updated parameters everywhere. All-reduce then a full update is plain DDP; ending with an all-reduce would sum parameter shards instead of concatenating them; gathering first would spread unsummed gradients."
         }
       ]
     },
@@ -409,9 +502,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "With equal gradient and parameter byte sizes, why can ZeRO-1 match DDP’s collective bytes transferred per optimizer step?",
-          "answer": "DDP’s gradient all-reduce is a reduce-scatter plus all-gather. ZeRO-1 uses gradient reduce-scatter, updates each owned shard, then gathers equal-sized updated parameter shards.",
-          "explanation": "A ring all-reduce already consists of reduce-scatter plus all-gather. ZeRO-1 inserts shard-local updates between those phases and gathers parameters instead of gradients. ⚠️ Note: matching idealized data volume is not a universal equality of wall time; precision, latency, topology, and overlap matter."
+          "prompt": "How does ZeRO-1’s communication per training step compare with plain DDP’s, and why?",
+          "answer": "It is the same. DDP’s gradient all-reduce costs as much as a reduce-scatter plus an all-gather, which is exactly what ZeRO-1 does: reduce-scatter the gradients, update the owned shard, all-gather the updated parameters.",
+          "explanation": "Ring all-reduce is itself reduce-scatter followed by all-gather, so ZeRO-1 only slots the shard-local optimizer step between the two phases and gathers parameters instead of gradients, arrays of the same size. That makes its $1/M$ optimizer-state memory a free win. ZeRO-2 keeps the same collectives and changes only when gradients are reduce-scattered and freed."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "ZeRO-1 pays for its optimizer-memory savings with extra communication compared with DDP.",
+          "answer": false,
+          "explanation": "One all-reduce costs the same as a reduce-scatter plus an all-gather, and that pair is all ZeRO-1 communicates: gradients are reduce-scattered to their owners, and the updated parameter shards are all-gathered. The savings are free in communication; the price of sharding shows up only at ZeRO-3, which must gather weights before each layer can run."
         }
       ]
     },
@@ -441,19 +540,19 @@
           "kind": "mcq",
           "prompt": "How does ZeRO-3 execute every model layer on each rank while keeping persistent parameter storage sharded?",
           "choices": [
-            "Gather weights just before use",
-            "Gather optimizer state before use",
-            "Reduce gradients before forward",
-            "Move examples to the shard owner"
+            "Send activations to the rank owning the layer",
+            "All-gather a layer’s weights just before use",
+            "All-reduce a layer’s weight shards before use",
+            "Reduce-scatter a layer’s weights before use"
           ],
-          "correct": 0,
-          "explanation": "ZeRO-3 gathers the layer’s parameter shards when the layer needs them, uses the reconstructed weights, then can release them. Neither optimizer-state gathering nor gradient reduction supplies missing forward weights; sending examples to permanent layer owners instead resembles pipeline placement."
+          "correct": 1,
+          "explanation": "ZeRO-3 all-gathers a layer’s parameter shards right before the layer runs, uses the full weights, then discards them. An all-reduce would add the shards together instead of concatenating them, and a reduce-scatter would shard them further. Sending activations to the owner of each layer is pipeline-style placement, not data parallelism."
         },
         {
           "kind": "recall",
           "prompt": "What does ZeRO-3 add beyond ZeRO-2 to reduce persistent model-state memory?",
           "answer": "It shards parameters as well as gradients and optimizer states, gathering layer weights just in time.",
-          "explanation": "ZeRO-2 retains complete parameter replicas; ZeRO-3 removes that persistent replication and temporarily reconstructs each needed layer. The gathered layer and its activations must still fit locally. ⚠️ Note: the source switches from $M$ to $N$ for device count and claims equal communication cost for all ZeRO stages; that equality is not a general rule."
+          "explanation": "ZeRO-2 still keeps a full parameter replica on every device; ZeRO-3 shards the parameters too and all-gathers each layer’s weights just in time, then discards them. That is what lets it train models that do not fit on one GPU, although the gathered layer and the activations must still fit. ⚠️ Note: this stage writes the per-device share as $1/N$, where the chapter elsewhere uses $M$ for the device count."
         }
       ]
     },
@@ -494,9 +593,9 @@
         },
         {
           "kind": "truefalse",
-          "prompt": "Assigning each successive layer to another GPU is enough to create a throughput-efficient pipeline.",
-          "answer": false,
-          "explanation": "Layer dependencies still serialize one unsplit batch as it moves through the devices. Other stages can wait rather than compute, so distribution alone is insufficient; the pipeline needs multiple micro-batches at different stages to exploit the available devices."
+          "prompt": "With one layer per GPU and an unsplit batch, the GPUs take turns computing rather than working at the same time.",
+          "answer": true,
+          "explanation": "Layer $\\ell+1$ cannot start until layer $\\ell$ has produced the hidden states for the whole batch, so at any moment one GPU computes while the others wait. This placement spreads the weights over devices but not the work, hence no throughput gain. Splitting the batch into micro-batches, as `Pipe(model, chunks=8)` does, lets different GPUs work on different micro-batches at once."
         }
       ]
     },
@@ -534,7 +633,8 @@
           "correct": 2,
           "explanation": "The output columns follow the weight columns: $X[W_0,W_1]=[XW_0,XW_1]$. Each local output slice is complete because the input contraction is not split; a full-output partial sum is the row-parallel case, and gradients are a separate backward computation."
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "parallelism.tensor-parallelism.row-output-reduction",
@@ -552,7 +652,8 @@
           "answer": true,
           "explanation": "Each rank multiplies its input-feature shard by the matching weight rows, giving $y_0$ or $y_1$ rather than separate output-coordinate blocks. The complete answer is $y=y_0+y_1$, which is why all-reduce follows the down projection instead of all-gathering its outputs."
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "parallelism.tensor-parallelism.mlp-sharding-order",
@@ -624,7 +725,7 @@
           "kind": "truefalse",
           "prompt": "In a SwiGLU FFN, the up and gate projections can use different feature-to-rank assignments without communication before their elementwise product.",
           "answer": false,
-          "explanation": "Each gate coordinate multiplies the matching up-projection coordinate, so those two values must be colocated to compute the product locally. Different assignments require redistributing at least one set of features. ⚠️ Note: the source repeats $W_\\text{gate}$ where one occurrence should be $W_\\text{up}$."
+          "explanation": "The product $\\operatorname{Swish}(\\mathbf G)\\odot\\mathbf U$ pairs each coordinate of the gate with the same coordinate of the up projection, so both must sit on the same rank. Column-sharding $W_\\text{gate}$ and $W_\\text{up}$ with the same split of $F$ keeps the product local and sharded on $F$, ready for the row-parallel $W_\\text{down}$ and the single all-reduce at the end."
         }
       ]
     },
@@ -634,17 +735,23 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "In multi-head attention with complete Q, K and V heads assigned to ranks, why is communication unnecessary during score and value aggregation?",
-          "answer": "Each head’s attention computation is independent; a rank needs only the Q, K, and V for its assigned heads.",
-          "explanation": "The QKV projection creates local head inputs, and each head computes its own scores and weighted values. Cross-head combination happens in the output projection, where row-parallel contributions are summed; splitting heads therefore preserves locality inside the attention calculation."
+          "prompt": "Tensor-parallel attention splits the QKV projection’s output columns across GPUs. How must they be grouped so attention needs no communication, and why?",
+          "answer": "By head: each GPU gets the full Q, K and V columns of a subset of heads. Heads compute their scores, softmax and weighted values independently, so everything up to the output projection is local.",
+          "explanation": "Attention mixes positions within a head but never mixes heads, so a rank holding complete heads has all it needs. The QKV projection is column-parallel and the output projection row-parallel, and one all-reduce combines the latter’s partial sums, as in the MLP. The code asserts that the head count is divisible by the world size so that each rank gets whole heads."
         },
         {
           "kind": "numeric",
-          "prompt": "For one multi-head attention forward pass with replicated input and complete heads per rank, how many all-reduces combine a row-parallel output projection?",
-          "answer": 1,
+          "prompt": "With tensor parallelism on both attention and the MLP, how many all-reduces does one transformer layer’s forward pass need?",
+          "answer": 2,
           "tolerance": 0,
-          "explanation": "Each rank computes scores and weighted values for complete local heads without exchanging head outputs. The row-parallel output projection then produces overlapping partial sums, completed by one all-reduce. This count excludes backward communication and any additional context or sequence parallelism.",
+          "explanation": "Each block is column-parallel then row-parallel: attention runs QKV column-parallel, per-head attention locally, then a row-parallel output projection; the MLP runs the up projection column-parallel, the activation locally, then a row-parallel down projection. Each row-parallel layer ends in one all-reduce of partial sums, so $1+1=2$ per layer in the forward pass (backward not counted).",
           "unit": "all-reduces"
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In tensor-parallel attention, the outputs of heads held by different GPUs are first mixed by the output projection’s all-reduce.",
+          "answer": true,
+          "explanation": "Inside attention each head is self-contained, so no rank needs another rank’s heads. The output projection is row-parallel: each rank multiplies its heads’ outputs by its rows of the projection, giving a full-shape partial sum, and the all-reduce adds those contributions. That sum is the first place where heads from different GPUs meet."
         }
       ]
     },
@@ -654,15 +761,15 @@
       "variants": [
         {
           "kind": "mcq",
-          "prompt": "Which tensor-parallel dimension can shrink the parameter payload gathered by FSDP for an MLP?",
+          "prompt": "FSDP is combined with tensor parallelism on an MLP. What does sharding the FFN dimension $F$ reduce?",
           "choices": [
-            "$B$: batch size",
-            "$S$: context length",
-            "$F$: FFN width",
-            "$T$: generated length"
+            "Activation memory along the sequence axis",
+            "Bytes moved by each weight all-gather",
+            "Idle time between pipeline stages",
+            "All-reduces per transformer layer"
           ],
-          "correct": 2,
-          "explanation": "Splitting the FFN width divides its weight matrices into smaller tensor-parallel shards, so each FSDP group gathers a smaller parameter payload. Batch and sequence axes describe examples or activations rather than this weight partition. ⚠️ Note: the source also says sharding $B$ reduces all-gathers without specifying which payload, so that claim is ambiguous."
+          "correct": 1,
+          "explanation": "FSDP’s communication is all-gathering weights before use; with $W^\\text{up}$ and $W^\\text{down}$ also split along $F$, each device only gathers its $F$-shard, so each gather moves less. Sequence activations are sequence parallelism’s target, idle stages a pipeline issue, and the MLP still needs its one all-reduce. ⚠️ Note: the notes also say sharding $B$ shrinks all-gathers without saying which ones (General context, not from the notes: usually the TP activation all-gathers)."
         }
       ]
     }
