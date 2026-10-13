@@ -438,7 +438,8 @@
     "title": "Parallelism",
     "level": 1,
     "order": 49,
-    "hash": "1dfe341c09af393e5fe90b598e38ea22f483b1029fb3147c702666f8e0001d9f"
+    "hash": "1dfe341c09af393e5fe90b598e38ea22f483b1029fb3147c702666f8e0001d9f",
+    "coveredHash": "1dfe341c09af393e5fe90b598e38ea22f483b1029fb3147c702666f8e0001d9f"
   },
   {
     "id": "3177eb87-3605-80a1-9179-f841ade2c241",
@@ -446,7 +447,8 @@
     "title": "Background: core collective operations",
     "level": 2,
     "order": 50,
-    "hash": "a65c5f22b535a1d3adaab3f21037a630db5ee27320a1bd7dbbbe4cfa5ffbd091"
+    "hash": "a65c5f22b535a1d3adaab3f21037a630db5ee27320a1bd7dbbbe4cfa5ffbd091",
+    "coveredHash": "a65c5f22b535a1d3adaab3f21037a630db5ee27320a1bd7dbbbe4cfa5ffbd091"
   },
   {
     "id": "2f57eb87-3605-80b7-abd0-f4ae18894111",
@@ -454,7 +456,8 @@
     "title": "Data parallelism",
     "level": 2,
     "order": 51,
-    "hash": "c4260a2ea3a60af6c5fe6ffca203a7c9f9198c261705e0393c78677404ed6ec1"
+    "hash": "c4260a2ea3a60af6c5fe6ffca203a7c9f9198c261705e0393c78677404ed6ec1",
+    "coveredHash": "c4260a2ea3a60af6c5fe6ffca203a7c9f9198c261705e0393c78677404ed6ec1"
   },
   {
     "id": "2f47eb87-3605-80a9-82d9-ea011260abbb",
@@ -462,7 +465,8 @@
     "title": "Pipeline parallelism",
     "level": 2,
     "order": 52,
-    "hash": "49e9f327e6af1be91f6d5e4f5e9e552afe80f4c284925de7bf240e76f63006dd"
+    "hash": "49e9f327e6af1be91f6d5e4f5e9e552afe80f4c284925de7bf240e76f63006dd",
+    "coveredHash": "49e9f327e6af1be91f6d5e4f5e9e552afe80f4c284925de7bf240e76f63006dd"
   },
   {
     "id": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
@@ -470,7 +474,8 @@
     "title": "Tensor parallelism",
     "level": 2,
     "order": 53,
-    "hash": "9e9b2cfe28cf196e41b2b1feb7e6139c12edcfe1bdfe10b5a39bbca6d2505092"
+    "hash": "9e9b2cfe28cf196e41b2b1feb7e6139c12edcfe1bdfe10b5a39bbca6d2505092",
+    "coveredHash": "9e9b2cfe28cf196e41b2b1feb7e6139c12edcfe1bdfe10b5a39bbca6d2505092"
   },
   {
     "id": "2f47eb87-3605-8082-9344-cb2ebcc16b84",

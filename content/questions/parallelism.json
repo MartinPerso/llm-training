@@ -1,0 +1,670 @@
+{
+  "chapter": "Parallelism",
+  "concepts": [
+    {
+      "id": "parallelism.parallelism.fsdp-computation-scope",
+      "section": "2f47eb87-3605-8007-adf0-fa9cd014bd65",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does sharding parameters in FSDP not split a forward pass into separate model stages?",
+          "answer": "Each rank gathers the parameters it needs and executes the full model on its own examples. Parameter storage is sharded, not the sequence of layer computations.",
+          "explanation": "Parameter ownership and computation ownership are different choices. FSDP temporarily reconstructs each needed layer on every rank, so it remains data parallel despite distributing stored weights; pipeline parallelism instead assigns different layers to different devices."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An FSDP rank executes all model layers on its local examples.",
+          "answer": true,
+          "explanation": "Each rank advances its own examples through the complete model, gathering missing weights when needed. The stored parameter shard is not a permanent restriction on which layers it can execute, which distinguishes FSDP from dividing model stages across ranks."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.parallelism.batch-scaling-limit",
+      "section": "2f47eb87-3605-8007-adf0-fa9cd014bd65",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can the critical batch size limit useful data-parallel scaling?",
+          "answer": "More ranks need enough local examples to stay efficient. Increasing the global batch to supply them eventually conflicts with the useful training batch size.",
+          "explanation": "Data parallelism assigns different examples to different ranks; it does not divide one example’s layer computation. Once the useful global batch stops growing, additional ranks receive progressively less local work. ⚠️ Note: the source’s strict $M<B$ condition is too strong: $M=B$ can give one example to each of $M$ ranks."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.parallelism.activation-memory-limit",
+      "section": "2f47eb87-3605-8007-adf0-fa9cd014bd65",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "ZeRO-3 parameter sharding also divides activation tensors across the same ranks.",
+          "answer": false,
+          "explanation": "ZeRO-3 partitions model state and gathers parameters for local computation; each rank still produces activations for its own examples. Weight storage and activation storage are separate bottlenecks, which is why the chapter introduces sequence parallelism as an additional axis."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can sequence parallelism reduce per-rank activation memory even after ZeRO-3 has sharded the model state?",
+          "answer": "It distributes activations along the token dimension. ZeRO-3 shards parameters, gradients and optimizer state, but does not itself partition the local activation tensors.",
+          "explanation": "Persistent model state and activations are separate memory costs. Sharding the sequence dimension gives each rank a smaller portion of the token activations; further parameter sharding cannot remove an activation-memory bottleneck. This is why the two approaches can address different limits."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.parallelism.parallelism-axis-choice",
+      "section": "2f47eb87-3605-8007-adf0-fa9cd014bd65",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which assignment lets devices cooperate inside one weight-matrix multiplication?",
+          "choices": [
+            "Tensor parallelism",
+            "Pipeline parallelism",
+            "Ordinary data parallelism",
+            "Expert placement alone"
+          ],
+          "correct": 0,
+          "explanation": "Tensor parallelism partitions work inside a layer; pipeline parallelism assigns successive stages, and data parallelism assigns different examples. Expert placement distributes MoE experts rather than necessarily dividing a matrix. ⚠️ Note: the introductory 5D list swaps the TP and PP descriptions and labels pipeline parallelism as TP."
+        },
+        {
+          "kind": "recall",
+          "prompt": "How does expert parallelism divide a mixture-of-experts model?",
+          "answer": "It assigns different experts to different devices.",
+          "explanation": "The partition follows expert identity, giving a different axis from dividing examples, sequence positions, or pieces of a weight matrix. This is why expert parallelism can be listed separately from data, sequence, and tensor parallelism in the same multidimensional arrangement."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "parallelism.parallelism.expert-placement-limit",
+      "section": "2f47eb87-3605-8007-adf0-fa9cd014bd65",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can expert parallelism fit total MoE parameters across GPUs yet fail when one expert exceeds a GPU's memory?",
+          "answer": "It places different whole experts on different GPUs. This reduces the number of experts stored per GPU, but does not split an individual expert’s parameters.",
+          "explanation": "Expert placement reduces the local share of total MoE parameter storage by placing different experts on different devices. Splitting an individual expert’s matrices requires an additional form of parallelism, such as tensor parallelism. The scope matters: distributing a collection of experts does not itself partition each member."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.broadcast-versus-gather",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "One rank owns initialized weights; every other rank needs an identical copy. Which collective fits?",
+          "choices": [
+            "All-gather",
+            "Reduce-scatter",
+            "All-reduce",
+            "Broadcast"
+          ],
+          "correct": 3,
+          "explanation": "Broadcast starts from one owner and distributes that owner’s data. All-gather instead assembles distinct pieces initially held by multiple ranks; the two reduction operations combine contributions numerically, which is unnecessary when there is already one authoritative value."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why is all-gather needed instead of broadcast when every rank owns a different parameter shard?",
+          "answer": "Every rank contributes a different piece that must be assembled; broadcasting a single rank’s shard cannot reconstruct the whole tensor.",
+          "explanation": "A broadcast duplicates one source, while an all-gather concatenates the distributed pieces into a full collection on each participant. FSDP uses the latter because parameter ownership is spread across ranks, even though computation temporarily needs the complete layer."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "parallelism.background-core-collective.gather-removes-sharding",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What happens to $\\mathbf A[I,J_Y]$ after an all-gather over $Y$?",
+          "answer": "It becomes $\\mathbf A[I,J]$, replicated over $Y$.",
+          "explanation": "The transformation is $\\operatorname{AllGather}_Y:\\mathbf A[I,J_Y]\\rightarrow\\mathbf A[I,J]$. Each rank receives the missing column shards, so the $Y$ subscript disappears; unlike reduction, this operation does not sum overlapping contributions."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "All-gather sums the corresponding elements contributed by different ranks.",
+          "answer": false,
+          "explanation": "All-gather preserves the separate pieces and assembles them into a complete tensor on each rank. Summing contributions belongs to reduce-scatter or all-reduce; confusing these operations would turn parameter reconstruction into a numerically different operation."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "parallelism.background-core-collective.reduce-scatter-result",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "With sharded optimizer state, how should local gradients be combined and delivered to parameter owners?",
+          "choices": [
+            "Broadcast one rank’s gradients",
+            "Reduce-scatter the gradients",
+            "All-gather the local gradients",
+            "All-reduce the full gradients"
+          ],
+          "correct": 1,
+          "explanation": "Reduce-scatter combines the contributions and distributes distinct pieces of the result. All-reduce would leave the entire reduced vector on every rank, while all-gather and broadcast do not perform the required summation; this distinction enables sharded optimizer ownership."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.all-reduce-result",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does ordinary DDP use all-reduce rather than reduce-scatter for gradients?",
+          "answer": "Every rank updates the complete parameter vector, so each rank needs the complete aggregated gradient.",
+          "explanation": "All-reduce combines local contributions and makes the final vector available on every rank. Reduce-scatter would leave only a subset, sufficient for a sharded optimizer but insufficient for DDP’s identical full-vector updates; the required output layout determines the collective."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.ring-phase-order",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can ring all-reduce be split into reduce-scatter followed by all-gather?",
+          "answer": "The first phase computes the final reduced shards; the second replicates those shards so every rank gets the complete result.",
+          "explanation": "A rank does not need the whole answer while reduction is in progress: it can finish the sum for one shard. Once each shard has an owner with its final value, all-gather distributes those values without further summation. This separation is what allows ZeRO-1 to insert shard-local parameter updates between the two collectives."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.ring-arithmetic-placement",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which part of ring all-reduce performs the summation, and what remains for the other part?",
+          "answer": "Reduce-scatter performs the summation; all-gather distributes the already reduced shards.",
+          "explanation": "The final values of individual shards are established before all-gather starts. The second phase copies those values instead of summing them again, explaining why replacing all-reduce with its two constituent phases can accommodate sharded updates."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The all-gather phase of ring all-reduce distributes values that are already reduced.",
+          "answer": true,
+          "explanation": "Reduction has completed for each shard during reduce-scatter, although no single rank yet has every shard. All-gather removes that remaining distribution by copying the reduced pieces; another summation at this point would change their values."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "parallelism.background-core-collective.ring-neighbor-topology",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can ring all-reduce combine every rank’s data without direct communication between every pair of ranks?",
+          "answer": "Ranks forward and reduce chunks through neighboring ranks; contributions propagate around the ring over multiple steps.",
+          "explanation": "Global participation does not require a direct link for each pair of participants. Each rank sends toward one neighbor and receives from another, allowing chunks to accumulate contributions as they travel. The ring topology therefore describes local exchanges, while the collective result still includes all ranks."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.gather-backward-reduction",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is the backward of all-gather a reduce-scatter?",
+          "answer": "A source shard was used on multiple ranks, so its gradient contributions must be summed and returned to the rank that owns it.",
+          "explanation": "Forward replication creates multiple uses of the same source value, and their backward contributions accumulate at that source. Returning only the owner’s slice also restores the original sharding. ⚠️ Note: the source chain-rule example duplicates a derivative term and incorrectly writes the branching relation; the fan-out/sum principle is the sound part."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which collective accumulates gradients back to the original shard owners after a forward all-gather?",
+          "choices": [
+            "Broadcast tensor",
+            "All-gather shards",
+            "All-reduce tensor",
+            "Reduce-scatter"
+          ],
+          "correct": 3,
+          "explanation": "The replicated downstream uses each contribute a gradient, so backward must sum their contributions and retain only the original owner’s slice. Broadcast and all-gather copy without that sum; all-reduce supplies the sum but leaves a full replicated tensor instead of the original sharding."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.scatter-backward-gather",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is the backward of a sum reduce-scatter an all-gather, rather than another reduction?",
+          "answer": "Each summed input receives the gradient of its output chunk; those chunk gradients must be gathered back to all contributing ranks.",
+          "explanation": "For a summation, each contributing input has derivative one, so the output gradient is copied to every contributor. Gathering the different output chunks restores the input layout; applying another reduce-scatter would instead sum and shard the wrong quantities."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Backward through a sum reduce-scatter divides each output-chunk gradient by the number of contributing ranks.",
+          "answer": false,
+          "explanation": "A sum sends the same upstream gradient to each summand; it does not divide that gradient by the number of contributors. Gathering all output chunks delivers those gradients to the original inputs, mirroring the all-gather/reduce-scatter pairing in the reverse direction."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.all-reduce-backward",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Each rank uses its own output of a differentiable sum all-reduce. Which collective combines gradients in backward?",
+          "choices": [
+            "All-reduce",
+            "Broadcast",
+            "All-gather",
+            "Reduce-scatter"
+          ],
+          "correct": 0,
+          "explanation": "A sum all-reduce creates a reduced output on every rank, so gradients from all those outputs must be added and supplied to each contributing input. All-gather lacks the addition, reduce-scatter lacks full replication, and broadcast ignores independent gradient contributions."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why does differentiating a sum all-reduce, with a downstream use on each rank, require another all-reduce?",
+          "answer": "Reverse the phases: all-gather becomes reduce-scatter, then reduce-scatter becomes all-gather. The backward is another all-reduce.",
+          "explanation": "Forward is reduce-scatter followed by all-gather. Backward reverses order and replaces each with its adjoint, producing reduce-scatter followed by all-gather again; the same combination both sums contributions and replicates the complete result."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.mesh-replication-axis",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "If $Y$ is absent from $\\mathbf A[I_X,J]$, how does the tensor vary across mesh axis $Y$?",
+          "answer": "It is replicated across $Y$; only the $I$ dimension is partitioned, along $X$.",
+          "explanation": "A mesh axis appearing as a tensor-axis subscript indicates partitioning over that mesh axis. An absent mesh axis indicates replication, not a missing tensor dimension; this lets one matrix be sharded on one mesh axis while serving as the repeated operand along another."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "$\\mathbf A[I_{XY},J]$ partitions rows across the flattened $XY$ mesh.",
+          "answer": true,
+          "explanation": "The subscript $XY$ assigns the row dimension $I$ across both mesh axes, rather than only along $X$ or $Y$. By contrast, an axis absent from the tensor’s partition specification carries replicas; the notation describes placement, not a change to the mathematical matrix."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "parallelism.background-core-collective.unsharded-contraction-local",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "When can a distributed matrix multiplication compute its output blocks without communicating between ranks?",
+          "answer": "When each rank has the full contracting dimension for its assigned output rows and columns; only the non-contracting dimensions are sharded.",
+          "explanation": "Every output element sums over the contracting dimension. If that dimension is complete locally, the rank has every term for its output block, even when other ranks own other rows or columns. Splitting the contraction instead produces incomplete sums that must be combined."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.one-sided-contraction",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For a matrix product with only one operand sharded along the contraction, what communication before multiplication makes each local result complete?",
+          "answer": "All-gather the sharded operand so each rank has its full contraction dimension, matching the replicated operand.",
+          "explanation": "The gather restores the missing input blocks before multiplication, so every local product includes the whole contraction. When both operands instead have matching contraction shards, ranks can multiply locally first and reduce the partial products afterward. The distinction is where the missing sum is completed."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.background-core-collective.matched-contraction-partials",
+      "section": "3177eb87-3605-80a1-9179-f841ade2c241",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Both operands of a matrix product are split along matching portions of the contracting dimension. Why can each local output have the full shape but be incomplete?",
+          "answer": "Each rank has summed only its portion of the contracting dimension; its result is a contribution to every output entry, not a disjoint output slice.",
+          "explanation": "The full product adds all the local products. Thus all-reduce can complete and replicate the result, whereas all-gather would concatenate overlapping partial results without adding them. Output shape alone does not tell you whether a distributed multiplication is finished."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Matching shards of a matmul’s contracting dimension produce complete disjoint output slices.",
+          "answer": false,
+          "explanation": "Each rank sums only part of the contracting dimension, so its output overlaps the full result rather than forming a disjoint slice. The needed combination is a sum, $\\mathbf C=\\sum_X\\mathbf A[:,J_X]\\mathbf B[J_X,:]$, not concatenation; this is the same structure used by row-parallel projections."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.data-parallelism.ddp-identical-updates",
+      "section": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "DDP ranks see different examples. Why do their parameter replicas remain synchronized?",
+          "answer": "They aggregate and average gradients before applying the same optimizer update to the same starting parameters and optimizer states.",
+          "explanation": "Local gradients differ because local examples differ, but all-reduce gives every rank the same combined gradient. Each rank then repeats the full update independently; exchanging parameters is unnecessary in this idealized loop because equal inputs to the update yield equal replicas."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In ordinary DDP, each rank updates the complete parameter vector after gradient synchronization.",
+          "answer": true,
+          "explanation": "The model and optimizer state are replicated, so each rank can apply the same full-vector update after receiving the averaged gradients. ZeRO-1 changes this ownership pattern by letting each rank update only its own subset and then gathering the updated parameters."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.data-parallelism.ddp-sync-timing",
+      "section": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "In the simplified DDP training loop, what is exchanged between ranks?",
+          "choices": [
+            "Forward activations at every layer",
+            "Weights before every linear layer",
+            "Gradients during backward",
+            "Optimizer moments during forward"
+          ],
+          "correct": 2,
+          "explanation": "Each rank already holds a full model for its local forward pass, so the simplified loop synchronizes the gradients produced by backward. Per-layer weight gathering belongs to FSDP, and activation transfers between assigned stages belong to pipeline parallelism. ⚠️ Note: this describes gradient synchronization, not every possible implementation-level communication."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why does the simplified DDP forward pass need no per-layer parameter all-gather?",
+          "answer": "Every rank already holds the entire parameter vector.",
+          "explanation": "DDP replicates weights and computes all layers locally on its assigned examples. Only the separately computed gradient contributions need to be reconciled for the update; FSDP saves weight storage by changing this assumption and gathering missing layer parameters when required."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "parallelism.data-parallelism.zero-one-ownership",
+      "section": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What redundant state and work does ZeRO-1 remove from each DDP rank?",
+          "answer": "It shards optimizer state, so each rank stores the state and performs updates for only its assigned parameters.",
+          "explanation": "DDP duplicates the optimizer state and the complete update on every rank. ZeRO-1 distributes that ownership while leaving the model usable as a full replica for local computation; reduced gradient slices go to their owners, and updated parameter slices are gathered afterward."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.data-parallelism.zero-update-order",
+      "section": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which sequence implements the ZeRO-1 update after local gradients are computed?",
+          "choices": [
+            "All-gather, full update, then broadcast",
+            "Reduce-scatter, update, all-gather",
+            "All-reduce, shard weights, then broadcast",
+            "Broadcast, full update, then reduce-scatter"
+          ],
+          "correct": 1,
+          "explanation": "Reduce-scatter routes aggregated gradient slices to the ranks owning the corresponding optimizer state. Each owner updates its parameters, then all-gather reconstructs the updated model replicas; gathering before the update would leave other ranks with stale parameter values."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.data-parallelism.zero-one-traffic",
+      "section": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "With equal gradient and parameter byte sizes, why can ZeRO-1 match DDP’s collective bytes transferred per optimizer step?",
+          "answer": "DDP’s gradient all-reduce is a reduce-scatter plus all-gather. ZeRO-1 uses gradient reduce-scatter, updates each owned shard, then gathers equal-sized updated parameter shards.",
+          "explanation": "A ring all-reduce already consists of reduce-scatter plus all-gather. ZeRO-1 inserts shard-local updates between those phases and gathers parameters instead of gradients. ⚠️ Note: matching idealized data volume is not a universal equality of wall time; precision, latency, topology, and overlap matter."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.data-parallelism.zero-two-gradient-lifetime",
+      "section": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What must ZeRO-2 do during backward to avoid retaining the full gradient vector?",
+          "answer": "Reduce-scatter gradients as they become available, keep the rank’s reduced slice, and free the other portions.",
+          "explanation": "Sharding only after every gradient has accumulated would miss the intended reduction in retained gradient memory. Layerwise reduction and release change the lifetime of those tensors; parameter replicas remain complete, distinguishing this stage from ZeRO-3."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "ZeRO-2 waits for the entire full gradient vector before freeing unowned layer gradients.",
+          "answer": false,
+          "explanation": "As layer gradients become available, they are reduce-scattered and the non-owned portions are released. Waiting until all layers finish would retain the very gradient storage this stage aims to remove; ZeRO-1’s optimizer-state partition alone does not accomplish that."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.data-parallelism.zero-three-parameter-lifetime",
+      "section": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "How does ZeRO-3 execute every model layer on each rank while keeping persistent parameter storage sharded?",
+          "choices": [
+            "Gather weights just before use",
+            "Gather optimizer state before use",
+            "Reduce gradients before forward",
+            "Move examples to the shard owner"
+          ],
+          "correct": 0,
+          "explanation": "ZeRO-3 gathers the layer’s parameter shards when the layer needs them, uses the reconstructed weights, then can release them. Neither optimizer-state gathering nor gradient reduction supplies missing forward weights; sending examples to permanent layer owners instead resembles pipeline placement."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What does ZeRO-3 add beyond ZeRO-2 to reduce persistent model-state memory?",
+          "answer": "It shards parameters as well as gradients and optimizer states, gathering layer weights just in time.",
+          "explanation": "ZeRO-2 retains complete parameter replicas; ZeRO-3 removes that persistent replication and temporarily reconstructs each needed layer. The gathered layer and its activations must still fit locally. ⚠️ Note: the source switches from $M$ to $N$ for device count and claims equal communication cost for all ZeRO stages; that equality is not a general rule."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.data-parallelism.zero-stages-distinction",
+      "section": "2f57eb87-3605-80b7-abd0-f4ae18894111",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which ZeRO stage shards gradients and optimizer state but retains complete parameter replicas?",
+          "choices": [
+            "Stage 1",
+            "Stage 3",
+            "Ordinary DDP",
+            "Stage 2"
+          ],
+          "correct": 3,
+          "explanation": "Stage 1 partitions optimizer state, stage 2 additionally partitions retained gradients, and stage 3 additionally partitions stored parameters. DDP replicates all three classes of state; distinguishing these classes prevents attributing parameter-memory savings to stage 2."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can ZeRO-3 fit a model whose parameters exceed one GPU’s capacity while ZeRO-2 cannot?",
+          "answer": "ZeRO-3 shards stored parameters; ZeRO-2 still stores the full parameter vector on every rank.",
+          "explanation": "ZeRO-2 partitions gradients and optimizer state but leaves weight replicas intact. ZeRO-3 removes that persistent weight replication and gathers each needed layer temporarily; enough memory must still remain for that layer and its activations."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "parallelism.pipeline-parallelism.serial-layer-placement",
+      "section": "2f47eb87-3605-80a9-82d9-ea011260abbb",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does placing successive layers on separate GPUs fail to improve throughput by itself?",
+          "answer": "A single batch still traverses the layers sequentially, leaving other stages waiting; placement alone does not overlap useful work.",
+          "explanation": "The next stage cannot start that batch until the previous stage has produced its hidden states. Moving layers solves a placement problem but does not by itself create concurrent stage execution; splitting the batch into micro-batches supplies independent work to overlap."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Assigning each successive layer to another GPU is enough to create a throughput-efficient pipeline.",
+          "answer": false,
+          "explanation": "Layer dependencies still serialize one unsplit batch as it moves through the devices. Other stages can wait rather than compute, so distribution alone is insufficient; the pipeline needs multiple micro-batches at different stages to exploit the available devices."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.pipeline-parallelism.microbatch-stage-overlap",
+      "section": "2f47eb87-3605-80a9-82d9-ea011260abbb",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In pipeline parallelism, why does splitting a batch into micro-batches improve device utilization?",
+          "answer": "Different micro-batches occupy different stages at once, so one stage need not wait while another processes the entire batch.",
+          "explanation": "A stage can pass the first micro-batch onward and begin the next, while the following stage works on the first. The dependency remains sequential within a micro-batch but no longer serializes all device work for the whole batch. Merely placing layers on separate devices does not create this overlap."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.tensor-parallelism.column-output-shards",
+      "section": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In the forward product $Y=XW$ with replicated $X$, why does splitting $W$ by output columns yield complete output slices?",
+          "answer": "Each shard contains all input rows but only some output columns, so it computes those output coordinates over the complete contraction.",
+          "explanation": "Writing the columns as blocks gives $Y=X[W_0,W_1]=[XW_0,XW_1]$. The pieces concatenate directly because each sums over the full input dimension; row-sharding instead divides that sum and requires a reduction."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "For the forward product $Y=XW$ with replicated $X$, what does splitting $W$ by output columns produce locally?",
+          "choices": [
+            "A partial sum for every output",
+            "A complete replicated output",
+            "A complete slice of the output",
+            "A slice of the input gradient"
+          ],
+          "correct": 2,
+          "explanation": "The output columns follow the weight columns: $X[W_0,W_1]=[XW_0,XW_1]$. Each local output slice is complete because the input contraction is not split; a full-output partial sum is the row-parallel case, and gradients are a separate backward computation."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.tensor-parallelism.row-output-reduction",
+      "section": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In an FFN forward pass, why must outputs of a row-parallel down projection be summed rather than concatenated?",
+          "answer": "The input features are split, so each device computes a contribution to every output coordinate: $y=h_0W2_0+h_1W2_1$.",
+          "explanation": "The block product is $y=[h_0,h_1][W2_0;W2_1]=h_0W2_0+h_1W2_1=y_0+y_1$. Each local output has the full output shape but only part of its value; concatenation would increase that shape instead of completing the contraction."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In an FFN forward pass, row-parallel down projections produce full-shaped partial sums that need reduction.",
+          "answer": true,
+          "explanation": "Each rank multiplies its input-feature shard by the matching weight rows, giving $y_0$ or $y_1$ rather than separate output-coordinate blocks. The complete answer is $y=y_0+y_1$, which is why all-reduce follows the down projection instead of all-gathering its outputs."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.tensor-parallelism.mlp-sharding-order",
+      "section": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "With replicated inputs, which weight-sharding order avoids a collective between the projections of a two-layer, elementwise-activation MLP?",
+          "choices": [
+            "Row, then row",
+            "Row, then column",
+            "Column, then column",
+            "Column, then row"
+          ],
+          "correct": 3,
+          "explanation": "The first projection leaves complete shards along the expanded feature dimension, allowing the activation to run locally. The second projection consumes those same shards and produces contributions that are summed at the end; reversing the first split would require completing a sum before the activation."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can the activation stay local between column-parallel and row-parallel MLP projections?",
+          "answer": "Each rank already owns complete values for its subset of intermediate features, and the activation acts elementwise on those features.",
+          "explanation": "The first projection partitions output coordinates rather than contributions to the same coordinate. Applying the activation therefore does not require information from other ranks, and the second projection is partitioned to accept exactly that feature layout."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.tensor-parallelism.nonlinearity-before-sum",
+      "section": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "For a nonlinear activation, applying it separately to row-parallel partial sums is equivalent to reducing first.",
+          "answer": false,
+          "explanation": "In general, $\\operatorname{SiLU}(y_0+y_1)\\ne\\operatorname{SiLU}(y_0)+\\operatorname{SiLU}(y_1)$. Row-parallel outputs must be summed before the activation has the intended input; this explains why the communication-saving MLP arrangement starts with column parallelism."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What forces communication before the activation if the first MLP projection is row-parallel?",
+          "answer": "The projection outputs are incomplete sums, and a nonlinear activation must see the completed values.",
+          "explanation": "A row-parallel product leaves contributions to each output rather than complete feature coordinates. Since $\\operatorname{SiLU}(y_0+y_1)\\ne\\operatorname{SiLU}(y_0)+\\operatorname{SiLU}(y_1)$ in general, the sum must be completed first; column parallelism avoids this intermediate dependency."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.tensor-parallelism.mlp-forward-collective",
+      "section": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "For one MLP forward pass with replicated input, a column-parallel up projection and row-parallel down projection, how many all-reduces are needed?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "The up projection produces complete feature shards, and the elementwise activation operates locally on them. Only the down projection produces partial sums that must be combined, giving one final all-reduce. This count excludes backward communication and collectives introduced by additional parallelism schemes.",
+          "unit": "all-reduces"
+        }
+      ]
+    },
+    {
+      "id": "parallelism.tensor-parallelism.swiglu-aligned-features",
+      "section": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In a SwiGLU FFN, how must the up and gate projection shards be placed so their elementwise product needs no communication?",
+          "answer": "Their feature shards along $F$ must align, so each rank holds matching gate and up-projection coordinates.",
+          "explanation": "The local computation pairs matching coordinates in $\\operatorname{Swish}(\\mathbf G)\\odot\\mathbf U$, preserving the $F$ shards for the row-parallel down projection. ⚠️ Note: the source names the gate projection twice; the intended pair is $W_\\text{gate}$ and $W_\\text{up}$."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In a SwiGLU FFN, the up and gate projections can use different feature-to-rank assignments without communication before their elementwise product.",
+          "answer": false,
+          "explanation": "Each gate coordinate multiplies the matching up-projection coordinate, so those two values must be colocated to compute the product locally. Different assignments require redistributing at least one set of features. ⚠️ Note: the source repeats $W_\\text{gate}$ where one occurrence should be $W_\\text{up}$."
+        }
+      ]
+    },
+    {
+      "id": "parallelism.tensor-parallelism.head-local-attention",
+      "section": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In multi-head attention with complete Q, K and V heads assigned to ranks, why is communication unnecessary during score and value aggregation?",
+          "answer": "Each head’s attention computation is independent; a rank needs only the Q, K, and V for its assigned heads.",
+          "explanation": "The QKV projection creates local head inputs, and each head computes its own scores and weighted values. Cross-head combination happens in the output projection, where row-parallel contributions are summed; splitting heads therefore preserves locality inside the attention calculation."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "For one multi-head attention forward pass with replicated input and complete heads per rank, how many all-reduces combine a row-parallel output projection?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "Each rank computes scores and weighted values for complete local heads without exchanging head outputs. The row-parallel output projection then produces overlapping partial sums, completed by one all-reduce. This count excludes backward communication and any additional context or sequence parallelism.",
+          "unit": "all-reduces"
+        }
+      ]
+    },
+    {
+      "id": "parallelism.tensor-parallelism.fsdp-tp-combination",
+      "section": "2f47eb87-3605-8088-af78-ec09ea7bc8d5",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which tensor-parallel dimension can shrink the parameter payload gathered by FSDP for an MLP?",
+          "choices": [
+            "$B$: batch size",
+            "$S$: context length",
+            "$F$: FFN width",
+            "$T$: generated length"
+          ],
+          "correct": 2,
+          "explanation": "Splitting the FFN width divides its weight matrices into smaller tensor-parallel shards, so each FSDP group gathers a smaller parameter payload. Batch and sequence axes describe examples or activations rather than this weight partition. ⚠️ Note: the source also says sharding $B$ reduces all-gathers without specifying which payload, so that claim is ambiguous."
+        }
+      ]
+    }
+  ]
+}
