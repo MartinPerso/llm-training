@@ -7,15 +7,27 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "How does $\\mu P$ help transfer a learning-rate choice from a narrow model to a wider one?",
-          "answer": "It applies width-dependent, layer-specific initialization and learning-rate scalings, making tuning choices more transferable across widths.",
-          "explanation": "Widening a standard-parameterized network changes the update scales differently across layers, so a narrow model's tuning need not carry over. $\\mu P$ coordinates initialization and learning-rate scaling to address that mismatch. ⚠️ Note: the source's constant update-to-weight ratio is an oversimplified description; the precise rules depend on the parameter's role."
+          "prompt": "Why do hyperparameters tuned on a small standard-parameterized model stop working when the model is made wider?",
+          "answer": "Under standard parameterization, the size of each layer's updates changes inconsistently from layer to layer as width grows, so a learning rate that suits every layer at small width no longer does at large width.",
+          "explanation": "This is the problem $\\mu P$ addresses: it sets per-layer initialization and learning-rate scalings that keep each layer's update size, measured relative to its weights, the same at every width. With that ratio held fixed, a learning rate found on a narrow proxy carries over to the wide model. $\\mu P$ is primarily about width scaling."
         },
         {
           "kind": "truefalse",
           "prompt": "Under $\\mu P$, transferring a tuned learning rate to a wider network means applying the same width correction to every layer.",
           "answer": false,
-          "explanation": "The width correction depends on the parameter’s role; initialization and learning-rate scaling must work together. One global adjustment does not address the unequal update scales across layers under standard parameterization. ⚠️ Note: the source’s constant update-to-weight ratio is a simplification, not the full $\\mu P$ prescription."
+          "explanation": "$\\mu P$ sets initialization and learning-rate scaling per layer, because under standard parameterization different layers' updates drift by different amounts as width changes. One global correction would leave that mismatch in place. The per-layer rules are chosen so that each layer's update magnitude relative to its weights stays constant across widths."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What does $\\mu P$ keep constant across model widths?",
+          "choices": [
+            "Each layer's learning rate",
+            "Update size relative to the weights",
+            "The initialization variance",
+            "Each layer's gradient norm"
+          ],
+          "correct": 1,
+          "explanation": "$\\mu P$ targets the *relative* magnitude of updates: per-layer initialization and learning-rate scalings are chosen so that update size divided by weight size does not change as width grows. To achieve that, the raw learning rates and initialization scales must change with width, so they are what $\\mu P$ adjusts, not what it holds fixed. Gradient norms are not the target."
         }
       ]
     },
@@ -50,9 +62,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "How can learning rates tuned at smaller training-compute budgets be used to estimate a rate for a larger-budget run?",
-          "answer": "Fit a power law, $\\text{LR}(C)=\\beta C^{-\\alpha}$, to the tuned rates versus training compute $C$, then extrapolate it to the larger budget.",
-          "explanation": "The fitted $\\alpha$ controls how strongly the learning rate changes with compute; $\\beta$ sets its scale. This estimates a rate across training runs with different budgets. It differs from $\\mu P$: the latter prescribes layer-specific initialization and learning-rate scaling as model width changes."
+          "prompt": "Learning rates were tuned at several small compute budgets. What is fitted to them to pick the learning rate for a larger budget, and how?",
+          "answer": "A power law $\\text{LR}(C)=\\beta C^{-\\alpha}$, which is a straight line in log-log space, $\\log\\text{LR}(C)=\\log\\beta-\\alpha\\log C$, so linear least squares on $(\\log C,\\log\\text{LR})$ gives $\\alpha$ and $\\beta$; then extrapolate to the larger $C$.",
+          "explanation": "Taking logs turns the power law into a line with slope $-\\alpha$ and intercept $\\log\\beta$, so a closed-form linear least-squares fit suffices. A positive $\\alpha$ means the best learning rate falls as compute grows. This differs from $\\mu P$, which transfers hyperparameters across widths through per-layer scaling rather than by fitting a trend over compute."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Like the loss-versus-compute law, the learning-rate-versus-compute law needs an additive floor subtracted before taking logs.",
+          "answer": false,
+          "explanation": "The learning-rate law is a pure power law, $\\text{LR}(C)=\\beta C^{-\\alpha}$, so $\\log\\text{LR}(C)=\\log\\beta-\\alpha\\log C$ directly. Only the loss law, $\\mathcal L(C)=\\mathcal L_\\infty+\\beta C^{-\\alpha}$, has an additive term, the irreducible loss $\\mathcal L_\\infty$, which must be subtracted first: $\\log(\\mathcal L(C)-\\mathcal L_\\infty)=\\log\\beta-\\alpha\\log C$."
         }
       ]
     },
@@ -65,6 +83,18 @@
           "prompt": "Why does a loss-versus-training-compute fit need an irreducible loss floor even while measured loss is still falling?",
           "answer": "The data’s entropy limits achievable loss; fitting only a decaying power term would extrapolate loss to zero.",
           "explanation": "The model $\\mathcal L(C)=\\mathcal L_\\infty+\\beta C^{-\\alpha}$ separates irreducible uncertainty from the component reduced by training compute $C$. For positive $\\alpha$, the power term vanishes but the entropy floor remains. Omitting the floor can therefore produce an unrealistic large-compute extrapolation."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "In the fit $\\mathcal L(C)=\\mathcal L_\\infty+\\beta C^{-\\alpha}$, what does $\\mathcal L_\\infty$ stand for?",
+          "choices": [
+            "The smallest model's loss",
+            "The loss at initialization",
+            "The entropy of the data",
+            "The compute-optimal loss"
+          ],
+          "correct": 2,
+          "explanation": "$\\mathcal L_\\infty$ is the irreducible loss, the entropy of the data: no amount of compute can predict text better than its inherent uncertainty. It is what the fit approaches as $C\\to\\infty$, since $\\beta C^{-\\alpha}\\to0$. Without it the law would predict $\\mathcal L\\to0$. The other choices describe points on the curve at finite compute, not its asymptote."
         }
       ]
     },
@@ -77,6 +107,30 @@
           "prompt": "Why can’t a loss scaling law with an unknown irreducible floor be fitted by simply taking logs and using linear least squares?",
           "answer": "The floor must be subtracted before taking logs, so an unknown floor remains an unknown nonlinear parameter; fit it along with the power-law parameters.",
           "explanation": "With a known floor, $\\log(\\mathcal L(C)-\\mathcal L_\\infty)=\\log\\beta-\\alpha\\log C$ is linear in log training compute $C$. If the floor is unknown, the transformed targets cannot be calculated in advance. Fitting the full loss curve generally calls for iterative nonlinear least squares rather than one linear solve."
+        }
+      ]
+    },
+    {
+      "id": "scaling.scaling-laws.least-squares-closed-form",
+      "section": "2f67eb87-3605-80f2-90ed-fea352bbe7f4",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "For the linear model $y=X\\beta$, which expression is the least-squares solution for $\\beta$?",
+          "choices": [
+            "$(XX^\\top)^{-1}X^\\top y$",
+            "$(X^\\top X)^{-1}X^\\top y$",
+            "$(X^\\top X)^{-1}Xy$",
+            "$X^\\top(X^\\top X)^{-1}y$"
+          ],
+          "correct": 1,
+          "explanation": "Linear least squares has the closed form $\\beta=(X^\\top X)^{-1}X^\\top y$: $X^\\top X$ is the square Gram matrix of the features, and $X^\\top y$ projects the targets onto them. The other expressions misplace a transpose, which leaves the shapes inconsistent. This closed form is what fits a log-transformed scaling law in one solve."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Fitting a non-linear least-squares model requires an iterative procedure rather than a closed-form formula.",
+          "answer": true,
+          "explanation": "Only the linear case has an exact formula, $\\beta=(X^\\top X)^{-1}X^\\top y$. The non-linear case minimizes $$S=\\sum_i(y_i-f(x_i))^2$$ for a model $f$ that is not linear in its parameters, so the parameters are improved step by step. That is the case for a loss law whose floor $\\mathcal L_\\infty$ is unknown."
         }
       ]
     }
