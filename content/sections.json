@@ -313,7 +313,8 @@
     "title": "GPUs",
     "level": 1,
     "order": 35,
-    "hash": "339b26fff2a9afc2b44baff28531f537fa60ead058dce59abf4ddea80b92bd00"
+    "hash": "339b26fff2a9afc2b44baff28531f537fa60ead058dce59abf4ddea80b92bd00",
+    "coveredHash": "339b26fff2a9afc2b44baff28531f537fa60ead058dce59abf4ddea80b92bd00"
   },
   {
     "id": "2f67eb87-3605-8035-aa12-e6287c770476",

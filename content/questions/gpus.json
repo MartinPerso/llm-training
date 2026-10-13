@@ -1,0 +1,31 @@
+{
+  "chapter": "GPUs",
+  "concepts": [
+    {
+      "id": "gpus.gpus.memory-speed-capacity",
+      "section": "2ec7eb87-3605-8041-b513-ffee83df71a2",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What is the capacity scale of an A100's faster on-chip SRAM, compared with its HBM?",
+          "answer": "SRAM is on the order of megabytes; HBM holds tens of gigabytes (40 or 80 GB). The faster tier is much smaller than the main memory tier.",
+          "explanation": "The large HBM capacity does not describe the amount of fast on-chip storage available: the two tiers differ by roughly three orders of magnitude in capacity. SRAM is the smaller, faster tier. ⚠️ Note: the approximate 20 MB SRAM figure does not specify which on-chip structures are included."
+        }
+      ]
+    },
+    {
+      "id": "gpus.gpus.a100-hbm-capacity",
+      "section": "2ec7eb87-3605-8041-b513-ffee83df71a2",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "What is the HBM capacity, in GB, of one larger-memory A100 GPU?",
+          "answer": 80,
+          "tolerance": 0,
+          "unit": "GB",
+          "explanation": "The larger A100 variant has 80 GB of HBM per GPU; the smaller variant has 40 GB. This is main GPU memory capacity, not the capacity of the faster on-chip SRAM, which is on the order of megabytes."
+        }
+      ]
+    }
+  ]
+}
