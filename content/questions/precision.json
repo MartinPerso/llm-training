@@ -9,13 +9,20 @@
           "kind": "recall",
           "prompt": "In BF16 training, why keep FP32 master weights even when a small gradient is representable in BF16?",
           "answer": "A small value can be representable on its own while disappearing when added to a much larger BF16 weight. Updating an FP32 master copy preserves smaller changes.",
-          "explanation": "BF16 can encode a value near 0.0001 while rounding a value near 1.0001 back to 1, so representing the gradient is not enough. FP32 master weights protect the update, while BF16 copies serve the forward and backward passes. ⚠️ Note: representing 0.0001 here means approximating it, not encoding that decimal exactly."
+          "explanation": "BF16 spacing is fine near 0 but coarse near 1, so a gradient of 0.0001 is representable while the updated weight 1.0001 is not and rounds back to 1.0: the update is lost. Applying updates to an FP32 master copy keeps them, while a BF16 copy of the weights still serves the forward and backward passes, where matmuls tolerate rounding noise."
         },
         {
           "kind": "truefalse",
           "prompt": "In BF16 training, a representable gradient guarantees that the corresponding weight update survives rounding.",
           "answer": false,
           "explanation": "The spacing between representable numbers near the weight matters, not just the size of the gradient near zero. Even a representable update can round away when applied to a much larger BF16 weight. FP32 master weights preserve smaller changes while matrix products can still use BF16."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "A weight stored in BF16 equals 1.0 and receives an update of +0.0001. What value does the BF16 weight hold afterwards?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "1.0001 is not representable in BF16, so $1.0+0.0001$ rounds to the nearest BF16 value, 1.0, and the update vanishes even though 0.0001 on its own is representable near 0. (General context, not from the notes: BF16 has 7 explicit mantissa bits, so its spacing near 1.0 is $2^{-7}\\approx0.0078$.) This is why updates are applied to FP32 master weights."
         }
       ]
     },
@@ -25,9 +32,21 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "In BF16 mixed-precision training, what precision should hold accumulated gradients?",
-          "answer": "FP32, even when the individual gradients were computed in BF16.",
-          "explanation": "Lower-precision gradient computation does not require a lower-precision accumulation buffer. In the described setup, computed gradients are cast into FP32 buffers associated with FP32 parameters. This keeps the accumulated gradients in the same higher-precision update path as the master weights."
+          "prompt": "In BF16 mixed-precision training, why are gradients that were computed in BF16 accumulated in FP32?",
+          "answer": "A parameter's `.grad` has the parameter's dtype, and the parameters being updated are the FP32 master weights, so each BF16 gradient is cast to FP32 when it lands there. Accumulating in FP32 keeps tiny gradients from being rounded away.",
+          "explanation": "Individual gradients are often tiny compared with the weights, so what matters is that their sum is formed and applied in FP32; computing each one in BF16 is fine. Accumulating into a BF16 buffer would bring back the problem the master weights solve: adding 0.0001 to a BF16 value near 1.0 leaves it unchanged."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "In BF16 mixed-precision training, which of these is held in FP32?",
+          "choices": [
+            "The activations",
+            "The weight copy used in matmuls",
+            "The accumulated gradients",
+            "Each gradient as first computed"
+          ],
+          "correct": 2,
+          "explanation": "The recipe keeps two things in FP32: the master weights and the gradients accumulated into them. Activations, the weight copy used by the forward and backward passes, and each freshly computed gradient are BF16, because matmuls tolerate rounding noise; only the long-lived quantities that absorb many tiny updates need FP32."
         }
       ]
     },
@@ -56,9 +75,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What makes BF16 less vulnerable to overflow than FP16 without increasing bytes per tensor element?",
-          "answer": "BF16 has a wider dynamic range; both formats use two bytes per element.",
-          "explanation": "The formats trade numerical range against precision within the same two-byte storage budget. BF16 can accommodate a larger range of magnitudes, which helps numerical stability. That does not make its spacing fine enough to preserve every small update to a large weight; FP32 master weights address that separate issue."
+          "prompt": "FP16 and BF16 both store a value in 2 bytes. Why is BF16 the more numerically stable of the two?",
+          "answer": "Its larger dynamic range: in the same 2 bytes it covers a much wider span of magnitudes, so very large or very small values are less likely to overflow or underflow.",
+          "explanation": "The stability comes from range, not resolution, which is why BF16 is the recommended dtype for loading models and for mixed-precision compute. (General context, not from the notes: BF16 keeps FP32's 8 exponent bits and has only 7 mantissa bits against FP16's 10, so it is the less precise format.) That coarse spacing is also why updates go to FP32 master weights."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "BF16 is more numerically stable than FP16 because it represents each value more precisely.",
+          "answer": false,
+          "explanation": "Both use 2 bytes; BF16's advantage is a larger dynamic range, not finer resolution. (General context, not from the notes: BF16 spends its bits on the exponent, with 7 mantissa bits against FP16's 10, so FP16 is the more precise within its range.) Coarse BF16 resolution is exactly why a 0.0001 update to a weight of 1.0 is lost without FP32 master weights."
         }
       ]
     },
@@ -90,10 +115,10 @@
       "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
       "variants": [
         {
-          "kind": "recall",
-          "prompt": "For low-precision inference, which is harder to quantize well: model weights or activations?",
-          "answer": "Activations are the harder quantization target.",
-          "explanation": "Weight compression and activation quantization are separate choices; success on the weights does not establish that activations tolerate the same precision. ⚠️ Note: the source states that activations are harder to quantize but does not explain why. Its FP16-activation description is a simplification, not a claim that every internal operation stays FP16."
+          "kind": "truefalse",
+          "prompt": "Activations are harder to quantize well than weights.",
+          "answer": true,
+          "explanation": "Activations are the harder quantization target, which matches how `load_in_8bit=True` (LLM.int8()) works: the weights are compressed to INT8 while the activations stay in FP16. (General context, not from the notes: weights are fixed and can be calibrated once, whereas activations change with every input and contain large outlier values.)"
         }
       ]
     },
@@ -102,10 +127,22 @@
       "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
       "variants": [
         {
-          "kind": "recall",
-          "prompt": "Why can INT8 weight storage reduce inference memory without making the full forward pass INT8?",
-          "answer": "Weight storage and computation precision are separate choices. Compressing weights saves memory while activations and parts of the computation can retain higher precision.",
-          "explanation": "INT8 weights reduce the persistent weight allocation; they do not specify every operation’s dtype. ⚠️ Note: the source’s FP16-activation description is shorthand, not a full kernel specification. General context, not from the notes: LLM.int8() combines INT8 multiplication with a higher-precision outlier path."
+          "kind": "truefalse",
+          "prompt": "Loading a model with `load_in_8bit=True` makes both its weights and its activations INT8.",
+          "answer": false,
+          "explanation": "Only the weights are INT8 (via LLM.int8()); activations stay in FP16. The gain is memory from compressing the weights, which is not full INT8 compute, since activations and their arithmetic remain in higher precision. (General context, not from the notes: LLM.int8() also routes outlier features through a higher-precision path.)"
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A Hugging Face model is loaded with `load_in_8bit=True`. In what precision are its activations?",
+          "choices": [
+            "INT8",
+            "FP16",
+            "FP32",
+            "BF16"
+          ],
+          "correct": 1,
+          "explanation": "LLM.int8() compresses only the weights to INT8 and keeps activations in FP16, so it saves weight memory without being INT8 compute. INT8 activations would mean full INT8 inference, which this is not; BF16 activations come with `torch_dtype=torch.bfloat16`, and FP32 is what autocast keeps the weights in."
         }
       ]
     },
@@ -115,9 +152,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why does BF16 autocast on an FP32 model use more parameter-storage memory than loading its weights directly in BF16?",
-          "answer": "Autocast changes operation precision but leaves the stored parameters in FP32; loading BF16 weights changes their storage dtype.",
-          "explanation": "A lower computation dtype does not itself compress the persistent parameter tensors. FP32 parameters still take four bytes each, compared with two for BF16 parameters. Autocast selects operation precision; it does not independently create and manage a separate master-weight scheme."
+          "prompt": "An FP32 model is either run under `torch.autocast(dtype=torch.bfloat16)` or loaded with `torch_dtype=torch.bfloat16`. Which uses more memory, and why?",
+          "answer": "Autocast. The weights stay in FP32 (4 bytes each) and only individual operations are cast to BF16, whereas loading in BF16 stores the weights at 2 bytes. In exchange, autocast can be more stable.",
+          "explanation": "Autocast is a per-operation policy: matmuls run in the lower-precision dtype while softmax and layernorm stay in FP32, but the stored parameters are never converted. Loading with `torch_dtype=torch.bfloat16` puts both weights and activations in BF16, the recommended default. Autocast also does not create or manage master weights; it only picks each operation's precision."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "`torch.autocast` stores the weights in BF16 and keeps an FP32 master copy, like mixed-precision training does.",
+          "answer": false,
+          "explanation": "Autocast leaves the weights as they are (FP32 for an FP32 model) and only chooses a precision per operation; it does not manage master weights. The two-copy scheme, FP32 masters plus a BF16 compute copy, belongs to the mixed-precision training recipe. Keeping FP32 weights is why autocast uses more memory than loading the model in BF16."
         }
       ]
     },
@@ -126,10 +169,22 @@
       "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
       "variants": [
         {
+          "kind": "mcq",
+          "prompt": "Under `torch.autocast`, which of these operations runs in the lower-precision dtype?",
+          "choices": [
+            "Softmax",
+            "Layer normalization",
+            "Sum reductions",
+            "Matrix multiplication"
+          ],
+          "correct": 3,
+          "explanation": "Matmuls tolerate rounding noise, so autocast runs them in the dtype it is given (BF16 or FP16). Softmax stays in FP32 because it needs precision for numerical stability, and layernorm stays in FP32 because its mean and variance are reductions, and reductions need precision, which is also why a plain sum is a poor candidate for low precision."
+        },
+        {
           "kind": "recall",
-          "prompt": "Why might a mixed-precision policy keep softmax and layer normalization in FP32 while running matrix products in BF16?",
-          "answer": "Softmax needs numerical stability and layer normalization uses precision-sensitive reductions; matrix products tolerate more rounding noise.",
-          "explanation": "Operations have different sensitivity to numerical error, so one dtype need not cover the whole forward pass. Higher precision protects softmax and normalization, while BF16 can handle matrix products. ⚠️ Note: this describes the policy in the source, not a guarantee about every operation in every autocast implementation."
+          "prompt": "Autocast keeps layer normalization in FP32. What property of that operation calls for it?",
+          "answer": "It is built on reductions (a mean and a variance over the features), and reductions need precision because rounding errors accumulate across the many summed terms.",
+          "explanation": "Autocast assigns precision per operation according to its sensitivity. Matmuls tolerate rounding noise and drop to the lower-precision dtype; softmax stays in FP32 for a different reason, numerical stability. This per-op policy is what lets autocast be more stable than running everything in pure BF16."
         }
       ]
     },
@@ -143,7 +198,8 @@
           "answer": "The loader can access the dataset without first loading the entire file into RAM. The full dataset therefore need not be resident at once.",
           "explanation": "Memory mapping changes how the dataset is accessed, so its file size need not equal the initial RAM allocation. It does not reduce the bytes used by model weights or require quantizing the data. The source supports avoiding a full in-memory load; it makes no promise about data-loading throughput."
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "precision.precision.quantized-linear-replacement",
@@ -151,9 +207,77 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why is storing a custom linear layer's weights as INT8 insufficient to make its forward pass quantized?",
-          "answer": "The layer needs an implementation that understands the quantized weight representation and performs the corresponding computation. Changing storage dtype alone does not replace its floating-point forward operation.",
-          "explanation": "The custom-model procedure replaces the linear modules with quantized implementations and transfers their weights. This changes both the weight representation and the layer that consumes it. Nested linear modules must also be replaced if they are to use the same quantized implementation."
+          "prompt": "To quantize a custom PyTorch model (not loaded with `from_pretrained`) with bitsandbytes, what do you change in the model?",
+          "answer": "Replace every `nn.Linear`, recursing into child modules, with `bnb.nn.Linear8bitLt` (or `bnb.nn.Linear4bit`), copying each layer's weight and bias into the new module.",
+          "explanation": "Changing a weight tensor's dtype alone quantizes nothing: the layer needs a module whose forward pass knows how to use quantized weights. The swap must recurse because linear layers sit inside attention and FFN submodules. Other modules, such as norms and embeddings, are left as they are."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "When a custom model's linear layers are swapped for bitsandbytes INT8 layers, when are the weights actually quantized?",
+          "choices": [
+            "When the model is moved to CUDA",
+            "When `Int8Params` wraps the weights",
+            "When `load_state_dict` runs",
+            "On the first forward pass"
+          ],
+          "correct": 0,
+          "explanation": "The replacement layers receive the original float weights wrapped in `bnb.nn.Int8Params`, but conversion to INT8 is deferred until `model.to('cuda')`. Wrapping only marks the tensors for quantization, `load_state_dict` runs before the swap on ordinary float weights, and by the first forward pass the weights are already INT8."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.pure-bf16-inference",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "BF16 training needs FP32 master weights. Why can inference run entirely in BF16?",
+          "answer": "Master weights exist so that tiny gradient updates are not rounded away on BF16 weights. Inference makes no updates, and matmuls tolerate BF16 rounding noise, so all weights and operations can be BF16.",
+          "explanation": "The FP32 copy protects the accumulation of small updates ($1.0+0.0001$ rounds back to 1.0 in BF16), not the forward computation. Without a backward pass or optimizer step that problem disappears, so loading with `torch_dtype=torch.bfloat16`, weights and activations both in BF16, is the recommended choice and works fine in practice."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Loading a model with `torch_dtype=torch.bfloat16` puts both its weights and its activations in BF16.",
+          "answer": true,
+          "explanation": "That is the recommended way to load with `.from_pretrained()`, and pure BF16 works well in practice when serving a model. It differs from `load_in_8bit=True` (INT8 weights, FP16 activations) and from autocast (FP32 weights). ⚠️ Note: the notes describe both `model.half()` and `model.to(torch.bfloat16)` as producing FP16, then call the result BF16. (General context, not from the notes: `.half()` gives FP16, `.to(torch.bfloat16)` gives BF16.)"
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.weight-copies-bytes",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "In the BF16 mixed-precision training recipe, how many bytes per parameter do the weights take, counting every copy?",
+          "answer": 6,
+          "tolerance": 0,
+          "unit": "bytes",
+          "explanation": "There are two copies: FP32 master weights at 4 bytes and a BF16 copy for the forward and backward passes at 2 bytes, so $4+2=6$ bytes per parameter. That is more than the 4 bytes of pure FP32 training; mixed precision gains from BF16 activations and compute, not from smaller weights. Gradients and optimizer state come on top."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "BF16 mixed-precision training stores more bytes of weights per parameter than pure FP32 training.",
+          "answer": true,
+          "explanation": "Mixed precision keeps FP32 master weights (4 bytes) and adds a BF16 copy (2 bytes) for the forward and backward passes, $4+2=6$ bytes against 4 for pure FP32. The BF16 copy is what the matmuls read, and the FP32 copy is what absorbs the tiny updates. To shrink weight storage instead, load in BF16 for inference or quantize to INT8."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.autocast-use-cases",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "In which situation is `torch.autocast` preferable to loading the model in BF16?",
+          "choices": [
+            "GPU memory is the tightest constraint",
+            "Weights must be compressed to INT8",
+            "Pure BF16 runs show numerical issues",
+            "You want master weights handled for you"
+          ],
+          "correct": 2,
+          "explanation": "Autocast keeps weights in FP32 and casts per operation, keeping sensitive ops like softmax and layernorm in FP32, so it can be more stable than pure BF16; it also suits an FP32 model that is hard to convert. It costs more memory, so it is the wrong pick when memory is tight. INT8 needs bitsandbytes, and autocast does not manage master weights."
         }
       ]
     }
