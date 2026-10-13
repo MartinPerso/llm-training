@@ -613,6 +613,24 @@
           "explanation": "A mask has one entry per query-key pair: $$S\\times S=S^2\\ \\text{entries}\\quad(S=8192:\\ 2^{26}\\approx 6.7\\times10^7),$$ the same count as one head's score matrix, and it must be stored and read as the kernel loops over tiles. Passing it brings back quadratic memory and traffic even though the scores themselves are never stored, which is why the fused is_causal flag is preferred."
         }
       ]
+    },
+    {
+      "id": "inference.kv-cache.visible-cache-prefix",
+      "section": "2f47eb87-3605-80c1-a4a4-d8dc201f202c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "During single-token decoding, why can reading zero-filled, unused KV-cache slots change the attention output?",
+          "answer": "Their zero keys produce finite attention scores and take probability mass in softmax. Zero values do not prevent them from diluting the output.",
+          "explanation": "A zero key gives a score of zero, so its softmax contribution is $e^0=1$, not zero. The unused values add nothing to the weighted sum, but the enlarged denominator reduces the weights on valid values. Read only the populated prefix, including the current token, or mask unused slots before softmax."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Unused slots of a pre-allocated KV cache hold zero values, so attending over the whole buffer gives the same output as attending over the filled prefix.",
+          "answer": false,
+          "explanation": "The zero keys still score $q\\cdot 0=0$, and $e^0=1$ adds to the softmax denominator, shrinking the weights on real tokens even though the zero values add nothing to the sum. That is why decoding attends over the slice up to the current position only (or masks the rest)."
+        }
+      ]
     }
   ]
 }
