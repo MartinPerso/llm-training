@@ -10,6 +10,12 @@
           "prompt": "Why does LLaVA need a connector after CLIP, even though CLIP already learns image-text alignment?",
           "answer": "CLIP alignment does not give its visual features the LLM's input width. The connector projects each visual token from 1024 features to the LLM's $D=4096$ features before combining it with text.",
           "explanation": "CLIP learns similarity between image and text embeddings, but its feature width is separate from the language model's width. The connector supplies the interface: $$[256,1024]\\xrightarrow{W}[256,4096].$$ This changes each visual token's representation while preserving the number of tokens; image-text alignment alone does not supply that dimensional match."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In LLaVA, the projection applied after CLIP changes each visual token's width but not the number of visual tokens.",
+          "answer": true,
+          "explanation": "The projection $W$ is applied independently to each token: $$[256,1024]\\xrightarrow{W}[256,4096],$$ taking CLIP's width 1024 to the LLM's $D=4096$. The 256 visual tokens are then concatenated with the $N$ text embeddings into a $[256+N,4096]$ sequence. Adding resolution means more tokens (as with LLaVA-NeXT crops), not a different projection."
         }
       ]
     },
@@ -31,15 +37,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What lets Qwen2-VL change the image patch grid without resizing a learned position table?",
-          "answer": "2D RoPE computes positional rotations from each patch's row and column coordinates, so the grid can change while the patch size stays fixed.",
-          "explanation": "The position rule generates rotations from coordinates instead of looking up one learned vector for every grid slot. This addresses a positional-representation constraint, whereas LLaVA-NeXT handles high resolution by encoding multiple crops. ⚠️ Note: learned position tables need not force fixed resolutions, and 2D RoPE alone does not guarantee generalization to arbitrary image sizes."
+          "prompt": "How does Qwen2-VL encode patch positions so that it can take images of any resolution or aspect ratio?",
+          "answer": "With 2D RoPE: each patch's position is its (row, column) coordinate, and the rotary encoding is generated on the fly from those coordinates. The patch size stays fixed, so a bigger image simply gives more patches.",
+          "explanation": "Nothing is looked up in a table sized for one grid, so any number of rows and columns gets valid positions, whatever the image's size or shape. The earlier constraint came from learned absolute position embeddings with one row per patch slot. LLaVA-NeXT attacks high resolution differently, by encoding several crops."
         },
         {
           "kind": "truefalse",
           "prompt": "Qwen2-VL handles a larger image by increasing the patch size to keep the number of visual tokens fixed.",
           "answer": false,
-          "explanation": "Its patch size stays fixed; a larger patch grid can contribute more visual tokens. 2D RoPE supplies positions from row and column coordinates without requiring one learned vector per grid slot. ⚠️ Note: this positional flexibility does not itself guarantee good generalization to arbitrary resolutions, as the source suggests."
+          "explanation": "The patch size stays fixed, so a larger image produces a larger patch grid and more visual tokens. 2D RoPE computes each patch's encoding from its (row, column) coordinates on the fly, so there is no fixed-size table of learned position vectors to outgrow. Keeping the token count fixed was the old regime: one 224×224 input, always 256 patches."
         }
       ]
     },
@@ -58,6 +64,74 @@
           ],
           "correct": 3,
           "explanation": "CLIP learns an embedding similarity that favors matching image-text pairs through a contrastive objective. This is not a pixel reconstruction, image denoising, or next-token prediction objective. In the LLaVA pipeline, the resulting visual features are subsequently mapped to the language model's width; that connector serves a different role from CLIP's training objective."
+        }
+      ]
+    },
+    {
+      "id": "multimodality.multimodality.visual-token-count",
+      "section": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "In LLaVA, how many visual tokens does one 224×224 image add to the LLM's input sequence?",
+          "answer": 256,
+          "tolerance": 0,
+          "unit": "tokens",
+          "explanation": "Patchify gives $[256,588]$: each patch vector has $588=14\\cdot14\\cdot3$ values, so patches are 14×14 pixels and $(224/14)^2=16^2=256$. CLIP sees 257 positions (a CLS token is prepended), but its output is $[256,1024]$, and the projection maps that to $[256,4096]$. The LLM therefore receives $256+N$ tokens for $N$ text tokens."
+        }
+      ]
+    },
+    {
+      "id": "multimodality.multimodality.cls-token-fate",
+      "section": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "What happens to CLIP's CLS token in the LLaVA pipeline?",
+          "choices": [
+            "It is projected and placed before the text",
+            "It replaces the first patch token",
+            "It is dropped before the projection",
+            "It is averaged into every patch token"
+          ],
+          "correct": 2,
+          "explanation": "The CLS token is prepended inside CLIP, making the sequence $[257,1024]$, but CLIP's output passed on is $[256,1024]$: only the 256 patch tokens are projected by $W$ to $[256,4096]$. So the LLM receives one token per patch and no pooled summary token. Nothing is merged or averaged; the patch tokens keep their own positions."
+        }
+      ]
+    },
+    {
+      "id": "multimodality.multimodality.fixed-resolution-cause",
+      "section": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Before 2D RoPE, why were ViT-style image encoders tied to one input size such as 224×224?",
+          "answer": "Positions came from learned absolute position embeddings of shape $[256,D]$, one per patch slot. A different image size gives a different number of patches, for which no learned embeddings exist.",
+          "explanation": "A fixed 224×224 input always yields 256 patches, so the model learns exactly 256 position vectors. Nothing else in the transformer cares about sequence length; the size limit came only from that fixed table. 2D RoPE removes it by generating position encodings on the fly from (row, column) coordinates, with the patch size unchanged."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Early ViT encoders needed a fixed input size because their attention layers only accept one sequence length.",
+          "answer": false,
+          "explanation": "Attention itself handles any number of tokens. The constraint was the learned absolute position embeddings, of shape $[256,D]$ for 224×224 inputs: one vector per patch slot, and none for extra patches. That is why switching positions to 2D RoPE, computed from (row, column) coordinates, is enough to support arbitrary resolutions and aspect ratios."
+        }
+      ]
+    },
+    {
+      "id": "multimodality.multimodality.current-paradigm",
+      "section": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "In the current multimodal paradigm, what does image generation typically use?",
+          "choices": [
+            "A ViT encoder run in reverse",
+            "Diffusion in pixel space",
+            "A decoder over CLIP features",
+            "Projected LLM hidden states"
+          ],
+          "correct": 1,
+          "explanation": "The current split is by task: understanding uses a ViT encoder that turns the image into features, while generation uses diffusion operating in pixel space. The distractors reuse the understanding pipeline (ViT or CLIP features, or the LLaVA-style projection between LLM and vision widths) for producing images, which is not how generation is done in this paradigm."
         }
       ]
     }
