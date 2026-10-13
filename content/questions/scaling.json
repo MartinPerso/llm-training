@@ -1,0 +1,84 @@
+{
+  "chapter": "Scaling laws",
+  "concepts": [
+    {
+      "id": "scaling.scaling-laws.width-hyperparameter-transfer",
+      "section": "2f67eb87-3605-80f2-90ed-fea352bbe7f4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does $\\mu P$ help transfer a learning-rate choice from a narrow model to a wider one?",
+          "answer": "It applies width-dependent, layer-specific initialization and learning-rate scalings, making tuning choices more transferable across widths.",
+          "explanation": "Widening a standard-parameterized network changes the update scales differently across layers, so a narrow model's tuning need not carry over. $\\mu P$ coordinates initialization and learning-rate scaling to address that mismatch. ⚠️ Note: the source's constant update-to-weight ratio is an oversimplified description; the precise rules depend on the parameter's role."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Under $\\mu P$, transferring a tuned learning rate to a wider network means applying the same width correction to every layer.",
+          "answer": false,
+          "explanation": "The width correction depends on the parameter’s role; initialization and learning-rate scaling must work together. One global adjustment does not address the unequal update scales across layers under standard parameterization. ⚠️ Note: the source’s constant update-to-weight ratio is a simplification, not the full $\\mu P$ prescription."
+        }
+      ]
+    },
+    {
+      "id": "scaling.scaling-laws.learning-rate-exponent",
+      "section": "2f67eb87-3605-80f2-90ed-fea352bbe7f4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In the power-law fit for learning rate versus compute, what do the log-log slope and intercept represent?",
+          "answer": "The slope is $-\\alpha$ and the intercept is $\\log\\beta$, for $\\text{LR}(C)=\\beta C^{-\\alpha}$.",
+          "explanation": "Taking logs gives $\\log\\text{LR}(C)=\\log(\\beta C^{-\\alpha})=\\log\\beta-\\alpha\\log C$. Thus the exponent supplies the negative slope, while the multiplicative coefficient becomes the intercept. Unlike the loss fit, this learning-rate expression has no additive floor to subtract before taking logs."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A fitted learning-rate law has log-log slope $-\\alpha$. Which expression gives $\\text{LR}(C)$?",
+          "choices": [
+            "$\\beta C^{\\alpha}$",
+            "$\\beta C^{-\\alpha}$",
+            "$\\beta-\\alpha C$",
+            "$\\beta-\\alpha\\log C$"
+          ],
+          "correct": 1,
+          "explanation": "Exponentiating the straight-line relation recovers $\\text{LR}(C)=\\exp(\\log\\beta-\\alpha\\log C)=\\beta C^{-\\alpha}$. The positive power reverses the slope; the subtractive expressions confuse the original and logarithmic scales. The loss law uses a similar power term but includes an additional asymptote."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "scaling.scaling-laws.learning-rate-compute-transfer",
+      "section": "2f67eb87-3605-80f2-90ed-fea352bbe7f4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can learning rates tuned at smaller training-compute budgets be used to estimate a rate for a larger-budget run?",
+          "answer": "Fit a power law, $\\text{LR}(C)=\\beta C^{-\\alpha}$, to the tuned rates versus training compute $C$, then extrapolate it to the larger budget.",
+          "explanation": "The fitted $\\alpha$ controls how strongly the learning rate changes with compute; $\\beta$ sets its scale. This estimates a rate across training runs with different budgets. It differs from $\\mu P$: the latter prescribes layer-specific initialization and learning-rate scaling as model width changes."
+        }
+      ]
+    },
+    {
+      "id": "scaling.scaling-laws.irreducible-loss-floor",
+      "section": "2f67eb87-3605-80f2-90ed-fea352bbe7f4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does a loss-versus-training-compute fit need an irreducible loss floor even while measured loss is still falling?",
+          "answer": "The data’s entropy limits achievable loss; fitting only a decaying power term would extrapolate loss to zero.",
+          "explanation": "The model $\\mathcal L(C)=\\mathcal L_\\infty+\\beta C^{-\\alpha}$ separates irreducible uncertainty from the component reduced by training compute $C$. For positive $\\alpha$, the power term vanishes but the entropy floor remains. Omitting the floor can therefore produce an unrealistic large-compute extrapolation."
+        }
+      ]
+    },
+    {
+      "id": "scaling.scaling-laws.least-squares-solvers",
+      "section": "2f67eb87-3605-80f2-90ed-fea352bbe7f4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can’t a loss scaling law with an unknown irreducible floor be fitted by simply taking logs and using linear least squares?",
+          "answer": "The floor must be subtracted before taking logs, so an unknown floor remains an unknown nonlinear parameter; fit it along with the power-law parameters.",
+          "explanation": "With a known floor, $\\log(\\mathcal L(C)-\\mathcal L_\\infty)=\\log\\beta-\\alpha\\log C$ is linear in log training compute $C$. If the floor is unknown, the transformed targets cannot be calculated in advance. Fitting the full loss curve generally calls for iterative nonlinear least squares rather than one linear solve."
+        }
+      ]
+    }
+  ]
+}
