@@ -436,7 +436,8 @@
     "title": "Precision",
     "level": 1,
     "order": 48,
-    "hash": "4907aa967cde9d46d8430af75000beee7f45f3224c18ab1b1d3b9b95b57f4ba4"
+    "hash": "4907aa967cde9d46d8430af75000beee7f45f3224c18ab1b1d3b9b95b57f4ba4",
+    "coveredHash": "4907aa967cde9d46d8430af75000beee7f45f3224c18ab1b1d3b9b95b57f4ba4"
   },
   {
     "id": "2f47eb87-3605-8007-adf0-fa9cd014bd65",

@@ -1,0 +1,161 @@
+{
+  "chapter": "Precision",
+  "concepts": [
+    {
+      "id": "precision.precision.master-weight-updates",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In BF16 training, why keep FP32 master weights even when a small gradient is representable in BF16?",
+          "answer": "A small value can be representable on its own while disappearing when added to a much larger BF16 weight. Updating an FP32 master copy preserves smaller changes.",
+          "explanation": "BF16 can encode a value near 0.0001 while rounding a value near 1.0001 back to 1, so representing the gradient is not enough. FP32 master weights protect the update, while BF16 copies serve the forward and backward passes. ⚠️ Note: representing 0.0001 here means approximating it, not encoding that decimal exactly."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In BF16 training, a representable gradient guarantees that the corresponding weight update survives rounding.",
+          "answer": false,
+          "explanation": "The spacing between representable numbers near the weight matters, not just the size of the gradient near zero. Even a representable update can round away when applied to a much larger BF16 weight. FP32 master weights preserve smaller changes while matrix products can still use BF16."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.gradient-accumulation-dtype",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In BF16 mixed-precision training, what precision should hold accumulated gradients?",
+          "answer": "FP32, even when the individual gradients were computed in BF16.",
+          "explanation": "Lower-precision gradient computation does not require a lower-precision accumulation buffer. In the described setup, computed gradients are cast into FP32 buffers associated with FP32 parameters. This keeps the accumulated gradients in the same higher-precision update path as the master weights."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.matmul-rounding-tolerance",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can training use BF16 matrix multiplications but retain FP32 master weights?",
+          "answer": "Matrix multiplications tolerate rounding noise; small updates to comparatively large weights can be lost in BF16.",
+          "explanation": "The two operations face different numerical demands: some rounding in matrix products is tolerable, while rounding an update to zero prevents that change from accumulating in the weight. Mixed precision exploits that distinction. It uses BF16 for much of the forward/backward work and FP32 for the persistent update path."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "BF16 forward and backward computation can coexist with FP32 master weights during training.",
+          "answer": true,
+          "explanation": "The compute copies and the master parameters serve different roles, so they need not share a dtype. Matrix products tolerate lower-precision rounding, while FP32 master weights retain small updates that BF16 weights could lose. Running the forward and backward passes in BF16 therefore does not imply updating BF16 master parameters."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "precision.precision.bf16-dynamic-range",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What makes BF16 less vulnerable to overflow than FP16 without increasing bytes per tensor element?",
+          "answer": "BF16 has a wider dynamic range; both formats use two bytes per element.",
+          "explanation": "The formats trade numerical range against precision within the same two-byte storage budget. BF16 can accommodate a larger range of magnitudes, which helps numerical stability. That does not make its spacing fine enough to preserve every small update to a large weight; FP32 master weights address that separate issue."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.dtype-storage-ratios",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Ignoring overhead, by what factor does BF16 reduce tensor storage relative to FP32?",
+          "answer": 2,
+          "tolerance": 0,
+          "unit": "factor",
+          "explanation": "FP32 uses four bytes per value and BF16 uses two, so the storage ratio is $4/2=2$. FP16 has the same raw storage size as BF16 despite its different numerical range. This comparison concerns tensor storage, not total training memory, which can also include FP32 master weights and gradient buffers."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "Ignoring quantization metadata, by what factor does INT8 reduce weight storage relative to FP32?",
+          "answer": 4,
+          "tolerance": 0,
+          "unit": "factor",
+          "explanation": "FP32 uses four bytes per weight and INT8 uses one, giving $4/1=4$. The factor of two instead belongs to FP16 or BF16, while INT4 reduces raw storage further. Compressing weights to INT8 does not establish that activations or every computation also use INT8."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "precision.precision.activation-quantization-difficulty",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For low-precision inference, which is harder to quantize well: model weights or activations?",
+          "answer": "Activations are the harder quantization target.",
+          "explanation": "Weight compression and activation quantization are separate choices; success on the weights does not establish that activations tolerate the same precision. ⚠️ Note: the source states that activations are harder to quantize but does not explain why. Its FP16-activation description is a simplification, not a claim that every internal operation stays FP16."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.int8-inference-activations",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can INT8 weight storage reduce inference memory without making the full forward pass INT8?",
+          "answer": "Weight storage and computation precision are separate choices. Compressing weights saves memory while activations and parts of the computation can retain higher precision.",
+          "explanation": "INT8 weights reduce the persistent weight allocation; they do not specify every operation’s dtype. ⚠️ Note: the source’s FP16-activation description is shorthand, not a full kernel specification. General context, not from the notes: LLM.int8() combines INT8 multiplication with a higher-precision outlier path."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.autocast-parameter-storage",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does BF16 autocast on an FP32 model use more parameter-storage memory than loading its weights directly in BF16?",
+          "answer": "Autocast changes operation precision but leaves the stored parameters in FP32; loading BF16 weights changes their storage dtype.",
+          "explanation": "A lower computation dtype does not itself compress the persistent parameter tensors. FP32 parameters still take four bytes each, compared with two for BF16 parameters. Autocast selects operation precision; it does not independently create and manage a separate master-weight scheme."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.autocast-sensitive-operations",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why might a mixed-precision policy keep softmax and layer normalization in FP32 while running matrix products in BF16?",
+          "answer": "Softmax needs numerical stability and layer normalization uses precision-sensitive reductions; matrix products tolerate more rounding noise.",
+          "explanation": "Operations have different sensitivity to numerical error, so one dtype need not cover the whole forward pass. Higher precision protects softmax and normalization, while BF16 can handle matrix products. ⚠️ Note: this describes the policy in the source, not a guarantee about every operation in every autocast implementation."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.memory-mapped-data",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can training begin on a memory-mapped dataset larger than host RAM?",
+          "answer": "The loader can access the dataset without first loading the entire file into RAM. The full dataset therefore need not be resident at once.",
+          "explanation": "Memory mapping changes how the dataset is accessed, so its file size need not equal the initial RAM allocation. It does not reduce the bytes used by model weights or require quantizing the data. The source supports avoiding a full in-memory load; it makes no promise about data-loading throughput."
+        }
+      ]
+    },
+    {
+      "id": "precision.precision.quantized-linear-replacement",
+      "section": "2f47eb87-3605-8038-a3c9-ca7240689a57",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is storing a custom linear layer's weights as INT8 insufficient to make its forward pass quantized?",
+          "answer": "The layer needs an implementation that understands the quantized weight representation and performs the corresponding computation. Changing storage dtype alone does not replace its floating-point forward operation.",
+          "explanation": "The custom-model procedure replaces the linear modules with quantized implementations and transfers their weights. This changes both the weight representation and the layer that consumes it. Nested linear modules must also be replaced if they are to use the same quantized implementation."
+        }
+      ]
+    }
+  ]
+}
