@@ -478,6 +478,7 @@
     "title": "Multimodality",
     "level": 1,
     "order": 54,
-    "hash": "08c9dbfe93b88409476c01d8bbad9343dede5a4c79887fc6432787004f894b99"
+    "hash": "08c9dbfe93b88409476c01d8bbad9343dede5a4c79887fc6432787004f894b99",
+    "coveredHash": "08c9dbfe93b88409476c01d8bbad9343dede5a4c79887fc6432787004f894b99"
   }
 ]

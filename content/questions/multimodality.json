@@ -1,0 +1,65 @@
+{
+  "chapter": "Multimodality",
+  "concepts": [
+    {
+      "id": "multimodality.multimodality.visual-token-interface",
+      "section": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does LLaVA need a connector after CLIP, even though CLIP already learns image-text alignment?",
+          "answer": "CLIP alignment does not give its visual features the LLM's input width. The connector projects each visual token from 1024 features to the LLM's $D=4096$ features before combining it with text.",
+          "explanation": "CLIP learns similarity between image and text embeddings, but its feature width is separate from the language model's width. The connector supplies the interface: $$[256,1024]\\xrightarrow{W}[256,4096].$$ This changes each visual token's representation while preserving the number of tokens; image-text alignment alone does not supply that dimensional match."
+        }
+      ]
+    },
+    {
+      "id": "multimodality.multimodality.crop-sequence-expansion",
+      "section": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does LLaVA-NeXT route a high-resolution image through its vision encoder?",
+          "answer": "It divides the image into several crops, encodes them separately, and concatenates the resulting visual representations.",
+          "explanation": "Different crops contribute separate visual sequences, which are joined before use by the language model. The added image coverage therefore appears as more visual tokens, rather than a larger hidden width per token. This differs from the positional-encoding change described for Qwen2-VL: cropping reorganizes the image inputs themselves."
+        }
+      ]
+    },
+    {
+      "id": "multimodality.multimodality.spatial-position-flexibility",
+      "section": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What lets Qwen2-VL change the image patch grid without resizing a learned position table?",
+          "answer": "2D RoPE computes positional rotations from each patch's row and column coordinates, so the grid can change while the patch size stays fixed.",
+          "explanation": "The position rule generates rotations from coordinates instead of looking up one learned vector for every grid slot. This addresses a positional-representation constraint, whereas LLaVA-NeXT handles high resolution by encoding multiple crops. ⚠️ Note: learned position tables need not force fixed resolutions, and 2D RoPE alone does not guarantee generalization to arbitrary image sizes."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Qwen2-VL handles a larger image by increasing the patch size to keep the number of visual tokens fixed.",
+          "answer": false,
+          "explanation": "Its patch size stays fixed; a larger patch grid can contribute more visual tokens. 2D RoPE supplies positions from row and column coordinates without requiring one learned vector per grid slot. ⚠️ Note: this positional flexibility does not itself guarantee good generalization to arbitrary resolutions, as the source suggests."
+        }
+      ]
+    },
+    {
+      "id": "multimodality.multimodality.cross-modal-alignment",
+      "section": "2f47eb87-3605-8082-9344-cb2ebcc16b84",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which signal teaches CLIP to associate an image with the appropriate text?",
+          "choices": [
+            "Reconstructing the input pixels",
+            "Predicting the next caption token",
+            "Denoising a corrupted image patch",
+            "Matching image-text embeddings"
+          ],
+          "correct": 3,
+          "explanation": "CLIP learns an embedding similarity that favors matching image-text pairs through a contrastive objective. This is not a pixel reconstruction, image denoising, or next-token prediction objective. In the LLaVA pipeline, the resulting visual features are subsequently mapped to the language model's width; that connector serves a different role from CLIP's training objective."
+        }
+      ]
+    }
+  ]
+}
