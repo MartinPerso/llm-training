@@ -6,10 +6,16 @@
       "section": "2ec7eb87-3605-8041-b513-ffee83df71a2",
       "variants": [
         {
-          "kind": "recall",
-          "prompt": "What is the capacity scale of an A100's faster on-chip SRAM, compared with its HBM?",
-          "answer": "SRAM is on the order of megabytes; HBM holds tens of gigabytes (40 or 80 GB). The faster tier is much smaller than the main memory tier.",
-          "explanation": "The large HBM capacity does not describe the amount of fast on-chip storage available: the two tiers differ by roughly three orders of magnitude in capacity. SRAM is the smaller, faster tier. ⚠️ Note: the approximate 20 MB SRAM figure does not specify which on-chip structures are included."
+          "kind": "mcq",
+          "prompt": "Roughly how much on-chip SRAM does an A100 have in total?",
+          "choices": [
+            "About 20 KB",
+            "About 20 MB",
+            "About 2 GB",
+            "About 40 GB"
+          ],
+          "correct": 1,
+          "explanation": "An A100 has about 20 MB of SRAM in total, against 40 or 80 GB of HBM: the fast on-chip tier is thousands of times smaller than main memory. 40 GB is the smaller HBM size, not SRAM, and 2 GB or 20 KB are off by a factor of about a hundred or a thousand. That gap is why fast kernels must work on small tiles of data at a time."
         }
       ]
     },
@@ -19,11 +25,23 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "What is the HBM capacity, in GB, of one larger-memory A100 GPU?",
+          "prompt": "An A100 comes in two HBM sizes. How large is the bigger one?",
           "answer": 80,
           "tolerance": 0,
           "unit": "GB",
-          "explanation": "The larger A100 variant has 80 GB of HBM per GPU; the smaller variant has 40 GB. This is main GPU memory capacity, not the capacity of the faster on-chip SRAM, which is on the order of megabytes."
+          "explanation": "The A100 ships with either 40 GB or 80 GB of HBM, the GPU's main memory. That is thousands of times more than its roughly 20 MB of fast on-chip SRAM, but HBM is also the slow memory from the GPU's point of view, despite the \\\"high bandwidth\\\" in its name. Capacity and speed sit in opposite tiers."
+        }
+      ]
+    },
+    {
+      "id": "gpus.gpus.hbm-relative-speed",
+      "section": "2ec7eb87-3605-8041-b513-ffee83df71a2",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "HBM, the GPU's \\\"high bandwidth memory\\\", is the fastest memory its compute units work from.",
+          "answer": false,
+          "explanation": "HBM is the GPU's large main memory, and from the GPU's perspective it is the slow memory. The small, fast memory is the on-chip SRAM (about 20 MB on an A100), so efficient kernels keep data in SRAM and limit trips to HBM. (General context, not from the notes: \\\"high bandwidth\\\" compares HBM with ordinary DRAM, not with on-chip memory.)"
         }
       ]
     }
