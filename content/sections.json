@@ -5,7 +5,8 @@
     "title": "Neural net basics",
     "level": 1,
     "order": 0,
-    "hash": "2a60a6ae4cceb602f8fdd21850f882f4b79e3f0a12d1dfe90de1808bbf94e8a2"
+    "hash": "2a60a6ae4cceb602f8fdd21850f882f4b79e3f0a12d1dfe90de1808bbf94e8a2",
+    "coveredHash": "2a60a6ae4cceb602f8fdd21850f882f4b79e3f0a12d1dfe90de1808bbf94e8a2"
   },
   {
     "id": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
@@ -13,7 +14,8 @@
     "title": "Multi-layer perceptrons",
     "level": 2,
     "order": 1,
-    "hash": "35792dfdc5dd8f64310961154c1c042212987bbef0d3e41daec5ce102575906d"
+    "hash": "35792dfdc5dd8f64310961154c1c042212987bbef0d3e41daec5ce102575906d",
+    "coveredHash": "35792dfdc5dd8f64310961154c1c042212987bbef0d3e41daec5ce102575906d"
   },
   {
     "id": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
@@ -21,7 +23,8 @@
     "title": "Activation functions",
     "level": 2,
     "order": 2,
-    "hash": "659b720504814923512eb38d13acc506ae2f6dedb9a12e74051dcea4b8d9b6b3"
+    "hash": "659b720504814923512eb38d13acc506ae2f6dedb9a12e74051dcea4b8d9b6b3",
+    "coveredHash": "659b720504814923512eb38d13acc506ae2f6dedb9a12e74051dcea4b8d9b6b3"
   },
   {
     "id": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
@@ -29,7 +32,8 @@
     "title": "Gradients",
     "level": 2,
     "order": 3,
-    "hash": "3cc4e236da3a6fdb7f5723cda112100a25c7e4914f5c158b3979163317dc75bd"
+    "hash": "3cc4e236da3a6fdb7f5723cda112100a25c7e4914f5c158b3979163317dc75bd",
+    "coveredHash": "3cc4e236da3a6fdb7f5723cda112100a25c7e4914f5c158b3979163317dc75bd"
   },
   {
     "id": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
@@ -37,7 +41,8 @@
     "title": "Backpropagation",
     "level": 2,
     "order": 4,
-    "hash": "68430d7364ca4827c2055ee49a6cebe0171d891cba37d09e6d9cf292de8ffbfd"
+    "hash": "68430d7364ca4827c2055ee49a6cebe0171d891cba37d09e6d9cf292de8ffbfd",
+    "coveredHash": "68430d7364ca4827c2055ee49a6cebe0171d891cba37d09e6d9cf292de8ffbfd"
   },
   {
     "id": "2cd7eb87-3605-809d-be42-fdfc81f81038",
@@ -45,7 +50,8 @@
     "title": "Optimizers",
     "level": 2,
     "order": 5,
-    "hash": "c2dab0cbbbdd6f5b59f1e5b975df4cc5011ac7800efa9bf4c0b2968fc5ec6b1b"
+    "hash": "c2dab0cbbbdd6f5b59f1e5b975df4cc5011ac7800efa9bf4c0b2968fc5ec6b1b",
+    "coveredHash": "c2dab0cbbbdd6f5b59f1e5b975df4cc5011ac7800efa9bf4c0b2968fc5ec6b1b"
   },
   {
     "id": "2e67eb87-3605-8023-9773-dcff11b7d150",
@@ -53,7 +59,8 @@
     "title": "Learning rate",
     "level": 2,
     "order": 6,
-    "hash": "d9665712f339918d48f1931e0d4866d1f7f9f7041e85624fb01ddc990a3b8bb2"
+    "hash": "d9665712f339918d48f1931e0d4866d1f7f9f7041e85624fb01ddc990a3b8bb2",
+    "coveredHash": "d9665712f339918d48f1931e0d4866d1f7f9f7041e85624fb01ddc990a3b8bb2"
   },
   {
     "id": "2e97eb87-3605-808e-acce-f0dd14a6d040",

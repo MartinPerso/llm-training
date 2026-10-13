@@ -1,0 +1,1006 @@
+{
+  "chapter": "Neural net basics",
+  "concepts": [
+    {
+      "id": "basics.multi-layer-perceptrons.single-neuron-order",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Where does the bias enter a neuron relative to its activation?",
+          "answer": "Inside the activation: $y=f(\\mathbf w^\\top\\mathbf x+b)$.",
+          "explanation": "The affine combination is formed first, then transformed: $y=f(\\sum_iw_ix_i+b)=f(\\mathbf w^\\top\\mathbf x+b)$. Adding $b$ after $f$ changes the function because $f$ is nonlinear. A full layer performs this construction for every output neuron."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which expression puts a neuron’s bias in the correct place?",
+          "choices": [
+            "$f(\\mathbf w^\\top\\mathbf x+b)$",
+            "$f(\\mathbf w^\\top\\mathbf x)+f(b)$",
+            "$\\mathbf w^\\top f(\\mathbf x)+b$",
+            "$f(\\mathbf w)^\\top\\mathbf x+b$"
+          ],
+          "correct": 0,
+          "explanation": "The neuron first combines its inputs and bias, giving $y=f(\\mathbf w^\\top\\mathbf x+b)$. Moving the activation onto inputs, weights or separate summands does not preserve this operation. Matrix multiplication extends the same ordering to a layer."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.column-vector-weights",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For $\\mathbf h=f(W\\mathbf x+\\mathbf b)$ with column-vector inputs, which part of $W$ belongs to one neuron?",
+          "answer": "One row; $W\\in\\mathbb R^{n_\\text{out}\\times n_\\text{in}}$.",
+          "explanation": "An output coordinate is $h_j=f(\\sum_iW_{ji}x_i+b_j)$, so row $j$ contains all incoming weights for neuron $j$. Columns instead identify input coordinates. This orientation changes when examples are arranged as rows for the mathematical batch convention."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With column-vector inputs, a layer’s weight matrix has one column per output neuron.",
+          "answer": false,
+          "explanation": "For $W\\mathbf x$, the shape is $(n_\\text{out},n_\\text{in})$, and $h_j=f(\\sum_iW_{ji}x_i+b_j)$. Thus rows identify output neurons, while columns identify input features. One column per output belongs to the alternative batch formula $XW$."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.batched-weight-orientation",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "For $X\\in\\mathbb R^{m\\times n_\\text{in}}$, which weight shape makes $XW$ a layer output?",
+          "choices": [
+            "$n_\\text{out}\\times n_\\text{in}$",
+            "$n_\\text{in}\\times n_\\text{out}$",
+            "$m\\times n_\\text{out}$",
+            "$n_\\text{in}\\times m$"
+          ],
+          "correct": 1,
+          "explanation": "The shared dimensions must contract: $(m,n_\\text{in})(n_\\text{in},n_\\text{out})=(m,n_\\text{out})$. The batch count $m$ belongs to activations, not learned weights. Reversing the two feature dimensions instead fits the column-vector convention or stored PyTorch weights."
+        },
+        {
+          "kind": "recall",
+          "prompt": "In $H=f(XW+\\mathbf b)$, why does the batch size not appear in the shape of $W$?",
+          "answer": "The same transformation is applied to every row of $X$; $W$ contains input-to-output weights, not separate weights for each example.",
+          "explanation": "Each row obeys $H_{i,:}=f(X_{i,:}W+\\mathbf b)$, with the same $W$ for every $i$. Consequently $XW$ has shape $(m,n_\\text{out})$ while $W$ has shape $(n_\\text{in},n_\\text{out})$. Sharing also explains why weight gradients sum over examples."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.bias-batch-broadcast",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can one bias vector serve every row in $H=f(XW+\\mathbf b)$?",
+          "answer": "$\\mathbf b\\in\\mathbb R^{n_\\text{out}}$ is broadcast over the $m$ examples.",
+          "explanation": "For each output coordinate, $Z_{ij}=\\sum_kX_{ik}W_{kj}+b_j$: the same $b_j$ appears in every row. Broadcasting therefore gives an effective $(m,n_\\text{out})$ addition without introducing per-example parameters. Its reverse operation accumulates the separate row contributions."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Increasing a layer’s batch size requires learning additional bias values.",
+          "answer": false,
+          "explanation": "The bias is indexed by output neuron, not example: $Z_{ij}=\\sum_kX_{ik}W_{kj}+b_j$. A larger $m$ reuses the same $b_j$ across more rows. This parameter sharing is why the backward pass sums bias contributions over the batch."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.pytorch-weight-layout",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can transposing a linear layer’s weight matrix avoid allocating another matrix?",
+          "answer": "The transpose can change the tensor’s strides, providing a different view of the same stored entries.",
+          "explanation": "The storage layout and the logical axis order are distinct: $W$ can be viewed as $W^\\top$ by changing strides. The layer then uses $XW^\\top$ with compatible dimensions. ⚠️ Note: a free transpose view does not by itself guarantee that every consuming kernel has zero layout-related cost."
+        }
+      ]
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.input-gradient-matmul",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In a linear layer’s backward pass, are the forward input values needed to compute input gradients, weight gradients, or both?",
+          "answer": "Weight gradients need the input values; input gradients need the weights and the incoming output gradients.",
+          "explanation": "For row-batched $Z=XW+b$ and scalar loss $L$, $\\partial L/\\partial X=(\\partial L/\\partial Z)W^\\top$, while $\\partial L/\\partial W=X^\\top(\\partial L/\\partial Z)$. The two derivatives reuse different forward tensors. This distinction explains why training retains input activations even though the input-gradient calculation itself does not require their values."
+        }
+      ]
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.weight-gradient-contraction",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does one linear layer’s weight gradient sum contributions across the batch rather than keep one gradient per example?",
+          "answer": "$W$ is shared, so every example contributes to each weight: $\\frac{\\partial L}{\\partial W}=X^\\top\\frac{\\partial L}{\\partial Z}$.",
+          "explanation": "For a shared entry, $\\frac{\\partial L}{\\partial W_{kj}}=\\sum_iX_{ik}\\frac{\\partial L}{\\partial Z_{ij}}$, giving $X^\\top\\frac{\\partial L}{\\partial Z}$. The inner dimension is $m$, so examples are summed rather than retained. Input gradients differ because each row of $X$ belongs to a separate example."
+        }
+      ]
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.bias-gradient-sum",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For a linear layer with one bias per output neuron, should its bias-gradient reduction divide by batch size if the loss is already a mean?",
+          "answer": "No. It sums the upstream gradients; the mean’s factor is already included in those gradients.",
+          "explanation": "The layer rule is $\\frac{\\partial L}{\\partial b_j}=\\sum_i\\frac{\\partial L}{\\partial Z_{ij}}$. If $L$ is a mean, each upstream contribution already carries the reduction factor. Dividing again would scale the gradient twice; loss reduction and reversal of broadcasting are distinct operations."
+        }
+      ]
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.independent-example-gradients",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "In $Z=XW+b$, changing row $i$ of $X$ cannot directly change a different row of $Z$.",
+          "answer": true,
+          "explanation": "The row formula is $Z_{i,:}=X_{i,:}W+b$, so it uses only row $i$ of $X$. Sharing $W$ does not mix example activations in this layer. Therefore input gradients can be stacked by example even though parameter gradients must combine contributions across examples."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why are activation gradients stacked across examples while shared parameter gradients are summed?",
+          "answer": "Each example has its own activation values, but every example uses the same parameters.",
+          "explanation": "For $Z=XW+b$, $\\partial L/\\partial X=(\\partial L/\\partial Z)W^\\top$ preserves rows, whereas $\\partial L/\\partial W=X^\\top(\\partial L/\\partial Z)$ contracts them. Distinct inputs need distinct derivatives. Reused weights need one derivative that includes every use."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.multi-layer-perceptrons.stored-weight-gradient",
+      "section": "3157eb87-3605-80ff-be0f-ed2fb99db7e1",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For PyTorch’s $Z=XW^\\top$, what is $\\partial L/\\partial W$?",
+          "answer": "$\\frac{\\partial L}{\\partial W}=\\left(\\frac{\\partial L}{\\partial Z}\\right)^\\top X$.",
+          "explanation": "The stored parameter has shape $(n_\\text{out},n_\\text{in})$, so its gradient is $(n_\\text{out},m)(m,n_\\text{in})$. This is $(\\partial L/\\partial Z)^\\top X$, not $X^\\top(\\partial L/\\partial Z)$. The two formulas describe opposite storage conventions for the same layer."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "For PyTorch’s $Z=XW^\\top$, the input gradient is $(\\partial L/\\partial Z)W$.",
+          "answer": true,
+          "explanation": "Each input receives $\\frac{\\partial L}{\\partial X_{ik}}=\\sum_j\\frac{\\partial L}{\\partial Z_{ij}}W_{jk}$, which is $(\\partial L/\\partial Z)W$. The forward pass already used a transpose, so the backward input formula uses stored $W$ directly. Its shape is $(m,n_\\text{in})$."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.activation-functions.sigmoid-gradient-ceiling",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "What is the largest derivative of the standard sigmoid?",
+          "answer": 0.25,
+          "tolerance": 0,
+          "explanation": "Writing $p=\\sigma(x)$, $\\sigma^\\prime(x)=p(1-p)=\\frac14-(p-\\frac12)^2\\leq\\frac14$. Even its steepest point attenuates a gradient by a factor of four before other factors. Repeated such activation factors help explain why sigmoid is unattractive in deep hidden layers."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can sigmoid weaken gradients even away from its saturated tails?",
+          "answer": "Its derivative is at most $0.25$, so every sigmoid activation factor can shrink the gradient.",
+          "explanation": "$\\sigma^\\prime(x)=\\sigma(x)(1-\\sigma(x))\\leq0.25$, with equality at $x=0$. Saturation makes the derivative smaller still, but the maximum is already below one. This differs from tanh, whose derivative reaches one at the origin."
+        }
+      ]
+    },
+    {
+      "id": "basics.activation-functions.sigmoid-gradient-signs",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For one training example, what restriction do sigmoid outputs place on the incoming-weight gradients of a neuron in the next layer?",
+          "answer": "Those weight gradients all have the same sign (or are all zero), limiting which update directions one example can produce.",
+          "explanation": "For one neuron, $\\partial L/\\partial w_i=(\\partial L/\\partial z)x_i$. If the $x_i$ are sigmoid outputs, then $x_i>0$, so signs come from the shared $\\partial L/\\partial z$. ⚠️ Note: the sign claim concerns these weight gradients, not every gradient downstream of a sigmoid."
+        }
+      ]
+    },
+    {
+      "id": "basics.activation-functions.tanh-gradient-shrinkage",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "Tanh can still produce vanishing gradients despite being centered at zero.",
+          "answer": true,
+          "explanation": "$\\tanh^\\prime(x)=1-\\tanh^2(x)\\in(0,1]$, and it approaches zero when $|\\tanh(x)|$ approaches one. Centering the output does not stop repeated small derivatives from multiplying along a path. It addresses a different issue from sigmoid’s positive-only outputs."
+        }
+      ]
+    },
+    {
+      "id": "basics.activation-functions.temperature-probability-ratios",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does increasing a positive softmax temperature change the probability ratio of two unequal logits?",
+          "answer": "It brings the ratio closer to one: $p_i/p_j=e^{(x_i-x_j)/T}$.",
+          "explanation": "$\\frac{p_i}{p_j}=\\frac{e^{x_i/T}}{e^{x_j/T}}=e^{(x_i-x_j)/T}$. Increasing $T>0$ reduces the exponent’s magnitude, so the distribution becomes less concentrated. It changes relative probabilities rather than multiplying all probabilities by a common factor."
+        }
+      ]
+    },
+    {
+      "id": "basics.activation-functions.dead-relu-path",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "A ReLU unit that stays negative for every input can still learn through its local activation derivative.",
+          "answer": false,
+          "explanation": "For each such input, $\\operatorname{ReLU}^\\prime(x)=0$, so the downstream signal is $(\\partial L/\\partial y)\\cdot0=0$. The positive branch’s derivative of one cannot help if it is never reached. This is the motivation for retaining a slope on the negative branch."
+        }
+      ]
+    },
+    {
+      "id": "basics.activation-functions.leaky-negative-slope",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "What lets Leaky ReLU transmit a learning signal for negative inputs?",
+          "choices": [
+            "A positive bias added after activation",
+            "A denominator shared across neurons",
+            "A nonzero negative-branch slope",
+            "A zero slope on both sides of zero"
+          ],
+          "correct": 2,
+          "explanation": "For $x<0$, $\\operatorname{LeakyReLU}(x)=\\alpha x$, so its local derivative is $\\alpha$. With nonzero $\\alpha$, an upstream signal is not erased as it is by ReLU’s zero slope. No probability normalization or extra output bias is required."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Which part of ReLU is changed to address units that remain inactive?",
+          "answer": "The negative branch becomes $\\alpha x$ instead of zero, leaving a nonzero derivative $\\alpha$.",
+          "explanation": "$x<0:\\ \\operatorname{ReLU}(x)=0\\Rightarrow f^\\prime(x)=0$, whereas $\\operatorname{LeakyReLU}(x)=\\alpha x\\Rightarrow f^\\prime(x)=\\alpha$. The repair targets a blocked gradient, not the positive branch. Its usefulness assumes the chosen negative slope is nonzero."
+        }
+      ]
+    },
+    {
+      "id": "basics.activation-functions.swish-negative-output",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can Swish return negative outputs while sigmoid cannot?",
+          "answer": "Swish multiplies the positive sigmoid value by its input: $\\operatorname{Swish}(x)=x\\sigma(x)$.",
+          "explanation": "Because $0<\\sigma(x)<1$, the product $x\\sigma(x)$ has the sign of $x$. Swish therefore retains negative values rather than zeroing them as ReLU does. Its multiplication by a smooth gate also distinguishes it from merely using sigmoid as the output activation."
+        }
+      ]
+    },
+    {
+      "id": "basics.activation-functions.gated-projection-roles",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In a GLU activation with two input projections (excluding an FFN down projection), why use separate matrices?",
+          "answer": "One produces content; the other produces values that are activated and used to gate that content elementwise.",
+          "explanation": "$\\operatorname{GLU}(x)=(xW_1)\\odot\\sigma(xW_2)$ separates what can be passed from how strongly it is passed. Adding the projections would lose this multiplicative modulation. SwiGLU preserves the separation while replacing sigmoid inside the gate."
+        }
+      ]
+    },
+    {
+      "id": "basics.activation-functions.linear-depth-collapse",
+      "section": "2d17eb87-3605-8051-94b1-dfc597abdcd4",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "Stacking affine layers without nonlinear activations increases the class of functions they can represent.",
+          "answer": false,
+          "explanation": "Without biases, $W_1W_2x=Wx$ for $W=W_1W_2$; affine biases can likewise be combined into one affine offset. Depth alone therefore does not escape the affine family. Nonlinear activations prevent this collapse and make additional layers useful for richer mappings."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.local-sensitivity-limit",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is a derivative only a local prediction of the effect of changing an input?",
+          "answer": "It describes the limiting change per infinitesimal input change, so a finite perturbation is only approximated.",
+          "explanation": "The local relation is $f(x+h)-f(x)\\approx f^\\prime(x)h$. Curvature can make this inaccurate when $h$ is not small; the Hessian captures second-order behavior. ⚠️ Note: the displayed derivative definition omits the required $h\\to0$ limit."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Multiplying a derivative by a finite input change gives an exact output change for a general nonlinear function.",
+          "answer": false,
+          "explanation": "The first-order prediction is $\\Delta f\\approx f^\\prime(x)h$, not a general equality for finite $h$. A derivative measures sensitivity at the current point, while curvature changes sensitivity along the move. ⚠️ Note: the source’s difference quotient is missing its limiting operation."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.gradients.jacobian-axis-order",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "A function has $m$ outputs and $n$ inputs. Which Jacobian shape matches $\\partial f_i/\\partial x_j$?",
+          "choices": [
+            "$m\\times n$",
+            "$n\\times m$",
+            "$m\\times m$",
+            "$n\\times n$"
+          ],
+          "correct": 0,
+          "explanation": "The entry $J_{ij}=\\partial f_i/\\partial x_j$ assigns one row to each output and one column to each input, giving $m\\times n$. Reversing these axes reverses the derivative convention. The square $n\\times n$ object instead describes a scalar function’s Hessian."
+        },
+        {
+          "kind": "recall",
+          "prompt": "In a Jacobian, what information is collected by one column?",
+          "answer": "The sensitivities of all outputs to one particular input coordinate.",
+          "explanation": "Column $j$ contains $\\partial f_1/\\partial x_j,\\ldots,\\partial f_m/\\partial x_j$, so it tracks one input’s influence across outputs. A row instead tracks one output across all inputs. Keeping this order straight determines how Jacobians compose in the chain rule."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.gradients.hessian-curvature-order",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can two points with the same gradient still differ in local loss geometry?",
+          "answer": "They can have different second derivatives, encoded by the Hessian.",
+          "explanation": "The gradient contains $\\partial f/\\partial x_i$, while the Hessian contains $\\partial^2f/(\\partial x_i\\partial x_j)$. Equal slopes do not require equal changes of slope. This separates the sensitivity used for basic gradient updates from curvature of the loss surface."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.jacobian-chain-order",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For $\\mathbf h=f(\\mathbf z)$ and $\\mathbf z=\\mathbf W\\mathbf x+\\mathbf b$, which Jacobian comes first?",
+          "answer": "$\\frac{\\partial\\mathbf h}{\\partial\\mathbf x}=\\frac{\\partial\\mathbf h}{\\partial\\mathbf z}\\frac{\\partial\\mathbf z}{\\partial\\mathbf x}$.",
+          "explanation": "An output sensitivity sums over intermediate coordinates: $\\frac{\\partial h_i}{\\partial x_j}=\\sum_k\\frac{\\partial h_i}{\\partial z_k}\\frac{\\partial z_k}{\\partial x_j}$. This is matrix multiplication in the stated order. Reversing it generally changes the result or makes the shapes incompatible."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "For multivariate compositions, reversing the Jacobian multiplication order preserves the chain rule.",
+          "answer": false,
+          "explanation": "The shared intermediate index must contract: $\\partial\\mathbf h/\\partial\\mathbf x=(\\partial\\mathbf h/\\partial\\mathbf z)(\\partial\\mathbf z/\\partial\\mathbf x)$. Matrix multiplication does not generally commute. The scalar rule can hide this ordering issue because single-number products do commute."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.gradients.elementwise-diagonal-jacobian",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can an elementwise activation backpropagate without constructing a dense Jacobian?",
+          "answer": "Its Jacobian is diagonal: each output depends on only its corresponding input. Backward therefore multiplies the incoming gradient by the vector of local derivatives elementwise.",
+          "explanation": "For $\\mathbf h=f(\\mathbf z)$, $\\partial\\mathbf h/\\partial\\mathbf z=\\operatorname{diag}(f^\\prime(\\mathbf z))$. Its product with the incoming loss gradient reduces to coordinatewise multiplication, so there is no need to store all input-output pairs. Softmax does couple coordinates through its denominator; this diagonal shortcut does not apply to it."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.affine-input-jacobian",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is the Jacobian of $\\mathbf W\\mathbf x+\\mathbf b$ with respect to $\\mathbf x$ independent of $\\mathbf b$?",
+          "answer": "The bias has zero derivative with respect to $\\mathbf x$, leaving the Jacobian $\\mathbf W$.",
+          "explanation": "$\\frac{\\partial}{\\partial x_j}(\\sum_kW_{ik}x_k+b_i)=W_{ij}$ because $b_i$ does not vary with $x_j$. Thus $\\partial(\\mathbf W\\mathbf x+\\mathbf b)/\\partial\\mathbf x=\\mathbf W$. The activation that follows introduces its own derivative factors through the chain rule."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What is $\\partial(\\mathbf W\\mathbf x+\\mathbf b)/\\partial\\mathbf x$ for constant $\\mathbf W,\\mathbf b$?",
+          "choices": [
+            "$\\mathbf W^\\top$",
+            "$\\operatorname{diag}(\\mathbf b)$",
+            "$\\mathbf W\\mathbf x+\\mathbf b$",
+            "$\\mathbf W$"
+          ],
+          "correct": 3,
+          "explanation": "Entry $(i,j)$ is $\\partial(\\sum_kW_{ik}x_k+b_i)/\\partial x_j=W_{ij}$. The transpose would exchange output and input indices; the affine output itself still depends on $\\mathbf x$. Differentiating with respect to the bias instead gives an identity matrix."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.gradients.bias-identity-jacobian",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "For $\\mathbf z=\\mathbf W\\mathbf x+\\mathbf b$, which Jacobian is obtained with respect to $\\mathbf b$?",
+          "choices": [
+            "$\\mathbf I$",
+            "$\\mathbf W^\\top\\mathbf W$",
+            "$\\operatorname{diag}(\\mathbf b)$",
+            "$\\mathbf W\\mathbf x+\\mathbf b$"
+          ],
+          "correct": 0,
+          "explanation": "$\\partial z_i/\\partial b_j$ is one when $i=j$ and zero otherwise, hence $\\partial\\mathbf z/\\partial\\mathbf b=\\mathbf I$. Each bias shifts only its corresponding output. This unit local derivative is why backward propagation through bias addition passes the upstream value unchanged."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An affine layer’s local derivative with respect to its bias depends on the current input values.",
+          "answer": false,
+          "explanation": "For $z_i=\\sum_kW_{ik}x_k+b_i$, $\\partial z_i/\\partial b_j=\\delta_{ij}$ regardless of $\\mathbf x$. The input values matter for weight derivatives, not this local bias derivative. When a bias is reused across examples, these unchanged local contributions are summed."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.gradients.readout-parameter-jacobian",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For $s=\\mathbf u^\\intercal\\mathbf h$, why does the derivative with respect to $\\mathbf u$ depend on $\\mathbf h$?",
+          "answer": "Each parameter multiplies one hidden activation: $\\partial s/\\partial u_i=h_i$, so the Jacobian is $\\mathbf h^\\intercal$.",
+          "explanation": "$s=\\sum_i u_ih_i$ gives $\\partial s/\\partial u_i=h_i$, collecting as the row Jacobian $\\mathbf h^\\intercal$. The current value of $u_i$ is not its own derivative coefficient. This is the same coefficient-swapping behavior as a multiplication gate in backpropagation."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "With $\\mathbf h$ fixed, what is the row Jacobian of $\\mathbf u^\\intercal\\mathbf h$ with respect to $\\mathbf u$?",
+          "choices": [
+            "$\\mathbf u^\\intercal$",
+            "$\\mathbf h^\\intercal$",
+            "$\\mathbf u^\\intercal\\mathbf h$",
+            "$\\mathbf h\\mathbf h^\\intercal$"
+          ],
+          "correct": 1,
+          "explanation": "Expanding the dot product gives $\\partial(\\sum_i u_ih_i)/\\partial u_j=h_j$, hence $\\mathbf h^\\intercal$. Returning $\\mathbf u$ confuses the two differentiation targets, while the dot and outer products have different meanings. The derivative retains the other multiplication operand."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.gradients.sigmoid-derivative-factorization",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Can a sigmoid backward pass compute its local derivative from the saved output, without the original input?",
+          "answer": "Yes. If the saved output is $\\sigma(x)$, the local derivative is $\\sigma(x)(1-\\sigma(x))$.",
+          "explanation": "Differentiating gives $\\sigma^\\prime(x)=e^{-x}/(1+e^{-x})^2=\\sigma(x)(1-\\sigma(x))$. The saved output is enough; recomputing the exponential from the original input is unnecessary. This also exposes why values near either saturated tail transmit little gradient."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.swish-product-derivative",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which term is lost if Swish is differentiated as though its sigmoid gate were constant?",
+          "answer": "$x\\sigma(x)(1-\\sigma(x))$; the full derivative is $\\sigma(x)+x\\sigma(x)(1-\\sigma(x))$.",
+          "explanation": "$\\frac{d}{dx}[x\\sigma(x)]=\\sigma(x)+x\\sigma^\\prime(x)=\\sigma(x)+x\\sigma(x)(1-\\sigma(x))$. Both factors vary with $x$, so the product rule needs two terms. Keeping only the first would ignore how the gate itself changes with the input."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.cross-entropy-probability-gradient",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "For one example with a one-hot target, cross-entropy has sparse probability gradients but generally dense logit gradients through softmax.",
+          "answer": true,
+          "explanation": "For $L=-\\log p_t$, only $\\partial L/\\partial p_t=-1/p_t$ is nonzero. Yet $\\partial p_t/\\partial z_i$ also responds to non-target logits through the denominator. The chain rule therefore gives $\\partial L/\\partial\\mathbf z=\\mathbf p-\\operatorname{one\\_hot}(t)$."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.softmax-self-sensitivity",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does a softmax probability become less sensitive to its own logit near probability one?",
+          "answer": "Its derivative is $p_j(1-p_j)$, which tends to zero as $p_j$ approaches one.",
+          "explanation": "$\\partial p_j/\\partial z_j=p_j-p_j^2=p_j(1-p_j)\\to0$ as $p_j\\to1$. Raising the logit changes its numerator and the shared denominator together. This derivative concerns softmax itself; composition with cross-entropy produces a different, simpler gradient."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.softmax-cross-sensitivity",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does increasing one logit lower the softmax probabilities of other classes?",
+          "answer": "It raises the shared denominator while their numerators stay fixed; $\\partial p_j/\\partial z_i=-p_jp_i$ for $i\\ne j$.",
+          "explanation": "For $i\\ne j$, $\\partial p_j/\\partial z_i=-e^{z_j}e^{z_i}/(\\sum_ke^{z_k})^2=-p_jp_i$. The negative sign reflects competition for normalized probability mass. Unlike elementwise activations, softmax therefore has nonzero off-diagonal Jacobian entries."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Softmax has a diagonal Jacobian because each output uses one corresponding logit in its numerator.",
+          "answer": false,
+          "explanation": "The denominator includes every logit, giving $\\partial p_j/\\partial z_i=-p_jp_i$ for $i\\ne j$. Looking only at the numerator misses that coupling. A diagonal Jacobian characterizes independent elementwise activations, not normalization across coordinates."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.cross-entropy-logit-gradient",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For one-hot cross-entropy, why does a tiny target probability not force the target-logit gradient to vanish through softmax?",
+          "answer": "The loss derivative cancels softmax’s small probability factor: the target-logit gradient is $p_t-1$, approaching $-1$ when $p_t$ is tiny.",
+          "explanation": "For one example with scalar loss $L=-\\log p_t$, $\\partial L/\\partial z_t=(-1/p_t)p_t(1-p_t)=p_t-1$. The logarithm cancels softmax’s small $p_t$ factor; non-target entries become $p_i$. Thus softmax saturation alone does not describe the gradient of the composed loss."
+        }
+      ]
+    },
+    {
+      "id": "basics.gradients.target-logit-update-sign",
+      "section": "2de7eb87-3605-80dc-bb05-cbac4516f90b",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "For one example with one-hot softmax cross-entropy, what is the sum of the gradients with respect to all logits?",
+          "answer": 0,
+          "tolerance": 0,
+          "explanation": "For scalar loss $L$, $\\sum_i\\partial L/\\partial z_i=\\sum_i[p_i-\\operatorname{one\\_hot}(t)_i]=1-1=0$. Adding the same constant to every logit leaves softmax unchanged, so the loss has no gradient in that shared-shift direction. This concerns logit gradients, not gradients of all model parameters."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.upstream-local-product",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does a gate combine a received loss gradient with its own derivative?",
+          "answer": "It multiplies the upstream loss gradient by the local derivative to obtain the gradient with respect to its input.",
+          "explanation": "For $y=f(x)$, $\\partial L/\\partial x=(\\partial L/\\partial y)(\\partial y/\\partial x)$. The local factor alone only describes the gate, while the upstream factor captures its effect on the final loss. Repeating this rule propagates sensitivity through the computation graph."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A gate’s local derivative alone determines its input’s gradient with respect to the final loss.",
+          "answer": false,
+          "explanation": "The chain rule requires $\\partial L/\\partial x=(\\partial L/\\partial y)(\\partial y/\\partial x)$. Ignoring the upstream factor removes the rest of the computation and can give the wrong magnitude or sign. Backpropagation reuses already-computed upstream information at each gate."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.backpropagation.shared-branch-sum",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A shared activation feeds two later computations. Should their backward gradient contributions be added or multiplied, and why?",
+          "answer": "They are added: $\\frac{\\partial f}{\\partial y}=\\frac{\\partial f}{\\partial a}\\frac{\\partial a}{\\partial y}+\\frac{\\partial f}{\\partial b}\\frac{\\partial b}{\\partial y}$.",
+          "explanation": "$\\partial f/\\partial y=(\\partial f/\\partial a)(\\partial a/\\partial y)+(\\partial f/\\partial b)(\\partial b/\\partial y)$. Changing $y$ affects $f$ through both routes, so their contributions add rather than multiply. The same accumulation explains gradients of weights shared across examples."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.addition-gradient-distribution",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "When two tensors of the same shape are added, backpropagation divides the incoming gradient equally between them.",
+          "answer": false,
+          "explanation": "If $y=a+b$, then $\\partial L/\\partial a=(\\partial L/\\partial y)\\cdot1$, and likewise for $b$. The signal is copied rather than conserved like a fixed quantity. A division factor would arise from an averaging operation, which is a different forward function."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.maximum-gradient-route",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does a max operation’s backward signal differ from a sum when several inputs nearly tie but one is largest?",
+          "answer": "Max sends the incoming gradient only to the unique winner; losing inputs receive zero through this operation, even when close. A sum passes the incoming gradient to every input.",
+          "explanation": "A small perturbation to a strictly losing input leaves the maximum unchanged, so its local derivative is zero. The unique winner has local derivative one and receives the whole incoming gradient. Thus max provides no graded signal for being close to winning; exact ties need a separate derivative convention."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.multiplication-gradient-coefficients",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For $y=ab$, which forward value multiplies the upstream gradient sent to $a$?",
+          "answer": "$b$: $\\partial L/\\partial a=(\\partial L/\\partial y)b$.",
+          "explanation": "$\\partial(ab)/\\partial a=b$, whereas $\\partial(ab)/\\partial b=a$. A multiplication gate therefore uses the opposite operand as each local coefficient. This is why an intermediate forward value may need to be saved for the backward pass."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "For $y=ab$, backpropagation into $a$ multiplies the upstream gradient by $a$.",
+          "answer": false,
+          "explanation": "The correct local derivative is $\\partial y/\\partial a=b$, yielding $\\partial L/\\partial a=(\\partial L/\\partial y)b$. The value $a$ belongs to the derivative with respect to $b$. This swapped-coefficient rule also appears in linear-layer weight and input gradients."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.backpropagation.scalar-backward-seed",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "What gradient seeds backpropagation when the differentiated output is a scalar loss?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "At the output, $\\partial L/\\partial L=1$, so that value starts the chain-rule propagation. A seed of zero would erase the entire backward signal. ⚠️ Note: scalar outputs allow an implicit seed; vector outputs can also be differentiated if an upstream vector is supplied."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can a scalar loss start backpropagation without an explicitly supplied upstream gradient?",
+          "answer": "Its derivative with respect to itself is known: $\\partial L/\\partial L=1$.",
+          "explanation": "The initial sensitivity is $\\partial L/\\partial L=1$, and earlier derivatives follow by multiplying local factors. Nothing needs to choose how to combine multiple outputs. ⚠️ Note: the source overstates scalar-only backpropagation; a vector output instead needs an explicit upstream vector."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.backpropagation.reverse-dependency-order",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What goes wrong if backpropagation propagates through a shared activation before all uses have contributed their gradients?",
+          "answer": "Earlier operations receive an incomplete gradient. A single-pass reverse traversal must accumulate every downstream contribution before propagating it.",
+          "explanation": "A shared activation affects the loss through multiple paths, whose derivatives must be added. Reverse topological traversal makes those contributions available before the activation is processed. Propagating only an early partial sum loses later paths unless the algorithm explicitly revisits and propagates the missing contributions."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.reverse-mode-complexity",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "For a scalar loss, how does the compute cost of one reverse-mode pass for all parameter gradients scale relative to one forward pass?",
+          "choices": [
+            "Cost multiplied by the parameter count",
+            "Quadratic cost in the number of graph nodes",
+            "Constant cost independent of model size",
+            "Same big-O cost"
+          ],
+          "correct": 3,
+          "explanation": "Backpropagation reuses graph structure and upstream derivatives rather than differentiating the whole expression separately for every parameter. Processing local derivatives gives the same asymptotic order as the forward computation. Equal big-O does not assert an identical constant factor or memory footprint."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "For a scalar loss, backpropagation computes all parameter gradients without one full forward evaluation per parameter.",
+          "answer": true,
+          "explanation": "Each local derivative contributes to a shared reverse traversal, so already-computed downstream sensitivities are reused. That reuse keeps backward work in the forward pass’s big-O class. Finite-difference checking, by contrast, perturbs individual parameters and reruns the function."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.automatic-local-rules",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "To support a new primitive in reverse-mode autodiff, what derivative computation must its backward implementation provide?",
+          "answer": "A rule that maps incoming output gradients to input gradients using the primitive’s local derivatives; it need not expand the derivative of the whole model.",
+          "explanation": "Automatic differentiation assembles a reverse calculation from registered local rules and the graph recorded by forward operations. It does not need a single expanded symbolic derivative of the entire network. The chain rule combines those small rules with incoming loss sensitivities."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.central-difference-check",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can you check a manually implemented scalar derivative without trusting its backward code?",
+          "answer": "Compare it with the centered finite difference $[f(x+h)-f(x-h)]/(2h)$ from forward evaluations.",
+          "explanation": "The numerical reference uses $f^\\prime(x)\\approx[f(x+h)-f(x-h)]/(2h)$, so it does not call the backward rule being tested. Agreement supports that rule’s correctness. Repeating the check for each parameter needs repeated forward evaluations, unlike one reverse-mode pass for all gradients."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.checkpoint-recompute-tradeoff",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What does activation checkpointing do when backward computation needs an activation that was not saved?",
+          "answer": "It reruns the needed forward segment from a saved checkpoint to reconstruct the activation.",
+          "explanation": "Local backward rules can depend on forward values, so simply deleting those values is insufficient. Checkpointing retains selected activations and reconstructs missing ones through partial forward work. The reduced activation memory is therefore purchased with extra computation, not a different gradient formula."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Activation checkpointing saves memory by accepting approximate local gradients.",
+          "answer": false,
+          "explanation": "The missing forward values are recomputed before the corresponding backward rules are evaluated. This replaces storage with additional forward work while retaining the intended gradient computation. It differs from discarding the information or substituting approximate local derivatives."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.checkpoint-segment-balance",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For $N$ equal-size layers split into $K$ equal checkpoint segments, which two sources of activation memory determine the peak?",
+          "answer": "The saved segment checkpoints and the activations reconstructed within one segment: $O(K+N/K)$, in units of one layer’s activation storage.",
+          "explanation": "Here $N$ counts layers and $K$ counts segments, not attention heads. The boundary checkpoints cost $O(K)$ and one reconstructed segment costs $O(N/K)$ in layer-sized activations. Their balance yields $K=\\sqrt N$ and $O(\\sqrt N)$ activation memory; parameter and optimizer storage are excluded."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can making checkpoint segments ever smaller stop reducing peak activation memory?",
+          "answer": "Smaller segments reduce the activations reconstructed at once but increase the number of boundary checkpoints that stay saved.",
+          "explanation": "With $N$ equal-size layers and $K$ equal segments, activation storage scales as $O(K+N/K)$ in units of one layer’s activations. Increasing $K$ shrinks the temporary segment term but grows the saved-checkpoint term. The balance is $K\\approx\\sqrt N$; this model excludes weights and optimizer states."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.mean-loss-gradient",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a summed per-token loss confound an SGD learning-rate choice when training batches contain different numbers of tokens?",
+          "answer": "The gradient scale changes with the number of loss terms as well as their individual gradients. Mean reduction removes that direct dependence on the count.",
+          "explanation": "With $N$ per-token losses ($N$ = token count), $\\partial L/\\partial\\theta=(1/N)\\sum_i\\partial\\ell_i/\\partial\\theta$ for the mean. A sum omits $1/N$, so its vanilla SGD step at the same learning rate is $N$ times the mean-loss step on that batch. Averaging removes this count factor; it does not make gradients from different data identical."
+        }
+      ]
+    },
+    {
+      "id": "basics.backpropagation.parameter-leaf-endpoint",
+      "section": "2de7eb87-3605-8080-84f0-f9e73e97a2ac",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which gradients carry the backward signal from one ordinary layer into the preceding layer?",
+          "choices": [
+            "Optimizer first-moment estimates",
+            "Parameter gradients stored at the layer",
+            "Optimizer second-moment estimates",
+            "Activation gradients"
+          ],
+          "correct": 3,
+          "explanation": "Each layer produces gradients for its input activations and its parameters. Activation derivatives continue along earlier graph edges; learned parameters are leaves, so their derivatives are stored for updates. Adam’s moments are update history, not the chain-rule signal passed between layers."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.sgd-descent-sign",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which parameter update implements vanilla gradient descent?",
+          "choices": [
+            "$\\theta\\leftarrow\\theta-\\eta g_t$",
+            "$\\theta\\leftarrow\\theta+\\eta g_t$",
+            "$\\theta\\leftarrow\\theta-\\eta g_t^2$",
+            "$\\theta\\leftarrow\\theta-\\eta/g_t$"
+          ],
+          "correct": 0,
+          "explanation": "The gradient points toward increasing loss locally, so the update is $\\theta\\leftarrow\\theta-\\eta g_t$. Adding it reverses the desired direction; squaring it destroys its sign. Adaptive optimizers can change the scaling, but vanilla SGD uses the current gradient directly."
+        },
+        {
+          "kind": "recall",
+          "prompt": "For vanilla SGD, what role does the learning rate play separately from the gradient?",
+          "answer": "The gradient supplies the local update direction; the learning rate scales the step: $\\theta\\leftarrow\\theta-\\eta g_t$.",
+          "explanation": "The parameter displacement is $\\Delta\\theta=-\\eta g_t$. Changing $\\eta$ rescales that displacement without constructing per-parameter history. Adam adds moment-based direction and normalization, which is a change to the optimizer rather than just to this scalar scale."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.optimizers.adam-first-moment",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does Adam retain evidence that recent gradients agree in direction?",
+          "answer": "It keeps an exponential running mean: $m\\leftarrow\\beta_1m+(1-\\beta_1)g$.",
+          "explanation": "$m\\leftarrow\\beta_1m+(1-\\beta_1)g$ blends previous signed gradients with the current one. Consistent signs reinforce the estimate, while alternating signs partially cancel. The squared-gradient accumulator performs a different job because it discards sign and controls normalization."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.adam-second-moment",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is Adam’s second-moment accumulator not literally a gradient variance estimate?",
+          "answer": "It averages $g^2$ without subtracting the squared mean.",
+          "explanation": "$v\\leftarrow\\beta_2v+(1-\\beta_2)g^2$ tracks an uncentered second moment used in $\\sqrt{\\hat v}$. It is not the centered quantity obtained by removing the squared mean. ⚠️ Note: the source labels this state “variance,” but its displayed update does not compute centered variance."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.adam-coordinate-normalization",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does Adam reduce the update scale for coordinates with large second-moment estimates?",
+          "answer": "It divides their bias-corrected first moment by $\\sqrt{\\hat v}+\\epsilon$.",
+          "explanation": "$\\Delta\\theta=-\\eta\\hat m/(\\sqrt{\\hat v}+\\epsilon)$, so a larger denominator reduces the update when the numerator is held fixed. This acts separately for each parameter coordinate. Multiplying by the second moment would instead amplify the scale that Adam is trying to normalize."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.adam-zero-initialization-bias",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why are Adam’s early moment estimates corrected even if its gradient samples are well behaved?",
+          "answer": "The moving averages start at zero, which pulls their early values toward zero.",
+          "explanation": "With constant $g$, the first update is $m_1=(1-\\beta_1)g$, not $g$. The correction $\\hat m_1=m_1/(1-\\beta_1)=g$ removes that initialization shrinkage. The second moment needs the same treatment with its own coefficient, rather than a change to the loss gradient."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.adam-correction-time-index",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "If Adam’s stored step counter starts at zero, which exponent belongs in its first bias correction?",
+          "choices": [
+            "$t-1$",
+            "$2t$",
+            "$t+1$",
+            "$t^2$"
+          ],
+          "correct": 2,
+          "explanation": "The first update must divide by $1-\\beta^1$, not $1-\\beta^0=0$. Therefore a zero-based stored counter uses exponent $t+1$. This indexing implements the usual formula $\\hat m_t=m_t/(1-\\beta_1^t)$, whose mathematical step numbering starts at one."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "With a one-based Adam step index, what exponent is used in the first update’s bias-correction denominator?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "The first update uses $1-\\beta^t=1-\\beta^1$, so its exponent is one. Using zero would give $1-\\beta^0=0$ and make the correction undefined. A zero-based implementation must add one to its stored counter before evaluating this expression."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.optimizers.adam-memory-accounting",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Including weights, gradients and optimizer state, how many parameter-sized tensors does Adam store, excluding activations and mixed-precision copies?",
+          "answer": 4,
+          "tolerance": 0,
+          "explanation": "The accounting is $1\\text{ weight}+1\\text{ gradient}+1\\text{ first moment}+1\\text{ second moment}=4$. The two moment tensors are additional optimizer history, not activations. The fourfold estimate assumes equal storage precision and excludes activation memory or extra mixed-precision copies."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Which two persistent arrays does Adam add beyond parameters and their current gradients?",
+          "answer": "The first-moment array $m$ and second-moment array $v$, each matching the parameter shape.",
+          "explanation": "Adam reuses $m$ and $v$ across steps to compute $\\Delta\\theta=-\\eta\\hat m/(\\sqrt{\\hat v}+\\epsilon)$. Without them, it could not retain signed direction or gradient-scale history. Together with weights and gradients, equal-dtype storage is approximately four parameter-sized arrays."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.decoupled-weight-decay",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What separate parameter change does AdamW add to Adam’s adaptive update?",
+          "answer": "A separate shrinkage term $-\\eta\\lambda\\theta$ toward zero.",
+          "explanation": "AdamW applies $\\theta\\leftarrow\\theta-\\eta\\hat m/(\\sqrt{\\hat v}+\\epsilon)-\\eta\\lambda\\theta$. The decay uses the parameter itself and is separate from moment-based gradient normalization. It therefore does not disappear merely because the current loss gradient is zero."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "AdamW’s decay contribution is divided by the adaptive second-moment denominator.",
+          "answer": false,
+          "explanation": "The displayed update is $\\theta\\leftarrow\\theta-\\eta\\hat m/(\\sqrt{\\hat v}+\\epsilon)-\\eta\\lambda\\theta$. Only the gradient-based term uses $\\sqrt{\\hat v}+\\epsilon$. Keeping decay outside that denominator is the distinguishing decoupling in this formulation."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.decay-update-order",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why apply AdamW’s shrinkage before its adaptive update to match the additive decay formula?",
+          "answer": "Then decay uses the pre-update parameter, matching the additive update formula without also shrinking the adaptive displacement.",
+          "explanation": "First setting $\\theta\\leftarrow(1-\\eta\\lambda)\\theta$, then subtracting $\\eta\\hat m/(\\sqrt{\\hat v}+\\epsilon)$ matches the displayed AdamW expression. Reversing the steps also multiplies the adaptive displacement by $1-\\eta\\lambda$. This ordering issue exists because decay depends on the current parameter value."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Applying AdamW decay after the adaptive update also shrinks that step’s adaptive displacement.",
+          "answer": true,
+          "explanation": "If decay is last, the result is $(1-\\eta\\lambda)[\\theta-\\eta\\hat m/(\\sqrt{\\hat v}+\\epsilon)]$. The shrinkage factor now multiplies both the old parameter and the adaptive displacement. Applying decay first avoids that extra product and matches the separate additive decay term."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "basics.optimizers.schedule-versus-history",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is Adam’s normalization more than a learning-rate schedule?",
+          "answer": "It depends on each parameter’s gradient history, so different coordinates receive different adaptive scaling.",
+          "explanation": "$\\Delta\\theta=-\\eta\\hat m/(\\sqrt{\\hat v}+\\epsilon)$ uses moment states that vary across coordinates. A time-based schedule changes $\\eta$ using the step index alone. The two mechanisms can coexist because one supplies a global time-dependent scale and the other uses local history."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.parameter-group-decay",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which parameters are commonly placed in a no-weight-decay group?",
+          "choices": [
+            "Biases and LayerNorm parameters",
+            "All projection weights and embeddings",
+            "All parameters with positive gradients",
+            "All parameters with nonzero momentum"
+          ],
+          "correct": 0,
+          "explanation": "Parameter groups allow separate hyperparameters while keeping one optimizer. Biases and LayerNorm parameters are commonly assigned zero decay, while another group receives nonzero decay. Group membership is an explicit selection of parameter roles, not a decision based on the current gradient sign."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.missing-gradient-skip",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a zero gradient still allow AdamW to change a parameter?",
+          "answer": "Weight decay can still shrink the parameter, and previous moment estimates can still produce an adaptive update.",
+          "explanation": "With $g=0$, the recurrences retain history: $m\\leftarrow\\beta_1m$ and $v\\leftarrow\\beta_2v$. A nonzero previous $m$ can therefore still move the parameter, and AdamW also applies $-\\eta\\lambda\\theta$. A present zero gradient differs from an absent gradient that causes the update loop to skip the parameter."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With nonzero weight decay, a zero gradient is sufficient to leave an AdamW parameter unchanged.",
+          "answer": false,
+          "explanation": "AdamW includes $-\\eta\\lambda\\theta$ independently of the current gradient, so a nonzero parameter can still shrink when $g=0$. Previous first-moment state can also survive as $m\\leftarrow\\beta_1m$. An absent gradient may skip the update entirely; a stored zero gradient does not imply that behavior."
+        }
+      ]
+    },
+    {
+      "id": "basics.optimizers.global-gradient-clipping",
+      "section": "2cd7eb87-3605-809d-be42-fdfc81f81038",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does global gradient-norm clipping differ from clipping each coordinate separately, in its effect on gradient direction?",
+          "answer": "It rescales every gradient coordinate by the same factor instead of clipping coordinates independently.",
+          "explanation": "Global norm clipping multiplies all gradient coordinates by one common factor, preserving their relative components and direction. Coordinatewise clipping can change those ratios and rotate the gradient. ⚠️ Note: the source says “scale all parameters”; the operation scales gradients, not parameter values. (General context, not from the notes: preserving the raw gradient’s direction does not imply that an adaptive optimizer’s parameter update has that direction.)"
+        }
+      ]
+    },
+    {
+      "id": "basics.learning-rate.warmup-early-example-influence",
+      "section": "2e67eb87-3605-8023-9773-dcff11b7d150",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What effect of the earliest training examples can learning-rate warmup reduce?",
+          "answer": "Their disproportionate influence on training, described as a primacy effect.",
+          "explanation": "Warmup initially restrains update sizes, so early examples exert less influence than they would under the full learning rate immediately. This is a time-dependent change to the update scale rather than a separate per-parameter history rule. The source gives this motivation without specifying a warmup duration or curve."
+        }
+      ]
+    }
+  ]
+}
