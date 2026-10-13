@@ -314,7 +314,8 @@
     "title": "Other architectures",
     "level": 1,
     "order": 36,
-    "hash": "92143cdb8224fdfcd099090e92bb657eb66c3f410ecc144decbdaab06e388e6f"
+    "hash": "92143cdb8224fdfcd099090e92bb657eb66c3f410ecc144decbdaab06e388e6f",
+    "coveredHash": "92143cdb8224fdfcd099090e92bb657eb66c3f410ecc144decbdaab06e388e6f"
   },
   {
     "id": "33e7eb87-3605-80c2-855a-dff786bf513f",
@@ -322,7 +323,8 @@
     "title": "RNNs",
     "level": 2,
     "order": 37,
-    "hash": "c83efb557c36e5c0e6d8605aa5e549ac182e5f05e9615b9d3682477241890bfd"
+    "hash": "c83efb557c36e5c0e6d8605aa5e549ac182e5f05e9615b9d3682477241890bfd",
+    "coveredHash": "c83efb557c36e5c0e6d8605aa5e549ac182e5f05e9615b9d3682477241890bfd"
   },
   {
     "id": "33e7eb87-3605-801a-921b-e0292847ac89",
@@ -330,7 +332,8 @@
     "title": "Vanilla RNN",
     "level": 3,
     "order": 38,
-    "hash": "dd599f625b0ddd600b3c2adbce6c6d10a5fedb161f803d48957fd550698457c1"
+    "hash": "dd599f625b0ddd600b3c2adbce6c6d10a5fedb161f803d48957fd550698457c1",
+    "coveredHash": "dd599f625b0ddd600b3c2adbce6c6d10a5fedb161f803d48957fd550698457c1"
   },
   {
     "id": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
@@ -338,7 +341,8 @@
     "title": "LSTM",
     "level": 3,
     "order": 39,
-    "hash": "7d8f28c4e577630d63155596f8f27fdf3f2d83bb38d1c90dde2dff1bfeb97843"
+    "hash": "7d8f28c4e577630d63155596f8f27fdf3f2d83bb38d1c90dde2dff1bfeb97843",
+    "coveredHash": "7d8f28c4e577630d63155596f8f27fdf3f2d83bb38d1c90dde2dff1bfeb97843"
   },
   {
     "id": "33e7eb87-3605-80e5-8207-eb2fde2e3b1b",
@@ -346,7 +350,8 @@
     "title": "vs. transformers",
     "level": 3,
     "order": 40,
-    "hash": "57b84686fe60572ec93100c5f400c9239fe3746c4ded6ee2a28fed3a84c07fb8"
+    "hash": "57b84686fe60572ec93100c5f400c9239fe3746c4ded6ee2a28fed3a84c07fb8",
+    "coveredHash": "57b84686fe60572ec93100c5f400c9239fe3746c4ded6ee2a28fed3a84c07fb8"
   },
   {
     "id": "2d17eb87-3605-804f-80df-ee0f622e523f",
@@ -354,7 +359,8 @@
     "title": "State space models",
     "level": 2,
     "order": 41,
-    "hash": "490db1f732e0d575bcc6a13e4c744333043f32c1cbbedf29c328ec4854a5063b"
+    "hash": "490db1f732e0d575bcc6a13e4c744333043f32c1cbbedf29c328ec4854a5063b",
+    "coveredHash": "490db1f732e0d575bcc6a13e4c744333043f32c1cbbedf29c328ec4854a5063b"
   },
   {
     "id": "2e67eb87-3605-80f7-88b3-c1d5221a620d",

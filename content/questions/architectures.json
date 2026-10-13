@@ -1,0 +1,146 @@
+{
+  "chapter": "Other architectures",
+  "concepts": [
+    {
+      "id": "architectures.vanilla-rnn.shared-transition-weights",
+      "section": "33e7eb87-3605-801a-921b-e0292847ac89",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a training update driven by an RNN's final output change its early hidden states on the next forward pass?",
+          "answer": "The same transition weights are used at every timestep. Updating them from the final output changes the computation at early positions too, even if those positions have no separate loss.",
+          "explanation": "The update $h_t=\\tanh(W_xx_t+W_hh_{t-1}+b)$ reuses $W_x$ and $W_h$ across time. An unrolled RNN therefore does not have an independent parameter set for each position. A gradient signal arriving through late outputs changes the shared transition used throughout the next pass."
+        }
+      ]
+    },
+    {
+      "id": "architectures.vanilla-rnn.repeated-gradient-factors",
+      "section": "33e7eb87-3605-801a-921b-e0292847ac89",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a tanh RNN suffer both vanishing and exploding gradients?",
+          "answer": "Backpropagation repeatedly multiplies by $\\operatorname{diag}(\\tanh'(z_t))W_h$. The activation derivative can shrink gradients, while repeated multiplication by $W_h$ can shrink or amplify them.",
+          "explanation": "Each step contributes $\\frac{\\partial h_t}{\\partial h_{t-1}}=\\operatorname{diag}(\\tanh'(z_t))W_h$, and the chain rule multiplies these factors across time. Since $\\tanh'\\in(0,1]$, the activation cannot amplify by itself, but $W_h$ can. This contrasts with the LSTM's gated cell-state route."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Bounding the derivative of tanh by 1 prevents exploding gradients in a vanilla RNN.",
+          "answer": false,
+          "explanation": "The full Jacobian is $\\operatorname{diag}(\\tanh'(z_t))W_h$, not just the activation derivative. A bound on $\\tanh'$ therefore does not bound the amplification contributed by $W_h$ over repeated steps. LSTM cell-state propagation provides a different route without this repeated matrix multiplication."
+        }
+      ]
+    },
+    {
+      "id": "architectures.lstm.retention-versus-writing",
+      "section": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can an LSTM discard stored content without replacing it with new candidate content?",
+          "answer": "Its forget and input gates control retention and writing independently. Suppressing both removes old content while blocking the candidate write.",
+          "explanation": "The cell update is $c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t$. Reducing the forget gate need not increase the input gate: these are two independently computed controls, not complementary weights that must sum to one. Closing only the input gate prevents writing but does not determine how much existing memory survives."
+        }
+      ]
+    },
+    {
+      "id": "architectures.lstm.cell-gradient-highway",
+      "section": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What lets gradients persist along an LSTM's cell-state route over many steps?",
+          "answer": "The direct cell-state route uses elementwise retention rather than repeated matrix multiplication and tanh. Forget gates near 1 keep that route from strongly attenuating gradients.",
+          "explanation": "From $c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t$, the direct old-cell contribution is multiplied by $f_t$, which preserves it when $f_t\\approx1$. This avoids the vanilla RNN's repeated $W_h$ and tanh along that route. ⚠️ Note: this describes the direct path, not every gradient path through the gates."
+        }
+      ]
+    },
+    {
+      "id": "architectures.lstm.exposure-without-erasure",
+      "section": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can an LSTM keep stored information temporarily out of its hidden output?",
+          "answer": "Close the output gate while retaining the cell state. The hidden output can be near zero even though the stored memory remains available.",
+          "explanation": "The output is $h_t=o_t\\odot\\tanh(c_t)$, whereas storage changes through $c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t$. A small output gate suppresses exposure without directly erasing memory. This separates long-term storage from the current output, unlike the single hidden vector in a vanilla RNN."
+        }
+      ]
+    },
+    {
+      "id": "architectures.lstm.hidden-state-feedback",
+      "section": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can closing an LSTM output gate change the next step’s memory updates even when it leaves the current cell state intact?",
+          "answer": "It suppresses the hidden state, which feeds the next step’s gates. The output gate therefore affects later retention and writing decisions as well as the visible output.",
+          "explanation": "The connection is $h_t=o_t\\odot\\tanh(c_t)$ followed by $f_{t+1}=\\sigma(W_f\\cdot[h_t,x_{t+1}]+b_f)$, with analogous input and output gates. The gates receive the filtered hidden state rather than the full cell state. Storage and exposure are separate, but exposure still feeds back into future memory control."
+        }
+      ]
+    },
+    {
+      "id": "architectures.lstm.gru-gate-reduction",
+      "section": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "How many gates does a GRU use?",
+          "answer": 2,
+          "tolerance": 0,
+          "unit": "gates",
+          "explanation": "The count is $1\\text{ reset}+1\\text{ update}=2\\text{ gates}$. Confusing it with an LSTM gives three, because the LSTM has separate forget, input and output gates. This reduced gate set is the concrete simplification identified for the GRU; no GRU update equations are supplied."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Which gate set distinguishes a GRU from an LSTM?",
+          "answer": "A GRU uses reset and update gates; an LSTM uses forget, input and output gates.",
+          "explanation": "GRU gating uses a reset/update pair rather than the LSTM's three separately named controls. The LSTM equations assign retention, writing and exposure to different gates. ⚠️ Note: the GRU is only briefly described here, so its exact update mechanism is not specified."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "architectures.vs-transformers.distant-token-path",
+      "section": "33e7eb87-3605-80e5-8207-eb2fde2e3b1b",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does attention give distant tokens a shorter interaction path than an RNN?",
+          "answer": "An allowed token pair interacts directly through attention, giving an $O(1)$ path independent of their distance. An RNN must pass information through the intervening hidden states.",
+          "explanation": "Attention can connect a token directly to a distant token it is allowed to attend to; recurrence requires intermediate state updates. The $O(1)$ claim concerns path length, not total attention cost. ⚠️ Note: the source's claim that distant gradients cannot influence earlier processing is too absolute; a long path can attenuate gradients without making them impossible."
+        }
+      ]
+    },
+    {
+      "id": "architectures.state-space-models.training-inference-scaling",
+      "section": "2d17eb87-3605-804f-80df-ee0f622e523f",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For fixed model and state sizes, how does an SSM’s sequence-processing cost differ between training and recurrent inference?",
+          "answer": "Training processes a length-$n$ sequence with $O(n)$ work and can be parallelized across positions. Recurrent inference uses $O(1)$ work per new token with respect to history length.",
+          "explanation": "Here $n$ is sequence length. Training need not execute the recurrence one position at a time, while inference updates a fixed-size state through $x_k=A x_{k-1}+B u_k$ ($B$ is the input-to-state map, not batch size). ⚠️ Note: constant cost applies to one recurrent update, not an entire generated sequence or varying state size."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With fixed model and state sizes, an SSM’s recurrent inference work per new token grows with the token history.",
+          "answer": false,
+          "explanation": "The recurrence $x_k=A x_{k-1}+B u_k$ uses the previous fixed-size state and the new input; $B$ here is the input-to-state map, not batch size. It does not revisit a growing list of past tokens, so work per update is constant with respect to history length. Total work still grows with the number of generated tokens."
+        }
+      ]
+    },
+    {
+      "id": "architectures.state-space-models.input-dependent-selection",
+      "section": "2d17eb87-3605-804f-80df-ee0f622e523f",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which three parts of state processing does Mamba make depend on the current input?",
+          "answer": "What information is incorporated, what is read from the state, and the timescale of state evolution.",
+          "explanation": "Mamba conditions three quantities on $u_k$: $B_k=f_B(u_k)$ controls incorporation, $C_k=f_C(u_k)$ controls readout, and $\\Delta_k=f_\\Delta(u_k)$ controls timescale. Here $B_k$ is a state-input coefficient, not batch size. A basic SSM already updates its state with each input; Mamba additionally changes these controls according to input content."
+        }
+      ]
+    }
+  ]
+}
