@@ -147,6 +147,12 @@
           "prompt": "QK norm normalizes the value vectors as well, since Q, K and V come from the same input.",
           "answer": false,
           "explanation": "Only queries and keys are normalized: their dot product sets the attention logits, and large logits make the softmax peaky and resistant to updates. Values do not enter the scores, so their scale does not change the attention distribution. The shared input $\\bar{\\mathbf X}$ was already normalized once by the block's RMSNorm before all three projections."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can QK normalization still matter after RMSNorm has normalized the residual-stream input?",
+          "answer": "The learned query and key projections can change vector magnitudes again; QK normalization controls the projected vectors used in attention scores.",
+          "explanation": "Input RMSNorm acts before the projection matrices. Their learned transformations need not preserve norms, so the resulting query/key scales can still produce large dot products and sharp softmax distributions. QK normalization acts directly on these projected vectors."
         }
       ]
     },
@@ -347,6 +353,12 @@
           "prompt": "The unembedding is applied directly to the last layer's output $\\mathbf X^{(L)}$.",
           "answer": false,
           "explanation": "A final RMSNorm sits in between: $\\mathbf X_{\\text{final}}=\\frac{\\mathbf X^{(L)}}{\\operatorname{RMS}(\\mathbf X^{(L)})+\\epsilon}\\odot\\gamma_{\\text{final}}$, then $\\mathbf Z=\\mathbf X_{\\text{final}}\\mathbf W_u$. In this pre-norm layout each block only normalizes its own branch input and the residual stream itself is never normalized, so without this step the logits would read the raw residual."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why does a pre-norm transformer still use a final RMSNorm before the vocabulary projection?",
+          "answer": "The residual stream bypasses each pre-sublayer norm and accumulates attention/FFN updates, so its final scale is not set by those norms.",
+          "explanation": "Pre-attention and pre-FFN RMSNorms normalize inputs to the learned transformations, not the running residual stream itself. Residual additions can therefore change its scale through the layer stack. A final RMSNorm normalizes the completed residual state before converting it into vocabulary logits; its learned scale still permits feature-specific rescaling."
         }
       ]
     },
@@ -372,7 +384,8 @@
           "correct": 1,
           "explanation": "Multiplying a $B\\times T\\times D$ hidden state by a $D\\times V$ matrix yields $B\\times T\\times V$ logits. $V\\times D$ is the embedding lookup layout, $D\\times D$ fits head-output mixing, and $D\\times F$ fits FFN expansion. The contracting axis must be the hidden width."
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "transformer.implementation-notes.mask-boolean-convention",
@@ -460,7 +473,8 @@
           "answer": false,
           "explanation": "Adjacent-pair order requires even, odd, even, odd across the final axis. Concatenating the two full streams produces all evens first, so it does not invert the original pair extraction. Stacking with a new size-2 axis and then flattening preserves each pair's adjacency."
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "transformer.implementation-notes.fused-projection-unbind",
@@ -513,8 +527,8 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why transpose attention output before merging its head and feature dimensions?",
-          "answer": "It has layout $B\\times N\\times S\\times H$; transpose to $B\\times S\\times N\\times H$ so each token's heads become adjacent.",
+          "prompt": "What goes wrong if attention output in $B\\times N\\times S\\times H$ order is reshaped directly to $B\\times S\\times D$?",
+          "answer": "It groups elements by the wrong axes, mixing token positions into a token's head features; put the sequence axis before the head axis first.",
           "explanation": "The intended merge is $N\\times H\\to D$ within each token. Reshaping the untransposed tensor would reinterpret head-major storage without performing the necessary axis permutation. Restoring token-major order makes the subsequent $D\\times D$ output projection act on the correct head outputs."
         },
         {
@@ -794,6 +808,12 @@
           ],
           "correct": 1,
           "explanation": "The cache has $BSL(KH+KH)=2BSKHL$ elements, so its head factor is $K$. $N$ counts queries, $G=N/K$ counts queries sharing each K/V head, and $V$ sizes the vocabulary projection. Logical expansion for attention does not require storing separately learned K/V for each query head."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Logically expanding GQA keys and values to $N$ query heads requires the persistent KV cache to store $N$ distinct heads per layer.",
+          "answer": false,
+          "explanation": "The persistent cache can keep only the $K$ distinct KV heads, giving $2BSKHL$ elements across all layers. Attention reuses each KV head across its query group; logical expansion does not create new key or value information. Storing a separate copy for every query would lose GQA's cache-memory advantage."
         }
       ]
     },
@@ -967,13 +987,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why is the SwiGLU gate branch more than a sigmoid confidence weight?",
+          "prompt": "Why is the SwiGLU gate projection more than a sigmoid confidence weight?",
           "answer": "Its output includes $\\mathbf G$ itself: $\\operatorname{Swish}(\\mathbf G)=\\mathbf G\\odot\\sigma(\\mathbf G)$, so it contributes learned content.",
           "explanation": "The full product is $\\mathbf H=\\mathbf G\\odot\\sigma(\\mathbf G)\\odot\\mathbf U$. The sigmoid modulates the gate representation, but does not replace it, so both projected representations influence the content. Treating the branch as only $\\sigma(\\mathbf G)$ drops a multiplicative term and describes a different function."
         },
         {
           "kind": "truefalse",
-          "prompt": "In SwiGLU, the up branch is the sole content representation and the gate branch supplies only a sigmoid weight.",
+          "prompt": "In SwiGLU, the up projection is the sole content representation and the gate projection supplies only a sigmoid weight.",
           "answer": false,
           "explanation": "The gate contributes $\\mathbf G\\odot\\sigma(\\mathbf G)$, not merely $\\sigma(\\mathbf G)$. Thus $\\mathbf H=(\\mathbf G\\odot\\sigma(\\mathbf G))\\odot\\mathbf U$ combines two learned representations. The distinction explains why the gate projection should be understood as content with self-modulation, not just a probability-like switch."
         }
@@ -1079,7 +1099,8 @@
           "correct": 0,
           "explanation": "The first row of $R_\\theta$ is $[\\cos\\theta,-\\sin\\theta]$, so the output is $x_1\\cos\\theta-x_2\\sin\\theta$. The plus sign reverses the needed cross-term, while the sine-first choices swap coordinate roles. ⚠️ Note: a separate expanded second-coordinate expression in the source contains a typo; the rotation matrix is consistent."
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "transformer.rope.rotation-preserves-magnitude",
