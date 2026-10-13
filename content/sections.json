@@ -382,7 +382,8 @@
     "title": "Post-training",
     "level": 1,
     "order": 42,
-    "hash": "9f7c220ca367d516b545d83e78900becebcfb166db400925842c2b7fc4082227"
+    "hash": "9f7c220ca367d516b545d83e78900becebcfb166db400925842c2b7fc4082227",
+    "coveredHash": "9f7c220ca367d516b545d83e78900becebcfb166db400925842c2b7fc4082227"
   },
   {
     "id": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
@@ -390,7 +391,8 @@
     "title": "policy gradients",
     "level": 2,
     "order": 43,
-    "hash": "c376ae29dead3d7b8402263ed7338977bab9de64f2db6dde9064305c83f3339d"
+    "hash": "c376ae29dead3d7b8402263ed7338977bab9de64f2db6dde9064305c83f3339d",
+    "coveredHash": "c376ae29dead3d7b8402263ed7338977bab9de64f2db6dde9064305c83f3339d"
   },
   {
     "id": "3107eb87-3605-8077-bac9-c9ad27069800",
@@ -398,7 +400,8 @@
     "title": "PPO",
     "level": 2,
     "order": 44,
-    "hash": "46deb0708735a7539617754a08009606cdaa1bc010aa4efd98fbef275419c6d0"
+    "hash": "46deb0708735a7539617754a08009606cdaa1bc010aa4efd98fbef275419c6d0",
+    "coveredHash": "46deb0708735a7539617754a08009606cdaa1bc010aa4efd98fbef275419c6d0"
   },
   {
     "id": "2f87eb87-3605-805f-9001-da500440584a",
@@ -406,7 +409,8 @@
     "title": "RLHF",
     "level": 2,
     "order": 45,
-    "hash": "a4cf88935db4b57dbc50ddb3cf02d006840b6b14d0b198472d9ad0d56ff39696"
+    "hash": "a4cf88935db4b57dbc50ddb3cf02d006840b6b14d0b198472d9ad0d56ff39696",
+    "coveredHash": "a4cf88935db4b57dbc50ddb3cf02d006840b6b14d0b198472d9ad0d56ff39696"
   },
   {
     "id": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
@@ -414,7 +418,8 @@
     "title": "GRPO",
     "level": 2,
     "order": 46,
-    "hash": "77240485b533f1434822de48d59fb25dd7c067e3b179f0a52320a30d22ffaacc"
+    "hash": "77240485b533f1434822de48d59fb25dd7c067e3b179f0a52320a30d22ffaacc",
+    "coveredHash": "77240485b533f1434822de48d59fb25dd7c067e3b179f0a52320a30d22ffaacc"
   },
   {
     "id": "3107eb87-3605-8041-aa30-f602184a1b4c",
@@ -422,7 +427,8 @@
     "title": "DPO",
     "level": 2,
     "order": 47,
-    "hash": "94d867c366b0ba3a9163b63d8d0a7d5c3b80070b910f19a7699bcf01c7aa780e"
+    "hash": "94d867c366b0ba3a9163b63d8d0a7d5c3b80070b910f19a7699bcf01c7aa780e",
+    "coveredHash": "94d867c366b0ba3a9163b63d8d0a7d5c3b80070b910f19a7699bcf01c7aa780e"
   },
   {
     "id": "2f47eb87-3605-8038-a3c9-ca7240689a57",

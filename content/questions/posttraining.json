@@ -1,0 +1,729 @@
+{
+  "chapter": "Post-training",
+  "concepts": [
+    {
+      "id": "posttraining.policy-gradients.reward-gradient-path",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can REINFORCE optimize a reward that cannot be differentiated through?",
+          "answer": "Differentiate trajectory probabilities using $\\nabla P=P\\nabla\\log P$, and use the sampled reward as a weight.",
+          "explanation": "$\\nabla_\\theta J=\\sum_\\tau\\nabla_\\theta P(\\tau\\mid\\theta)R(\\tau)=\\mathbb E[\\nabla_\\theta\\log P(\\tau\\mid\\theta)R(\\tau)]$. The derivative acts on the sampling distribution, not through the sampled tokens or the reward evaluator. This is the bridge from expected reward to the policy-gradient estimator."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.token-score-sum",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does a sequence-level reward produce a sum of token log-probability gradients?",
+          "answer": "The trajectory probability factorizes across generated tokens, so its log is a sum.",
+          "explanation": "$P(\\tau\\mid\\theta)=p_0(s_0)\\prod_t\\pi_\\theta(a_t\\mid s_t)$ gives $\\nabla_\\theta\\log P(\\tau\\mid\\theta)=\\sum_t\\nabla_\\theta\\log\\pi_\\theta(a_t\\mid s_t)$. The prompt distribution has no policy parameters. A single final reward can therefore weight every token score without requiring a separate reward at each position."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.reward-sign-direction",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What changes in a REINFORCE update when the sampled reward becomes negative?",
+          "answer": "The sampled trajectory contributes a gradient that decreases its log probability rather than increasing it.",
+          "explanation": "For a fixed rollout, $\\Delta\\theta\\propto R(\\tau)\\sum_t\\nabla_\\theta\\log\\pi_\\theta(a_t\\mid s_t)$. Changing the sign of $R(\\tau)$ reverses this contribution, and its magnitude sets its scale. This describes the sampled contribution; shared parameters and other trajectories can affect the net update."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Under gradient ascent, what does a negative REINFORCE weight encourage?",
+          "choices": [
+            "Raise sampled-token log probabilities",
+            "Lower sampled-token log probabilities",
+            "Freeze the sampled-token probabilities",
+            "Raise every vocabulary probability"
+          ],
+          "correct": 1,
+          "explanation": "The update contains $R(\\tau)\\nabla_\\theta\\log P(\\tau\\mid\\theta)$, so a negative weight points downhill in that sampled log probability. A zero weight would remove the contribution instead. Raising every token probability is incompatible with normalization; baselines determine whether the effective weight is positive or negative."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "posttraining.policy-gradients.sft-gradient-contrast",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What distinguishes a REINFORCE update from ordinary SFT on the same token sequence?",
+          "answer": "REINFORCE samples data from the policy and weights the token log-likelihood gradient by the trajectory reward.",
+          "explanation": "SFT raises log likelihood on supplied demonstrations; REINFORCE uses $R(\\tau)\\sum_t\\nabla_\\theta\\log\\pi_\\theta(a_t\\mid s_t)$ for policy samples. The token-level derivative looks familiar, but the sampling process and reward weight change the learning signal. A negative reward can reverse the direction rather than imitate the completion."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "REINFORCE is ordinary SFT applied to every sampled completion with equal positive weight.",
+          "answer": false,
+          "explanation": "The sampled completion contributes $R(\\tau)\\nabla_\\theta\\log P(\\tau\\mid\\theta)$, so weights differ and can be negative. Ordinary SFT imitates its supplied targets rather than grading policy samples this way. Subtracting a baseline makes the signal depend on performance relative to expectation."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.rollout-gradient-average",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For expected terminal reward, why does REINFORCE sum token gradients within each response instead of averaging them?",
+          "answer": "The log probability of a whole response is a sum of token log probabilities; averaging would add a response-length weight.",
+          "explanation": "$\\hat g=\\frac1N\\sum_{i=1}^N R(\\tau^{(i)})\\sum_{t=1}^T\\nabla_\\theta\\log\\pi_\\theta(a_t^{(i)}\\mid s_t^{(i)})$, where $N$ counts sampled responses and $T$ is response length. Averaging responses estimates expected reward; summing tokens differentiates each response probability. Dividing each token sum by its response length changes the weighting, as in the GRPO length-bias discussion."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.gradient-loss-value",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is a policy-gradient surrogate loss value a poor score for comparing policies across rollout batches?",
+          "answer": "It is a gradient-producing expression evaluated on changing samples, not the expected reward itself.",
+          "explanation": "The sampled expression $L(\\theta)=\\frac1N\\sum_{i,t}\\log\\pi_\\theta(a_t^{(i)}\\mid s_t^{(i)})R(\\tau^{(i)})$ supplies the desired gradient but is not $J(\\theta)=\\mathbb E[R(\\tau)]$. Its values depend on which rollouts were sampled. ⚠️ Note: the source says there is no fixed objective, but the expected-reward objective is fixed; the sampled surrogate changes. Here $N$ is the number of sampled responses."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A lower sampled policy-gradient loss proves that expected reward improved.",
+          "answer": false,
+          "explanation": "The scalar surrogate combines log probabilities with sampled reward weights, whereas evaluation concerns $J(\\theta)=\\mathbb E[R(\\tau)]$. Changing batches changes the surrogate and prevents that inference. ⚠️ Note: the source calls the objective unfixed; the ambiguity concerns the sampled gradient surrogate, not the definition of expected reward."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.ascent-loss-sign",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A minimization optimizer receives the positive reward-weighted log-likelihood sum. What sign change is needed?",
+          "answer": "Negate it: minimize the negative reward-weighted log likelihood to perform reward ascent.",
+          "explanation": "The source writes $L=\\frac1N\\sum_{i,t}\\log\\pi_\\theta(a_t^{(i)}\\mid s_t^{(i)})R(\\tau^{(i)})$, so $\\nabla L=\\hat g$. Descent on $-L$ gives $\\theta\\leftarrow\\theta+\\alpha\\hat g$. ⚠️ Note: calling the positive expression a loss hides this ascent-versus-descent sign convention."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Minimizing positive reward-weighted log likelihood implements reward maximization.",
+          "answer": false,
+          "explanation": "If $\\nabla L=\\hat g$, gradient descent gives $\\theta\\leftarrow\\theta-\\alpha\\hat g$, opposite to reward ascent. Using $-L$ changes that to $\\theta\\leftarrow\\theta+\\alpha\\hat g$. ⚠️ Note: the source presents the positive expression as a gradient device, so an ordinary minimization optimizer requires the extra minus sign."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "posttraining.policy-gradients.positive-reward-noise",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can vanilla REINFORCE reinforce a weak completion on an easy prompt?",
+          "answer": "Its absolute reward can still be positive, even when other completions do better.",
+          "explanation": "The weight is $R(\\tau)$, not performance relative to alternatives. Thus $R(\\tau)>0$ pushes up the sampled trajectory even if it is below the prompt average. Subtracting a suitable baseline changes the sign for below-baseline responses while preserving the expected policy gradient under the baseline-independence condition."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What makes a positive-reward completion receive a negative baselined update?",
+          "choices": [
+            "Its probability exceeds the reference",
+            "Its length exceeds the batch average",
+            "Its reward exceeds the value estimate",
+            "Its reward falls below the baseline"
+          ],
+          "correct": 3,
+          "explanation": "The effective weight is $R(\\tau)-b(s_t)$, which is negative when $R(\\tau)<b(s_t)$ even if $R(\\tau)>0$. Probability ratios handle data reuse rather than this comparison. Length normalization rescales a contribution; reward above the baseline would encourage the sampled action."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.baseline-objective-invariance",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "A valid state-only baseline changes gradient variance without changing the expected-reward objective.",
+          "answer": true,
+          "explanation": "$\\mathbb E[\\sum_t\\nabla_\\theta\\log\\pi_\\theta(a_t\\mid s_t)b(s_t)]=0$, so subtracting this term leaves $\\nabla_\\theta J$ unchanged. The practical gain is a less noisy estimate when the baseline predicts reward well. This differs from adding a KL penalty, which does change the optimized objective."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Does subtracting a valid baseline change the reward objective being optimized?",
+          "answer": "No. Its expected score-gradient contribution is zero, so it changes the estimator rather than the objective.",
+          "explanation": "$\\mathbb E[\\nabla\\log\\pi(R-b)]=\\mathbb E[\\nabla\\log\\pi R]-\\mathbb E[\\nabla\\log\\pi b]=\\nabla J$. A sample update can reverse even though its expectation does not; a KL penalty changes the objective instead. (General context, not from the notes: when constructing an autodiff surrogate, detach the baseline so its derivatives do not add another term.)"
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.baseline-action-independence",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can an action-dependent baseline bias the usual REINFORCE estimator?",
+          "answer": "It cannot be pulled outside the expectation over the sampled action, so its score-gradient contribution need not vanish.",
+          "explanation": "For a fixed state, $b(s_t)\\sum_{a_t}\\nabla_\\theta\\pi_\\theta(a_t\\mid s_t)=b(s_t)\\nabla_\\theta1=0$. Replacing $b(s_t)$ by an action-dependent quantity blocks this factorization. A value function conditioned on the prefix satisfies the relevant independence condition."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A baseline may depend on the generated prefix while remaining independent of the next sampled action.",
+          "answer": true,
+          "explanation": "The prefix is the state $s_t$, which is held fixed inside the conditional expectation over $a_t$. Thus $\\mathbb E_{a_t\\mid s_t}[b(s_t)\\nabla\\log\\pi_\\theta(a_t\\mid s_t)]=b(s_t)\\nabla1=0$. Depending on previous sampled tokens is not the same as depending on the current action."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.score-expectation-zero",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "For a fixed text prefix, what is each coordinate of the expected token log-probability gradient under the policy itself?",
+          "answer": 0,
+          "tolerance": 0,
+          "explanation": "$\\sum_{a_t}\\pi_\\theta\\nabla_\\theta\\log\\pi_\\theta=\\sum_{a_t}\\nabla_\\theta\\pi_\\theta=\\nabla_\\theta1=0$. This identity makes state-only baselines harmless in expectation. ⚠️ Note: one source bullet says action probabilities sum to zero; they sum to one, and their derivatives sum to zero."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.baseline-quality-variance",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why prefer a baseline that predicts the reward rather than an arbitrary constant?",
+          "answer": "It can remove predictable reward variation, leaving a less noisy residual for the score gradient.",
+          "explanation": "The estimator uses $\\nabla_\\theta\\log\\pi_\\theta(a_t\\mid s_t)(R(\\tau)-b(s_t))$. When $b(s_t)$ tracks the reward, predictable variation need not dominate that weight. State-only dependence ensures unbiasedness; it does not by itself ensure that an arbitrary baseline reduces variance."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Every state-only baseline necessarily reduces policy-gradient variance.",
+          "answer": false,
+          "explanation": "State-only dependence establishes a zero expected baseline contribution, not a variance guarantee. The residual $R(\\tau)-b(s_t)$ can be more erratic if the baseline is poor. Reward prediction and the unbiasedness proof answer different questions, which is why learning a useful value function matters."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.critic-prefix-prediction",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What must PPO’s critic predict from an unfinished response?",
+          "answer": "The expected final reward given the current text prefix, before choosing the next token.",
+          "explanation": "$V_\\psi(s_t)$ estimates the reward expected from the prefix, and the sampled signal becomes $R(\\tau)-V_\\psi(s_t)$. It does not need to know the next action to provide a baseline. Conditioning on the chosen action would instead move toward $Q^\\pi(s_t,a_t)$ and break the simple baseline argument."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which input keeps a learned critic independent of the next token it will help evaluate?",
+          "choices": [
+            "The complete sampled answer and reward",
+            "The prefix before the next action",
+            "The next action and its final reward",
+            "The preferred answer from a pair"
+          ],
+          "correct": 1,
+          "explanation": "A prefix-conditioned value $V_\\psi(s_t)$ is fixed while averaging over the next action. The baseline term therefore reduces to $V_\\psi(s_t)\\nabla_\\theta1=0$. A completed answer or the selected action introduces information about that action; a preference pair belongs to reward-model training rather than this baseline."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.critic-relative-credit",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "With a state-dependent critic, tokens in one response can receive different advantage estimates.",
+          "answer": true,
+          "explanation": "The response reward $R(\\tau)$ is shared, but each prefix can have a different $V_\\psi(s_t)$. Therefore $A_t=R(\\tau)-V_\\psi(s_t)$ can vary with $t$. GRPO’s outcome-based group advantage is different: its single $A^{(i)}$ is reused at every position of response $i$."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.q-versus-value",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a state-value critic provide a baseline without estimating the value of every possible next token?",
+          "answer": "It predicts return averaged over the policy’s next-token choices; an action value conditions on one particular next token.",
+          "explanation": "$V^\\pi(s)=\\sum_a\\pi(a\\mid s)Q^\\pi(s,a)$ averages action values before the next token is chosen. The sampled return supplies the action-dependent outcome in $R(\\tau)-V_\\psi(s_t)$. Thus a scalar prefix value is enough for the baseline; it need not output a vocabulary-sized table of action values."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.monte-carlo-advantage",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is $R(\\tau)-V_\\psi(s_t)$ a Monte Carlo advantage estimate?",
+          "answer": "It uses one sampled trajectory reward to stand in for the expected action value $Q^\\pi(s_t,a_t)$.",
+          "explanation": "$A^\\pi(s,a)=Q^\\pi(s,a)-V^\\pi(s)$ is approximated by $R(\\tau)-V_\\psi(s_t)$. The reward is one realized continuation, so even an accurate value baseline leaves sampling noise. This differs from possessing the exact expected return for the chosen action."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An exact value baseline makes each single-rollout advantage an exact action advantage.",
+          "answer": false,
+          "explanation": "Even if $V_\\psi(s_t)=V^\\pi(s_t)$, the value $R(\\tau)$ is still one sample of $Q^\\pi(s_t,a_t)$. Hence $R(\\tau)-V^\\pi(s_t)$ can differ from $Q^\\pi(s_t,a_t)-V^\\pi(s_t)$. The baseline removes predictable state variation, not randomness in the sampled continuation."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.leave-one-out-baseline",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does RLOO omit the current completion’s reward from its baseline?",
+          "answer": "The other completions supply a comparison without making the baseline depend on this completion’s own sampled reward.",
+          "explanation": "For response $i$, $b=\\frac1{G-1}\\sum_{j\\ne i}r^{(j)}$, where $G$ is the number of completions sampled per prompt. With independent samples given the prompt, the other rewards do not depend on this completion’s choices. Including its own reward breaks that independence; GRPO uses such a group mean and additionally normalizes by the reward spread."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.batch-baseline-scope",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What comparison does a batch-wide reward baseline lose relative to a separate group baseline for each prompt?",
+          "answer": "It mixes prompt difficulties instead of comparing a completion with alternatives to the same prompt.",
+          "explanation": "A batch mean pools rewards across prompts, while a same-prompt group estimates the comparison level for that question. A completion can be weak for an easy prompt yet exceed the pooled baseline. This differs from a learned prefix value, which can also adjust expectations as a response develops."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Including a sample’s own reward in a batch-mean baseline preserves the usual zero expected baseline contribution.",
+          "answer": false,
+          "explanation": "The current sampled reward contributes to that mean, so the baseline is statistically coupled to the sampled action and continuation. The state-only proof pulls a fixed $b(s_t)$ outside the conditional action expectation. ⚠️ Note: the source lists batch centering alongside unbiased baselines without spelling out this self-inclusion distinction."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.rollout-reuse-motive",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why reuse rollouts from $\\pi_{\\theta_\\text{old}}$ instead of generating after every gradient step?",
+          "answer": "Generation is expensive, and a recent policy’s samples can support several updates while the policy changes modestly.",
+          "explanation": "Strict on-policy sampling ties each update to fresh data from the current policy. Reusing a batch makes optimization cheaper, but its sampling distribution is now $\\pi_{\\theta_\\text{old}}$, so probability ratios enter the surrogate. PPO clipping limits the incentive to overfit that increasingly stale batch."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.importance-ratio-direction",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why must a reused sample get more weight when the target policy makes it more likely than the generating policy did?",
+          "answer": "It is underrepresented in the generating distribution relative to the target; target-over-generating probability corrects that mismatch.",
+          "explanation": "The importance-sampling identity is $\\mathbb E_{x\\sim p}f(x)=\\mathbb E_{x\\sim q}[(p(x)/q(x))f(x)]$. Samples underrepresented by the generating distribution $q$ receive greater weight. Flipping the ratio would discount exactly the actions that have become more likely under the target policy."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.frozen-ratio-denominator",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What learning signal is lost if both sides of a PPO probability ratio track the current policy during differentiation?",
+          "answer": "The ratio stays identically one and its gradient vanishes, erasing the policy-gradient signal from the ratio surrogate.",
+          "explanation": "$\\nabla_\\theta r_t=\\nabla_\\theta\\pi_\\theta(a_t\\mid s_t)/\\pi_{\\theta_\\text{old}}(a_t\\mid s_t)=r_t\\nabla_\\theta\\log\\pi_\\theta(a_t\\mid s_t)$. The denominator records how the batch was generated. Updating it with the numerator would erase the intended correction and its gradient."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.trajectory-product-ratio",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What weighting exactly rewrites expected trajectory reward using old-policy samples?",
+          "answer": "The whole-trajectory probability ratio, equal to the product of token ratios.",
+          "explanation": "$J(\\theta)=\\mathbb E_{\\tau\\sim\\pi_{\\theta_\\text{old}}}[\\frac{P(\\tau\\mid\\theta)}{P(\\tau\\mid\\theta_\\text{old})}R(\\tau)]=\\mathbb E[\\prod_t r_t\\,R(\\tau)]$. Each conditional token probability contributes a factor to trajectory probability. A sum of local terms defines the practical surrogate, not this exact change of distribution."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "For the exact trajectory importance correction, how are token ratios combined?",
+          "choices": [
+            "Take their arithmetic mean",
+            "Take their product",
+            "Take their largest value",
+            "Take their unweighted sum"
+          ],
+          "correct": 1,
+          "explanation": "$P(\\tau\\mid\\theta)/P(\\tau\\mid\\theta_\\text{old})=\\prod_t r_t$ follows from the autoregressive factorization. Summing ratios gives the local surrogate; averaging adds another length normalization, and taking a maximum discards most factors. Exact weighting is mathematically direct but can have very large variance."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.product-weight-variance",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can exact trajectory importance sampling become unstable for long responses?",
+          "answer": "It multiplies many probability ratios, producing very small or very large trajectory weights.",
+          "explanation": "The exact weight is $\\prod_{t=1}^T r_t$. Even moderate deviations of individual ratios from one can compound across a long trajectory, making a few samples dominate the estimate. A sum of per-token surrogate terms avoids this product, while sacrificing exact equivalence to the original objective. Here $T$ is the generated response length."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Replacing a product of token ratios by local surrogate terms preserves exact importance weighting.",
+          "answer": false,
+          "explanation": "The exact correction is $\\prod_t r_t$, whereas the surrogate uses $\\sum_t r_tR(\\tau)$. These are different functions of the policy, so the substitution changes the objective. It is motivated by the unstable variance of the product and works locally rather than as an exact distribution rewrite."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.initial-ratio-value",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "At the start of PPO batch reuse, matching current and old policies make the token probability ratio’s gradient zero.",
+          "answer": false,
+          "explanation": "At equality $r_t=1$, but $\\nabla_\\theta r_t=r_t\\nabla_\\theta\\log\\pi_\\theta=\\nabla_\\theta\\log\\pi_\\theta$ because the denominator is fixed. A function’s value does not determine its slope. This is why the reused-rollout surrogate can immediately produce a learning signal."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.policy-gradients.surrogate-gradient-weight",
+      "section": "2fe7eb87-3605-80ae-81c8-ca857e5cedf7",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Compared with on-policy REINFORCE, what extra weight multiplies each token log-probability gradient in the unclipped reuse surrogate?",
+          "answer": "The current-to-old token probability ratio $r_t$.",
+          "explanation": "$\\nabla_\\theta\\mathcal J^\\text{surrogate}=\\mathbb E_{\\tau\\sim\\pi_{\\theta_\\text{old}}}[\\sum_t r_t\\nabla_\\theta\\log\\pi_\\theta(a_t\\mid s_t)R(\\tau)]$. The log-derivative trick applies to the ratio numerator. This differentiates the local surrogate; it does not restore the exact trajectory-product correction."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.ppo.clipped-minimum-form",
+      "section": "3107eb87-3605-8077-bac9-c9ad27069800",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does PPO take the minimum of unclipped and clipped advantage terms?",
+          "answer": "It removes extra benefit from moving too far in the encouraged direction while retaining penalties for harmful moves.",
+          "explanation": "PPO uses $\\min(r_tA_t,\\operatorname{clip}(r_t,1-\\epsilon,1+\\epsilon)A_t)$. With positive advantage, the upper plateau limits additional benefit; with negative advantage, the lower plateau limits further suppression. Taking the maximum would keep the optimistic branch rather than the conservative one."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.ppo.positive-advantage-plateau",
+      "section": "3107eb87-3605-8077-bac9-c9ad27069800",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In PPO, a positive-advantage token’s current-to-old probability ratio exceeds the upper clipping threshold. What happens to this term’s gradient?",
+          "answer": "Its clipped-surrogate contribution becomes flat: this term supplies zero further gradient to promote that token.",
+          "explanation": "$\\min(r_tA_t,(1+\\epsilon)A_t)=(1+\\epsilon)A_t$, so its derivative with respect to $\\theta$ is zero when $A_t$ is fixed. The action has already been promoted beyond the upper threshold. This is one term’s gradient, not a claim that the entire model update is zero."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.ppo.negative-advantage-plateau",
+      "section": "3107eb87-3605-8077-bac9-c9ad27069800",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "When does PPO stop rewarding further suppression of a negative-advantage token?",
+          "answer": "When its ratio falls below $1-\\epsilon$: it has already been sufficiently downweighted.",
+          "explanation": "For fixed $A_t<0$ and $r_t<1-\\epsilon$, $r_tA_t>(1-\\epsilon)A_t$, so the minimum selects $(1-\\epsilon)A_t$. This sample term has zero policy gradient while the advantage is held fixed. Other terms can still update shared parameters; a positive advantage instead plateaus at the upper threshold."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.ppo.wrong-direction-correction",
+      "section": "3107eb87-3605-8077-bac9-c9ad27069800",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A negative-advantage token has become too likely under the current policy. Does PPO clipping block the gradient that would correct this?",
+          "answer": "No. With negative advantage it keeps the unclipped term so the action can be pushed back down.",
+          "explanation": "For $A_t<0$ and $r_t>1+\\epsilon$, $r_tA_t<(1+\\epsilon)A_t$, so PPO selects $r_tA_t$. The same logic retains correction when a positive-advantage action has become too unlikely. Clipping blocks excessive favorable movement, not movement that repairs an unfavorable change."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "PPO can use an unclipped term even when its probability ratio lies outside the clipping interval.",
+          "answer": true,
+          "explanation": "If $A_t<0$ and $r_t>1+\\epsilon$, the smaller branch remains $r_tA_t$; if $A_t>0$ and $r_t<1-\\epsilon$, it also remains $r_tA_t$. Both cases need corrective movement. Thus the clipped objective is not equivalent to hard-bounding all probability ratios."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.ppo.clipping-not-hard-bound",
+      "section": "3107eb87-3605-8077-bac9-c9ad27069800",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "PPO’s clipping interval is a hard constraint on the final probability ratio.",
+          "answer": false,
+          "explanation": "The interval affects a branch inside $\\min(r_tA_t,\\operatorname{clip}(r_t)A_t)$, not a projection of the policy itself. Corrective gradients can remain active outside the interval, and shared parameters couple tokens. ⚠️ Note: the source’s wording about keeping ratios within the interval is stronger than what its own objective guarantees."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can a PPO ratio end up outside $[1-\\epsilon,1+\\epsilon]$?",
+          "answer": "Clipping limits the objective incentive for one term; it does not project the resulting policy into that interval.",
+          "explanation": "The policy is optimized through a sum of terms, only some of which become flat. Outside the interval, wrong-direction moves still use $r_tA_t$, and other terms can move shared parameters. ⚠️ Note: the source loosely describes clipping as keeping ratios inside the interval, but the formula is not a hard constraint."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.ppo.batch-reuse-stability",
+      "section": "3107eb87-3605-8077-bac9-c9ad27069800",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What does PPO gain and give up by clipping during repeated updates on one rollout batch?",
+          "answer": "It gains more stable reuse of the batch while introducing bias relative to the original policy-gradient objective.",
+          "explanation": "The clipped branch removes some gradients that the ordinary surrogate would retain. This limits incentives to exploit stale samples over many training steps, but does not remain an unbiased estimator of the original objective. The local approximation is most useful while the current policy stays reasonably near the generating policy."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.rlhf.reference-kl-anchor",
+      "section": "2f87eb87-3605-805f-9001-da500440584a",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What is the difference between PPO’s old policy and RLHF’s reference policy?",
+          "answer": "The old policy generated the rollout batch; the reference policy anchors behavior through the KL penalty.",
+          "explanation": "$\\mathcal J^\\text{RLHF}=\\mathbb E[R(\\tau)-\\beta D_{\\mathrm{KL}}(\\pi_\\theta\\Vert\\pi_\\mathrm{ref})]$ discourages departure from a reference. By contrast, $\\pi_{\\theta_\\mathrm{old}}$ appears in rollout-reuse ratios. In practice the KL contribution can be folded into token rewards, so it changes the optimization target rather than merely reducing gradient variance."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.rlhf.preference-reward-gap",
+      "section": "2f87eb87-3605-805f-9001-da500440584a",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can pairwise Bradley–Terry preferences determine reward differences but not an absolute reward origin?",
+          "answer": "The preference probability depends only on the winner-minus-loser reward gap, so adding a common offset has no effect.",
+          "explanation": "$\\sigma((R(x,y_w)+c)-(R(x,y_l)+c))=\\sigma(R(x,y_w)-R(x,y_l))$. The common shift cancels, so pairwise supervision identifies relative preference rather than an absolute reward origin. This same cancellation is central to removing the prompt-dependent normalizer in DPO."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.rlhf.preference-loss-direction",
+      "section": "2f87eb87-3605-805f-9001-da500440584a",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Should the reward model maximize or minimize $-\\log P(y_w\\succ y_l)$?",
+          "answer": "Minimize it, which raises the predicted probability of the observed preference.",
+          "explanation": "$\\mathcal L(\\varphi)=-\\log\\sigma(R(x,y_w)-R(x,y_l))$ decreases as the observed winner becomes more probable. The winner is treated as the positive label in binary cross-entropy. ⚠️ Note: the source says maximize this negative log likelihood; its displayed loss requires minimization."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which training direction fits an observed winner under Bradley–Terry?",
+          "choices": [
+            "Maximize the pair’s negative log likelihood",
+            "Minimize the pair’s preference probability",
+            "Minimize the winner’s reward difference",
+            "Minimize the pair’s negative log likelihood"
+          ],
+          "correct": 3,
+          "explanation": "Minimizing $-\\log P(y_w\\succ y_l)$ raises $P(y_w\\succ y_l)$, which raises the winner-minus-loser score gap. The alternatives move that preference probability the wrong way. ⚠️ Note: the source’s instruction to maximize its displayed negative log likelihood has the sign reversed."
+        }
+      ],
+      "retired": true
+    },
+    {
+      "id": "posttraining.rlhf.preference-pair-supervision",
+      "section": "2f87eb87-3605-805f-9001-da500440584a",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can a reward model learn scalar scores from preference pairs that provide no numeric ratings?",
+          "answer": "It fits the observed pairwise choices using a sigmoid of the difference between its two response scores.",
+          "explanation": "For a prompt $x$, preferred response $y_w$ and rejected response $y_l$, fit $P(y_w\\succ y_l)=\\sigma(R(x,y_w)-R(x,y_l))$ with $-\\log P(y_w\\succ y_l)$. The pair label supervises a score difference rather than two numeric targets. ⚠️ Note: this negative log likelihood is minimized; the source says maximize."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.group-normalized-advantage",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How does GRPO turn a completion’s reward into a comparison with its peers?",
+          "answer": "$A^{(i)}=(r^{(i)}-\\operatorname{mean}(\\mathbf r))/\\operatorname{std}(\\mathbf r)$ for completions of the same question.",
+          "explanation": "GRPO first centers the reward and then scales it by the group spread: $A^{(i)}=(r^{(i)}-\\operatorname{mean}(\\mathbf r))/\\operatorname{std}(\\mathbf r)$. Centering decides whether a completion did better than its peers; division also changes gradient scale. It is therefore more than a replacement choice of baseline."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Replacing PPO’s learned critic with a group mean, without reward scaling, gives the original GRPO advantage.",
+          "answer": false,
+          "explanation": "Its advantage divides the centered reward by $\\operatorname{std}(\\mathbf r)$, while ordinary baseline subtraction uses only $R-b$. That denominator changes how groups with different reward spreads are weighted. The memory saving from dropping the critic is a separate consequence of using sampled peers."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.shared-response-advantage",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "With outcome-reward GRPO, does the advantage estimate change across tokens of one completion?",
+          "answer": "No. The same group-relative $A^{(i)}$ weights every token in completion $i$.",
+          "explanation": "The clipped objective uses $\\frac1T\\sum_t\\min(r_tA^{(i)},\\operatorname{clip}(r_t)A^{(i)})$. The ratio changes with token and prefix, but $A^{(i)}$ is computed once from the completion reward. Unlike a prefix-conditioned critic, this gives no separate token-specific value baseline. Here $T$ is the generated response length."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.critic-memory-tradeoff",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What resource tradeoff comes from replacing PPO’s critic with GRPO’s sampled comparison group?",
+          "answer": "It avoids value-network memory but spends generation compute on multiple completions per prompt.",
+          "explanation": "GRPO estimates the comparison level from $G$ sampled outputs rather than a learned value prediction. That removes the need to keep a separate critic for advantage estimation, while each prompt requires a group of rollouts. It is a memory-versus-sampling tradeoff, not a removal of policy or reward evaluation. Here $G$ is the number of completions sampled per prompt."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.group-prompt-conditioning",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does GRPO compare completions for the same question?",
+          "answer": "Their reward distribution estimates performance relative to that question, rather than mixing different prompt difficulties.",
+          "explanation": "For fixed $q$, the algorithm samples $\\{o^{(i)}\\}_{i=1}^G$ and forms rewards $R(q,o^{(i)})$. The mean and standard deviation therefore describe alternatives to one prompt. A batch-wide baseline instead pools rewards across the batch and is not the stated group-relative construction. Here $G$ is the number of completions sampled per prompt."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which samples form one GRPO reward-normalization group?",
+          "choices": [
+            "One token from each prompt in a batch",
+            "Several completions of one question",
+            "One completion from each old policy",
+            "Several prefixes of one completion"
+          ],
+          "correct": 1,
+          "explanation": "The group is $\\{o^{(i)}\\}_{i=1}^G$ sampled for a single $q$, with one reward $r^{(i)}$ per completion. Prefixes do not each supply the outcome reward used by this estimator. Mixing unrelated prompts would change the baseline and spread from question-relative to batch-relative statistics. Here $G$ is the number of completions sampled per prompt."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.snapshot-refresh-order",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why must GRPO keep the rollout-generating policy fixed while taking several updates on the same responses?",
+          "answer": "Its probabilities describe how those responses were actually sampled; changing them would corrupt the current-to-generating-policy correction.",
+          "explanation": "The loop copies $\\pi_{\\theta_\\mathrm{old}}\\leftarrow\\pi_\\theta$, samples outputs, computes rewards and advantages, then updates $\\theta$ several times. This keeps the denominator aligned with the actual generating policy. Refreshing it after every inner update would detach the ratios from the recorded sampling distribution."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.ppo-components-retained",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which two PPO mechanisms remain when GRPO removes the learned critic?",
+          "answer": "Current-to-old token probability ratios and the clipped surrogate objective.",
+          "explanation": "GRPO still optimizes $\\min(r_tA^{(i)},\\operatorname{clip}(r_t,1-\\epsilon,1+\\epsilon)A^{(i)})$. The new ingredient is the group-derived $A^{(i)}$, not the removal of reuse correction or clipping. This separates advantage estimation from the machinery that permits stable repeated updates."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What does GRPO replace in the PPO-style update?",
+          "choices": [
+            "The old-policy denominator",
+            "The token probability gradient",
+            "The learned value baseline",
+            "The ratio clipping operation"
+          ],
+          "correct": 2,
+          "explanation": "Group reward statistics replace the critic-based comparison used to form advantages. The objective still contains current-to-old ratios, their clipping, and differentiable token probabilities. Removing the critic therefore changes where the learning weight comes from, while retaining the PPO-style optimization structure."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.reward-spread-weighting",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does GRPO’s reward-standard-deviation normalization change learning beyond what a mean baseline does?",
+          "answer": "It rescales each prompt group’s centered rewards, changing relative gradient weights across groups rather than only shifting their reward origin.",
+          "explanation": "$A^{(i)}=(r^{(i)}-\\operatorname{mean}(\\mathbf r))/\\operatorname{std}(\\mathbf r)$ grows in magnitude as a positive denominator shrinks for a fixed numerator. This changes relative weighting across groups. ⚠️ Note: the source’s easy-or-hard claim is simplified; numerator changes and exactly zero spread require separate treatment."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.zero-group-spread",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "If every response in a GRPO group gets the same reward, why is numerical stabilization alone insufficient to restore reward learning?",
+          "answer": "There is no within-group reward contrast: centering gives zero for every response, so stabilizing the denominator adds no learning signal.",
+          "explanation": "Equal rewards give $r^{(i)}-\\operatorname{mean}(\\mathbf r)=0$ and $\\operatorname{std}(\\mathbf r)=0$. The literal normalization is undefined, and merely making division finite cannot create a reward ranking. ⚠️ Note: the source omits zero-variance handling; the conclusion concerns the group-relative reward term, not a possible separate KL term."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.positive-length-bias",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In response-length-normalized GRPO, why can two equally successful responses train their tokens with different strength?",
+          "answer": "For equal positive advantages, shorter responses receive larger positive weight per token because each response’s token terms are averaged.",
+          "explanation": "The response contribution averages token terms, $\\frac1{|o_i|}\\sum_t\\min(r_tA^{(i)},\\operatorname{clip}(r_t)A^{(i)})$. Holding the other factors fixed, each token of a shorter response receives more weight. ⚠️ Note: this is a per-token effect; the total gradient also depends on all token score vectors."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.grpo.negative-length-bias",
+      "section": "2e67eb87-3605-807a-8e78-d0b8a4a1b217",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can response-length averaging under-penalize tokens in long, below-average GRPO completions?",
+          "answer": "Its negative advantage is divided across more tokens, reducing the magnitude of each token’s penalty.",
+          "explanation": "For $A^{(i)}<0$, the factor $A^{(i)}/|o_i|$ moves closer to zero as length grows. Each token then gets a weaker negative weight, creating the length bias highlighted in the source. ⚠️ Note: this is an incentive at the weighting level, not a guarantee that a model will produce longer failures."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.dpo.reward-policy-reparameterization",
+      "section": "3107eb87-3605-8041-aa30-f602184a1b4c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For the KL-regularized reward optimum, how does reward alter the reference policy’s probabilities over complete responses?",
+          "answer": "It exponentially tilts them: $\\pi^*(y\\mid x)=\\pi_\\mathrm{ref}(y\\mid x)\\exp(R(y)/\\beta)/Z(x)$.",
+          "explanation": "$\\pi^*/\\pi_\\mathrm{ref}=\\exp(R(y)/\\beta)/Z(x)$ implies $R(y)=\\beta\\log(\\pi^*/\\pi_\\mathrm{ref})+\\beta\\log Z(x)$. Higher reward boosts reference mass exponentially, with normalization shared by the prompt. This expression lets preference fitting use a policy/reference log ratio in place of a separately parameterized reward."
+        }
+      ]
+    },
+    {
+      "id": "posttraining.dpo.pairwise-normalizer-cancellation",
+      "section": "3107eb87-3605-8041-aa30-f602184a1b4c",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can DPO fit two responses to one prompt without computing the response-distribution normalizer $Z(x)$?",
+          "answer": "Both completions share the same prompt, so the additive $\\beta\\log Z(x)$ terms cancel in their reward difference.",
+          "explanation": "$R(y_w)-R(y_l)=\\beta\\log\\frac{\\pi^*(y_w\\mid x)}{\\pi_\\mathrm{ref}(y_w\\mid x)}-\\beta\\log\\frac{\\pi^*(y_l\\mid x)}{\\pi_\\mathrm{ref}(y_l\\mid x)}$. The shared $\\beta\\log Z(x)$ disappears. Substituting the policy for $\\pi^*$ inside the Bradley–Terry likelihood yields DPO’s negative log-sigmoid preference loss."
+        }
+      ]
+    }
+  ]
+}
