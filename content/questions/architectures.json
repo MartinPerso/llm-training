@@ -6,10 +6,10 @@
       "section": "33e7eb87-3605-801a-921b-e0292847ac89",
       "variants": [
         {
-          "kind": "recall",
-          "prompt": "Why can a training update driven by an RNN's final output change its early hidden states on the next forward pass?",
-          "answer": "The same transition weights are used at every timestep. Updating them from the final output changes the computation at early positions too, even if those positions have no separate loss.",
-          "explanation": "The update $h_t=\\tanh(W_xx_t+W_hh_{t-1}+b)$ reuses $W_x$ and $W_h$ across time. An unrolled RNN therefore does not have an independent parameter set for each position. A gradient signal arriving through late outputs changes the shared transition used throughout the next pass."
+          "kind": "truefalse",
+          "prompt": "A vanilla RNN learns a separate recurrent matrix $W_h$ for each time step of the sequence.",
+          "answer": false,
+          "explanation": "The same $W_x$, $W_h$ and $b$ are reused at every step of $h_t=\\tanh(W_xx_t+W_hh_{t-1}+b)$, so the parameter count does not depend on sequence length. That sharing is also why gradients vanish or explode: backpropagating through $T$ steps multiplies by the same $W_h$ again and again, inside $\\operatorname{diag}(\\tanh'(z_t))W_h$."
         }
       ]
     },
@@ -51,7 +51,13 @@
           "kind": "recall",
           "prompt": "What lets gradients persist along an LSTM's cell-state route over many steps?",
           "answer": "The direct cell-state route uses elementwise retention rather than repeated matrix multiplication and tanh. Forget gates near 1 keep that route from strongly attenuating gradients.",
-          "explanation": "From $c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t$, the direct old-cell contribution is multiplied by $f_t$, which preserves it when $f_t\\approx1$. This avoids the vanilla RNN's repeated $W_h$ and tanh along that route. ⚠️ Note: this describes the direct path, not every gradient path through the gates."
+          "explanation": "From $c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t$, the direct old-cell contribution is only multiplied elementwise by $f_t$, which preserves it when $f_t\\approx1$. There is no repeated $W_h$ and no tanh along that route, unlike the vanilla RNN's $\\operatorname{diag}(\\tanh'(z_t))W_h$ factor at every step, which is what makes its gradients vanish or explode."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Going from $c_{t-1}$ to $c_t$ along an LSTM's cell state, the signal meets only elementwise multiplications and additions.",
+          "answer": true,
+          "explanation": "The update $c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t$ touches the old cell state only through an elementwise product with $f_t$ and a sum: no matmul, no non-linearity. Information enters or leaves only through the gates. This highway is why gradients can travel back many steps as long as $f_t$ stays near 1, unlike the repeated $W_h$ and tanh of a vanilla RNN."
         }
       ]
     },
@@ -60,10 +66,16 @@
       "section": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
       "variants": [
         {
-          "kind": "recall",
-          "prompt": "How can an LSTM keep stored information temporarily out of its hidden output?",
-          "answer": "Close the output gate while retaining the cell state. The hidden output can be near zero even though the stored memory remains available.",
-          "explanation": "The output is $h_t=o_t\\odot\\tanh(c_t)$, whereas storage changes through $c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t$. A small output gate suppresses exposure without directly erasing memory. This separates long-term storage from the current output, unlike the single hidden vector in a vanilla RNN."
+          "kind": "mcq",
+          "prompt": "Which gate setting lets an LSTM keep a fact in its cell state while hiding it from the hidden state?",
+          "choices": [
+            "Forget near 0, output near 1",
+            "Input near 0, output near 1",
+            "Forget near 1, output near 0",
+            "Forget near 1, input near 1"
+          ],
+          "correct": 2,
+          "explanation": "Retention is set by the forget gate in $c_t=f_t\\odot c_{t-1}+i_t\\odot\\tilde c_t$, exposure by the output gate in $h_t=o_t\\odot\\tanh(c_t)$. With $f_t\\approx1$ the fact survives and with $o_t\\approx0$ it does not reach $h_t$. Forget near 0 erases it, output near 1 exposes it, and an open input gate keeps writing new content over it."
         }
       ]
     },
@@ -76,6 +88,12 @@
           "prompt": "Why can closing an LSTM output gate change the next step’s memory updates even when it leaves the current cell state intact?",
           "answer": "It suppresses the hidden state, which feeds the next step’s gates. The output gate therefore affects later retention and writing decisions as well as the visible output.",
           "explanation": "The connection is $h_t=o_t\\odot\\tanh(c_t)$ followed by $f_{t+1}=\\sigma(W_f\\cdot[h_t,x_{t+1}]+b_f)$, with analogous input and output gates. The gates receive the filtered hidden state rather than the full cell state. Storage and exposure are separate, but exposure still feeds back into future memory control."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An LSTM's gates at step $t+1$ see the cell state only through $h_t=o_t\\odot\\tanh(c_t)$.",
+          "answer": true,
+          "explanation": "Every gate is computed from $[h_t,x_{t+1}]$, for example $f_{t+1}=\\sigma(W_f\\cdot[h_t,x_{t+1}]+b_f)$, never from $c_t$ directly. So $h_t$ does double duty: it is what the outside world sees, and it is what the next step's gates use to decide how to treat the memory. A closed output gate therefore also changes the next step's decisions."
         }
       ]
     },
@@ -106,9 +124,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why does attention give distant tokens a shorter interaction path than an RNN?",
-          "answer": "An allowed token pair interacts directly through attention, giving an $O(1)$ path independent of their distance. An RNN must pass information through the intervening hidden states.",
-          "explanation": "Attention can connect a token directly to a distant token it is allowed to attend to; recurrence requires intermediate state updates. The $O(1)$ claim concerns path length, not total attention cost. ⚠️ Note: the source's claim that distant gradients cannot influence earlier processing is too absolute; a long path can attenuate gradients without making them impossible."
+          "prompt": "How does the path between two tokens depend on their distance, in attention versus in an RNN?",
+          "answer": "In attention the path is direct, $O(1)$, whatever the distance: each token looks at every other token. In an RNN, whatever token 1 contributes must be carried through every intermediate hidden state before token 100 can use it, so the path grows with the distance.",
+          "explanation": "A short path is what helps attention with long-range dependencies: nothing has to be carried through dozens of state updates, each of which can wash it out. The $O(1)$ is path length, not cost: attention scores every pair of tokens in one go, which is what makes it $O(n^2)$ in sequence length $n$."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "In attention, the path between token 1 and token 100 is no longer than the path between two adjacent tokens.",
+          "answer": true,
+          "explanation": "Each token attends directly to every other token, so any two tokens are one step apart: the path is $O(1)$ and independent of distance. A recurrent network instead relays early content step by step through each hidden state in between. The price of the direct path is scoring every pair of tokens, $O(n^2)$ for sequence length $n$."
         }
       ]
     },
@@ -120,7 +144,7 @@
           "kind": "recall",
           "prompt": "For fixed model and state sizes, how does an SSM’s sequence-processing cost differ between training and recurrent inference?",
           "answer": "Training processes a length-$n$ sequence with $O(n)$ work and can be parallelized across positions. Recurrent inference uses $O(1)$ work per new token with respect to history length.",
-          "explanation": "Here $n$ is sequence length. Training need not execute the recurrence one position at a time, while inference updates a fixed-size state through $x_k=A x_{k-1}+B u_k$ ($B$ is the input-to-state map, not batch size). ⚠️ Note: constant cost applies to one recurrent update, not an entire generated sequence or varying state size."
+          "explanation": "Here $n$ is sequence length. Training need not execute the recurrence one position at a time, while inference updates a fixed-size state through $x_k=A x_{k-1}+B u_k$ ($B$ is the input-to-state map, not batch size). SSMs thus combine the transformer's parallel training with the RNN's linear cost, and a constant per-token cost at inference."
         },
         {
           "kind": "truefalse",
@@ -135,10 +159,64 @@
       "section": "2d17eb87-3605-804f-80df-ee0f622e523f",
       "variants": [
         {
+          "kind": "mcq",
+          "prompt": "In Mamba, which input-dependent quantity controls the timescale of the state update?",
+          "choices": [
+            "$B_k$",
+            "$C_k$",
+            "$\\Delta_k$",
+            "$A$"
+          ],
+          "correct": 2,
+          "explanation": "Mamba makes three quantities functions of the input: $B_k=f_B(u_k)$ selects what information enters the state, $C_k=f_C(u_k)$ selects what is read from it, and $\\Delta_k=f_\\Delta(u_k)$ controls the timescale. $A$ is not listed among the input-dependent ones. Here $B_k$ is a state-input coefficient, not batch size."
+        }
+      ]
+    },
+    {
+      "id": "architectures.lstm.memory-output-separation",
+      "section": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
+      "variants": [
+        {
           "kind": "recall",
-          "prompt": "Which three parts of state processing does Mamba make depend on the current input?",
-          "answer": "What information is incorporated, what is read from the state, and the timescale of state evolution.",
-          "explanation": "Mamba conditions three quantities on $u_k$: $B_k=f_B(u_k)$ controls incorporation, $C_k=f_C(u_k)$ controls readout, and $\\Delta_k=f_\\Delta(u_k)$ controls timescale. Here $B_k$ is a state-input coefficient, not batch size. A basic SSM already updates its state with each input; Mamba additionally changes these controls according to input content."
+          "prompt": "What does an LSTM split into two vectors that a vanilla RNN forces into one?",
+          "answer": "Long-term memory and current output: the cell state $c_t$ is the memory, and the hidden state $h_t$ is the working output. A vanilla RNN's single $h_t$ has to serve as both.",
+          "explanation": "The cell state runs along an elementwise highway changed only through gates, while $h_t=o_t\\odot\\tanh(c_t)$ is a filtered view of it exposed to the outside and to the next step's gates. This separation is what makes LSTMs work: the memory can stay intact while the output changes, which a single overloaded vector cannot do."
+        }
+      ]
+    },
+    {
+      "id": "architectures.lstm.gate-sigmoid-range",
+      "section": "33e7eb87-3605-809d-96e8-c8d1220a85eb",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Why are the LSTM's forget, input and output gates sigmoids rather than tanh?",
+          "choices": [
+            "Sigmoids keep gradients from vanishing",
+            "Outputs in (0,1) act as pass-through fractions",
+            "Sigmoids are cheaper to compute",
+            "Gates need signed values like the content"
+          ],
+          "correct": 1,
+          "explanation": "Each gate multiplies a vector elementwise ($f_t\\odot c_{t-1}$, $i_t\\odot\\tilde c_t$, $o_t\\odot\\tanh(c_t)$), so a value in $(0,1)$ reads as how much of each element to let through: 0 blocks, 1 passes. Signed content is the job of tanh, used for $\\tilde c_t$ and $\\tanh(c_t)$. Gradient flow comes from the cell-state highway, not from the sigmoid."
+        }
+      ]
+    },
+    {
+      "id": "architectures.state-space-models.transformer-rnn-tradeoff",
+      "section": "2d17eb87-3605-804f-80df-ee0f622e523f",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Over a length-$n$ sequence, which pairing correctly describes transformers and RNNs?",
+          "choices": [
+            "Transformer: parallel, $O(n^2)$; RNN: sequential, $O(n)$",
+            "Transformer: sequential, $O(n^2)$; RNN: parallel, $O(n)$",
+            "Transformer: parallel, $O(n)$; RNN: sequential, $O(n^2)$",
+            "Transformer: parallel, $O(n^2)$; RNN: parallel, $O(n)$"
+          ],
+          "correct": 0,
+          "explanation": "Attention processes all positions at once but compares every pair, so it is parallel and $O(n^2)$; an RNN does $O(n)$ work but must run step by step. SSMs get the best of both: $O(n)$ and parallel in training, then $O(1)$ per token and sequential at inference, through the fixed-size state update $x_k=A x_{k-1}+B u_k$."
         }
       ]
     }
