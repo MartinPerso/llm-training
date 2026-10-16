@@ -95,7 +95,7 @@ if (merge.added.length + merge.replaced.length === 0) {
 const info = buildChapters(sections, [{ name: `${slug}.json`, data: merged }], readBookCache()).find((c) => c.slug === slug)!;
 console.log('\nConcepts per section (written / target):');
 for (const s of info.sections) {
-  const goal = s.target === undefined ? '?' : s.trivial ? 'none needed' : String(s.target);
+  const goal = s.url ? '-' : s.target === undefined ? '?' : s.trivial ? 'none needed' : String(s.target);
   console.log(`  ${s.concepts} / ${goal}  ${s.title}`);
 }
 const todo = info.sections.filter((s) => s.concepts === 0 && !s.trivial);

@@ -27,7 +27,8 @@ if (process.argv.includes('--json')) {
   console.log(formatStatusTable(chapters, t));
   console.log(
     '\nsections = non-trivial (body of 40+ chars); chars = their source text; target = sum of per-section targets (about chars/350, at least 1 per section);' +
-      '\nmix = % of recall/numeric/mcq/truefalse variants (goal about 30/25/25/20). Write a chapter with: npm run bank:task -- <slug>',
+      '\nmix = % of recall/numeric/mcq/truefalse variants (goal about 30/25/25/20). Write a chapter with: npm run bank:task -- <slug>' +
+      (chapters.some((c) => c.sourceUrl) ? '\n"-" = chapter from an external source (a web page, not the book): no cached text, so no size or target.' : ''),
   );
   for (const c of chapters) {
     if (c.parseError) console.warn(`warning: ${c.file} is not valid JSON: ${c.parseError}`);

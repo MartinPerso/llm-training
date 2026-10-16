@@ -493,5 +493,167 @@
     "order": 54,
     "hash": "08c9dbfe93b88409476c01d8bbad9343dede5a4c79887fc6432787004f894b99",
     "coveredHash": "08c9dbfe93b88409476c01d8bbad9343dede5a4c79887fc6432787004f894b99"
+  },
+  {
+    "id": "recipe-map",
+    "chapter": "Agentic RL",
+    "title": "What post-training is, and the recipe map",
+    "level": 2,
+    "order": 55,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#1--what-post-training-is-and-the-recipe-map"
+  },
+  {
+    "id": "math-toolkit",
+    "chapter": "Agentic RL",
+    "title": "RL background and the math toolkit",
+    "level": 2,
+    "order": 56,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#2--rl-background-and-the-math-toolkit"
+  },
+  {
+    "id": "algorithm-families",
+    "chapter": "Agentic RL",
+    "title": "Algorithm families: value-based, policy-gradient, actor-critic",
+    "level": 2,
+    "order": 57,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#3--algorithm-families-value-based-policy-gradient-actor-critic"
+  },
+  {
+    "id": "reward-modeling",
+    "chapter": "Agentic RL",
+    "title": "Preferences and reward modeling",
+    "level": 2,
+    "order": 58,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#4--preferences-and-reward-modeling"
+  },
+  {
+    "id": "verifiable-rewards",
+    "chapter": "Agentic RL",
+    "title": "Verifiable rewards, regularization, and reward hacking",
+    "level": 2,
+    "order": 59,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#5--verifiable-rewards-regularization-and-reward-hacking"
+  },
+  {
+    "id": "rejection-distillation",
+    "chapter": "Agentic RL",
+    "title": "Rejection sampling and on-policy distillation",
+    "level": 2,
+    "order": 60,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#6--rejection-sampling-and-on-policy-distillation"
+  },
+  {
+    "id": "ppo-trust-regions",
+    "chapter": "Agentic RL",
+    "title": "The PPO family and trust regions",
+    "level": 2,
+    "order": 61,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#7--the-ppo-family-and-trust-regions"
+  },
+  {
+    "id": "grpo-variants",
+    "chapter": "Agentic RL",
+    "title": "GRPO and the variant zoo",
+    "level": 2,
+    "order": 62,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#8--grpo-and-the-variant-zoo"
+  },
+  {
+    "id": "direct-alignment",
+    "chapter": "Agentic RL",
+    "title": "Direct alignment (DPO and friends)",
+    "level": 2,
+    "order": 63,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#9--direct-alignment-dpo-and-friends"
+  },
+  {
+    "id": "rlvr-reasoning",
+    "chapter": "Agentic RL",
+    "title": "RLVR and reasoning",
+    "level": 2,
+    "order": 64,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#10--rlvr-and-reasoning"
+  },
+  {
+    "id": "test-time-scaling",
+    "chapter": "Agentic RL",
+    "title": "RL vs test-time scaling",
+    "level": 2,
+    "order": 65,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#11--rl-vs-test-time-scaling"
+  },
+  {
+    "id": "evaluation",
+    "chapter": "Agentic RL",
+    "title": "Evaluation: how do you know RL actually helped?",
+    "level": 2,
+    "order": 66,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#12--evaluation-how-do-you-know-rl-actually-helped"
+  },
+  {
+    "id": "multi-turn",
+    "chapter": "Agentic RL",
+    "title": "From single-turn RLHF to multi-turn agentic RL",
+    "level": 2,
+    "order": 67,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#13--from-single-turn-rlhf-to-multi-turn-agentic-rl"
+  },
+  {
+    "id": "environments",
+    "chapter": "Agentic RL",
+    "title": "Environments: the bottleneck, and difficulty ≠ trainability",
+    "level": 2,
+    "order": 68,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#14--environments-the-bottleneck-and-difficulty--trainability"
+  },
+  {
+    "id": "agent-safety",
+    "chapter": "Agentic RL",
+    "title": "Agent safety: the verifier is not the only attack surface",
+    "level": 2,
+    "order": 69,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#15--agent-safety-the-verifier-is-not-the-only-attack-surface"
+  },
+  {
+    "id": "memory-parallelism",
+    "chapter": "Agentic RL",
+    "title": "Memory, parallelism, and precision",
+    "level": 2,
+    "order": 70,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#16--memory-parallelism-and-precision"
+  },
+  {
+    "id": "rollout-engines",
+    "chapter": "Agentic RL",
+    "title": "Rollout engines and serving",
+    "level": 2,
+    "order": 71,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#17--rollout-engines-and-serving"
+  },
+  {
+    "id": "async-rl",
+    "chapter": "Agentic RL",
+    "title": "Async RL and training-inference consistency",
+    "level": 2,
+    "order": 72,
+    "hash": "2026-06",
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#18--async-rl-and-traininginference-consistency"
   }
 ]

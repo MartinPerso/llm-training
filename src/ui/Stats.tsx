@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { bank } from '../bank/index.ts';
-import { sectionLink } from '../bank/types.ts';
+import { sectionLink, sectionLinkLabel } from '../bank/types.ts';
 import { chapterStats, mostMissed } from '../srs/stats.ts';
 import Markdown from './Markdown.tsx';
 import { useProgress } from './useProgress.ts';
@@ -44,6 +44,7 @@ export default function Stats() {
           const concept = bank.byId.get(m.id);
           if (!concept) return null;
           const first = concept.variants[0];
+          const section = bank.sections.get(concept.section);
           return (
             <li key={m.id}>
               <div className="row between">
@@ -53,8 +54,8 @@ export default function Stats() {
                 </span>
               </div>
               {first && <Markdown text={first.prompt} />}
-              <a href={sectionLink(concept.section)} target="_blank" rel="noopener noreferrer">
-                Read in the book ↗
+              <a href={sectionLink(concept.section, section)} target="_blank" rel="noopener noreferrer">
+                {sectionLinkLabel(section)}
               </a>
             </li>
           );

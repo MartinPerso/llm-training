@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import type { Section } from '../../src/bank/types.ts';
 import type { BankFile } from './check.ts';
 import { BOOK_DIR } from './paths.ts';
+import { isExternal } from './sections-file.ts';
 import { chapterSlug, slugify } from './slugs.ts';
 
 /** A section whose body (without its heading) is shorter than this has nothing to ask about. */
@@ -72,8 +73,9 @@ export interface SectionInfo {
   order: number;
   hash: string;
   coveredHash?: string;
+  url?: string; // external sources only: link to the section
   state: SectionState;
-  file?: string; // undefined when .cache/book is missing
+  file?: string; // undefined when .cache/book is missing (and always for external sources)
   chars?: number; // body chars; undefined when .cache/book is missing
   trivial?: boolean; // heading-only; undefined when unknown
   target?: number; // undefined when unknown
@@ -88,11 +90,13 @@ export interface ChapterInfo {
   /** `content/questions/<slug>.json` */
   file: string;
   fileExists: boolean;
+  /** Source page of an external-source chapter (its sections' url without the #anchor); undefined for book chapters. */
+  sourceUrl?: string;
   parseError?: string;
   sections: SectionInfo[];
   nonTrivialSections?: number;
-  chars?: number; // sum of body chars
-  target?: number; // sum of per-section targets
+  chars?: number; // sum of body chars; undefined for external sources (no cached text)
+  target?: number; // sum of per-section targets; undefined for external sources
   concepts: number; // non-retired
   retired: number;
   variants: number; // of non-retired concepts
@@ -181,11 +185,14 @@ export function buildChapters(
       }
     }
 
-    const infos: SectionInfo[] = (byChapter.get(title) ?? []).map((s) => {
-      const entry = cache?.get(s.id);
+    const chapterSections = byChapter.get(title) ?? [];
+    // External sources have no cached text: every registered section counts as non-trivial, sizes stay unknown.
+    const external = chapterSections.find(isExternal);
+    const infos: SectionInfo[] = chapterSections.map((s) => {
+      const entry = isExternal(s) ? undefined : cache?.get(s.id);
       const ids = idsBySection.get(s.id) ?? [];
       const existingSlug = ids.map((id) => id.split('.')[1]).find(Boolean);
-      return {
+      const info: SectionInfo = {
         id: s.id,
         title: s.title,
         level: s.level,
@@ -195,24 +202,28 @@ export function buildChapters(
         state: sectionState(s),
         file: entry?.file,
         chars: entry?.bodyChars,
-        trivial: entry ? isTrivial(entry.bodyChars) : undefined,
+        trivial: entry ? isTrivial(entry.bodyChars) : isExternal(s) ? false : undefined,
         target: entry ? sectionTarget(entry.bodyChars) : undefined,
         concepts: liveBySection.get(s.id) ?? 0,
         conceptIds: ids,
-        suggestedSlug: existingSlug ?? suggestSectionSlug(s),
+        // External section ids are already short keys, used as the middle segment of concept ids.
+        suggestedSlug: existingSlug ?? (isExternal(s) ? s.id : suggestSectionSlug(s)),
       };
+      if (s.url !== undefined) info.url = s.url;
+      return info;
     });
 
-    const known = infos.every((s) => s.chars !== undefined);
+    const known = !external && infos.every((s) => s.chars !== undefined);
     const fileExists = bankFile !== undefined || parseError !== undefined;
     return {
       slug,
       title,
       file,
       fileExists,
+      ...(external ? { sourceUrl: external.url!.split('#')[0] } : {}),
       parseError,
       sections: infos,
-      nonTrivialSections: known ? infos.filter((s) => !s.trivial).length : undefined,
+      nonTrivialSections: external ? infos.length : known ? infos.filter((s) => !s.trivial).length : undefined,
       chars: known ? infos.reduce((n, s) => n + s.chars!, 0) : undefined,
       target: known ? infos.reduce((n, s) => n + s.target!, 0) : undefined,
       concepts: live,
@@ -264,8 +275,9 @@ export interface Totals {
   kinds: Record<Kind, number>;
 }
 
+/** Sizes and targets add up the book chapters only (external sources have none); they are unknown if any book chapter's are. */
 export function totals(chapters: ChapterInfo[]): Totals {
-  const known = chapters.every((c) => c.chars !== undefined);
+  const known = chapters.every((c) => c.sourceUrl !== undefined || c.chars !== undefined);
   const t: Totals = {
     chapters: chapters.length,
     byStatus: { todo: 0, 'in progress': 0, done: 0, outdated: 0 },
@@ -283,8 +295,10 @@ export function totals(chapters: ChapterInfo[]): Totals {
     t.sections += c.sections.length;
     if (known) {
       t.nonTrivialSections! += c.nonTrivialSections!;
-      t.chars! += c.chars!;
-      t.target! += c.target!;
+      if (c.sourceUrl === undefined) {
+        t.chars! += c.chars!;
+        t.target! += c.target!;
+      }
     }
     t.concepts += c.concepts;
     t.retired += c.retired;

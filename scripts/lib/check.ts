@@ -189,6 +189,29 @@ export function checkBank(files: BankFile[], sections: Section[]): CheckResult {
   return { errors, warnings, stats };
 }
 
+/**
+ * Problems in content/sections.json itself: duplicate ids, and external-source sections (those with a `url`):
+ * the url must be http(s), and a chapter is either all book sections or all external ones.
+ */
+export function checkSections(sections: Section[]): Issue[] {
+  const issues: Issue[] = [];
+  const err = (message: string) => issues.push({ file: 'sections.json', message });
+  const seen = new Set<string>();
+  const kinds = new Map<string, Set<'book' | 'external'>>();
+  for (const s of sections) {
+    if (seen.has(s.id)) err(`duplicate section id ${s.id}`);
+    seen.add(s.id);
+    if (s.url !== undefined && !/^https?:\/\/\S+$/.test(s.url)) err(`section ${s.id}: url must be an http(s) link, got "${s.url}"`);
+    const set = kinds.get(s.chapter) ?? new Set();
+    set.add(s.url === undefined ? 'book' : 'external');
+    kinds.set(s.chapter, set);
+  }
+  for (const [chapter, set] of kinds) {
+    if (set.size > 1) err(`chapter "${chapter}" mixes book sections and external-source sections (with a url)`);
+  }
+  return issues;
+}
+
 export function formatIssue(i: Issue): string {
   return `${i.file}: ${i.concept ?? '(file)'}: ${i.message}`;
 }

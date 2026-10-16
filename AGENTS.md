@@ -35,7 +35,7 @@ AGENTS.md, CLAUDE.md          this file (CLAUDE.md just imports it)
 .claude/skills/               write-questions, review-questions (Claude Code shortcuts to the workflows below)
 content/
   GUIDE.md                    question-writing contract (quality bar, kinds, ids, format, self-check)
-  sections.json               id, chapter, title, order, hash, coveredHash per section (no book text)
+  sections.json               id, chapter, title, order, hash, coveredHash per section (no book text); url for external sources
   questions/<slug>.json       the bank: one file per chapter (files starting with `_` are ignored)
 scripts/                      content pipeline (Node 24, run with `node scripts/x.ts`, erasable TS only)
   fetch-book.ts, book-diff.ts, check-bank.ts, bank-status.ts, bank-task.ts, bank-pack.ts, bank-import.ts, mark-covered.ts
@@ -77,6 +77,19 @@ For writing questions in a chat (claude.ai, ChatGPT, Gemini...) with no coding a
 6. **Review** in the app with `npm run dev`. For a deeper audit, `npm run bank:task -- <slug> --review` gives a reviewer brief for a coding agent.
 7. **Mark covered** when satisfied: `npm run book:covered -- <slug>` (`-- <slug> --section <id>` if only part of the chapter was written).
 8. **Commit and publish**: `git add content/questions/<slug>.json content/sections.json && git commit -m "Add questions: <Chapter title>"`, then `git push`.
+
+## External sources (chapters from a web page)
+
+A chapter can come from a web page instead of the Notion book, for example "Agentic RL" (slug `agenticrl`) from [a blog post on RL and agentic RL](https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/). Its sections are ordinary entries of `content/sections.json` with a `url`:
+
+```json
+{ "id": "ppo-trust-regions", "chapter": "Agentic RL", "title": "The PPO family and trust regions", "level": 2, "order": 61, "hash": "2026-06",
+  "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#7--the-ppo-family-and-trust-regions" }
+```
+
+- `id` is a short kebab-case key (the concepts' `section`, and by convention the middle segment of their ids). `url` is the page plus the heading's `#anchor` (the app's "Read the source" link). `hash` is a revision label of your choice (the post's date): `book:diff` reports the section as changed only when you bump it. `order` goes after the book; `book:fetch` keeps these entries and renumbers them after the book's sections. A chapter is either all book sections or all external ones (`bank:check` enforces it, and that each `url` is http(s)).
+- `bank:check`, `bank:import`, `bank:status` (sizes and targets show `-`), `book:diff` and `book:covered` work as for book chapters. `bank:task` and `bank:pack` refuse: the text is not cached, so write a self-contained prompt that links the page, with the section keys, and import the reply with `bank:import`.
+- To add a source: append one entry per section (the page's headings, in order) with the chapter title, make sure `chapterSlug` (`scripts/lib/slugs.ts`) gives a slug without hyphens (it does for most titles), run `npm run bank:check`, and commit `content/sections.json`.
 
 ## Reviewing questions
 

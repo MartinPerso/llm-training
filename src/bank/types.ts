@@ -2,12 +2,13 @@
 // All text fields are Markdown with $inline$ / $$display$$ LaTeX.
 
 export interface Section {
-  id: string;           // Notion block id (with dashes); deep link uses it without dashes
+  id: string;           // Notion block id (with dashes); deep link uses it without dashes. External sources: a short key
+  url?: string;         // external sources only: link to this section (with its #anchor); book sections have none
   chapter: string;      // H1 title
   title: string;        // heading title (equals chapter for the H1 itself)
   level: 1 | 2 | 3;
   order: number;        // position in the book
-  hash: string;         // sha256 of the section's Markdown at last fetch
+  hash: string;         // sha256 of the section's Markdown at last fetch; external sources: a revision label
   coveredHash?: string; // hash when questions were last written for it
 }
 
@@ -34,4 +35,7 @@ export interface ChapterFile {
 export const DEFAULT_TOLERANCE = 0.05;
 
 export const BOOK_URL = "https://alisawuffles.notion.site/alisa-s-book-of-llms";
-export const sectionLink = (sectionId: string) => `${BOOK_URL}#${sectionId.replaceAll("-", "")}`;
+/** Where to read a concept's source: the section's own url for external sources, else the Notion book's deep link. */
+export const sectionLink = (sectionId: string, section?: Pick<Section, "url">) =>
+  section?.url ?? `${BOOK_URL}#${sectionId.replaceAll("-", "")}`;
+export const sectionLinkLabel = (section?: Pick<Section, "url">) => (section?.url ? "Read the source ↗" : "Read in the book ↗");

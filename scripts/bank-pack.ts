@@ -57,6 +57,14 @@ if (all && values.section) {
   process.exit(1);
 }
 
+const externalMessage = (c: { slug: string; title: string; sourceUrl?: string }) =>
+  `Chapter ${c.slug} ("${c.title}") comes from an external source, ${c.sourceUrl}, not from the Notion book: there is no cached text to build a pack from. ` +
+  `Write a prompt that links the page instead (see "External sources" in AGENTS.md), then import the reply with npm run bank:import.`;
+if (chapter?.sourceUrl) {
+  console.error(externalMessage(chapter));
+  process.exit(1);
+}
+
 const notation: SectionInfo | undefined = chapters.find((c) => c.slug === 'transformer')?.sections.find((s) => s.title.toLowerCase() === 'architecture');
 const read = (s: SectionInfo) => (s.file ? sectionBody(readFileSync(join(BOOK_DIR, s.file), 'utf8')) : '');
 const notationText = notation ? read(notation) : undefined;
@@ -80,7 +88,10 @@ function pack(c: ChapterInfo, section?: SectionInfo) {
 }
 
 if (all) {
-  for (const c of chapters) pack(c);
+  for (const c of chapters) {
+    if (c.sourceUrl) console.log(`skipped ${c.slug}: external source (${c.sourceUrl}), no cached text`);
+    else pack(c);
+  }
 } else {
   let section: SectionInfo | undefined;
   if (values.section) {

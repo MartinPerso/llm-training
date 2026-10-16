@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { convertBook } from './lib/convert.ts';
 import { NotionClient, type BlockMap } from './lib/notion.ts';
 import { BOOK_DIR, CACHE_DIR, RAW_BLOCKS_FILE, SECTIONS_FILE } from './lib/paths.ts';
-import { readSections, toStoredSection } from './lib/sections-file.ts';
+import { isExternal, mergeFetchedSections, readSections } from './lib/sections-file.ts';
 import { chapterSlug } from './lib/slugs.ts';
 
 const HOST = 'alisawuffles.notion.site';
@@ -50,20 +50,20 @@ writeFileSync(
   ].join('\n') + '\n',
 );
 
-// content/sections.json: preserve coveredHash by id.
-const previous = new Map(readSections().map((s) => [s.id, s]));
-const stored = sections.map((s) => toStoredSection(s, previous.get(s.id)?.coveredHash));
+// content/sections.json: preserve coveredHash by id, keep external-source sections (those with a url) after the book.
+const { stored, gone } = mergeFetchedSections(sections, readSections());
 mkdirSync(dirname(SECTIONS_FILE), { recursive: true });
 writeFileSync(SECTIONS_FILE, JSON.stringify(stored, null, 2) + '\n');
 
 const changed = stored.filter((s) => s.coveredHash && s.coveredHash !== s.hash);
-const gone = [...previous.values()].filter((p) => !sections.some((s) => s.id === p.id));
+const external = stored.filter(isExternal);
 const warnings = [...stats.warnings];
 for (const g of gone) warnings.push(`section no longer in the book: ${g.id} "${g.title}" (covered: ${!!g.coveredHash})`);
 
 const chapters = new Set(sections.map((s) => s.chapter));
 console.log('\n=== Summary ===');
 console.log(`chapters: ${chapters.size}, sections: ${sections.length}`);
+if (external.length) console.log(`kept ${external.length} external-source section(s) of ${new Set(external.map((s) => s.chapter)).size} chapter(s)`);
 console.log('blocks by type:', Object.entries(stats.blockCounts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}=${v}`).join(', '));
 console.log(`equations: ${stats.inlineEquations} inline + ${stats.displayEquations} display = ${stats.inlineEquations + stats.displayEquations}`);
 console.log(`book size: ${sections.reduce((n, s) => n + s.markdown.length, 0)} characters of Markdown`);

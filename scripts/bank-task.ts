@@ -44,6 +44,14 @@ if (positionals.length > 1) {
   process.exit(1);
 }
 
+const externalMessage = (c: { slug: string; title: string; sourceUrl?: string }) =>
+  `Chapter ${c.slug} ("${c.title}") comes from an external source, ${c.sourceUrl}, not from the Notion book: there is no cached text to build a brief from. ` +
+  `Write a prompt that links the page instead (see "External sources" in AGENTS.md), then import the reply with npm run bank:import.`;
+if (chapter.sourceUrl) {
+  console.error(externalMessage(chapter));
+  process.exit(1);
+}
+
 const notation = chapters.find((c) => c.slug === 'transformer')?.sections.find((s) => s.title.toLowerCase() === 'architecture');
 const base = { chapter, notation, cacheAvailable: cache !== undefined };
 

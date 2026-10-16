@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { bank } from '../bank/index.ts';
-import { sectionLink, DEFAULT_TOLERANCE, type Question } from '../bank/types.ts';
+import { sectionLink, sectionLinkLabel, DEFAULT_TOLERANCE, type Question } from '../bank/types.ts';
 import { formatNumber, isCloseEnough, parseNumeric } from '../grading/numeric.ts';
 import { buildQueue, queueCounts, type QueueItem } from '../srs/queue.ts';
 import { autoRating, RATING_LABELS, type Rating } from '../srs/rating.ts';
@@ -378,8 +378,8 @@ function Card({
           )}
           {q.explanation && <Markdown text={q.explanation} className="explanation" />}
           <div className="row links">
-            <a href={sectionLink(concept.section)} target="_blank" rel="noopener noreferrer">
-              Read in the book ↗
+            <a href={sectionLink(concept.section, section)} target="_blank" rel="noopener noreferrer">
+              {sectionLinkLabel(section)}
             </a>
             <button type="button" className="btn small-btn" onClick={flag} disabled={flagged}>
               {flagged ? 'Flagged' : 'Flag (F)'}
