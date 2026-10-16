@@ -501,7 +501,8 @@
     "level": 2,
     "order": 55,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#1--what-post-training-is-and-the-recipe-map"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#1--what-post-training-is-and-the-recipe-map",
+    "coveredHash": "2026-06"
   },
   {
     "id": "math-toolkit",
@@ -510,7 +511,8 @@
     "level": 2,
     "order": 56,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#2--rl-background-and-the-math-toolkit"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#2--rl-background-and-the-math-toolkit",
+    "coveredHash": "2026-06"
   },
   {
     "id": "algorithm-families",
@@ -519,7 +521,8 @@
     "level": 2,
     "order": 57,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#3--algorithm-families-value-based-policy-gradient-actor-critic"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#3--algorithm-families-value-based-policy-gradient-actor-critic",
+    "coveredHash": "2026-06"
   },
   {
     "id": "reward-modeling",
@@ -528,7 +531,8 @@
     "level": 2,
     "order": 58,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#4--preferences-and-reward-modeling"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#4--preferences-and-reward-modeling",
+    "coveredHash": "2026-06"
   },
   {
     "id": "verifiable-rewards",
@@ -537,7 +541,8 @@
     "level": 2,
     "order": 59,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#5--verifiable-rewards-regularization-and-reward-hacking"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#5--verifiable-rewards-regularization-and-reward-hacking",
+    "coveredHash": "2026-06"
   },
   {
     "id": "rejection-distillation",
@@ -546,7 +551,8 @@
     "level": 2,
     "order": 60,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#6--rejection-sampling-and-on-policy-distillation"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#6--rejection-sampling-and-on-policy-distillation",
+    "coveredHash": "2026-06"
   },
   {
     "id": "ppo-trust-regions",
@@ -555,7 +561,8 @@
     "level": 2,
     "order": 61,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#7--the-ppo-family-and-trust-regions"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#7--the-ppo-family-and-trust-regions",
+    "coveredHash": "2026-06"
   },
   {
     "id": "grpo-variants",
@@ -564,7 +571,8 @@
     "level": 2,
     "order": 62,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#8--grpo-and-the-variant-zoo"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#8--grpo-and-the-variant-zoo",
+    "coveredHash": "2026-06"
   },
   {
     "id": "direct-alignment",
@@ -573,7 +581,8 @@
     "level": 2,
     "order": 63,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#9--direct-alignment-dpo-and-friends"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#9--direct-alignment-dpo-and-friends",
+    "coveredHash": "2026-06"
   },
   {
     "id": "rlvr-reasoning",
@@ -582,7 +591,8 @@
     "level": 2,
     "order": 64,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#10--rlvr-and-reasoning"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#10--rlvr-and-reasoning",
+    "coveredHash": "2026-06"
   },
   {
     "id": "test-time-scaling",
@@ -591,7 +601,8 @@
     "level": 2,
     "order": 65,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#11--rl-vs-test-time-scaling"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#11--rl-vs-test-time-scaling",
+    "coveredHash": "2026-06"
   },
   {
     "id": "evaluation",
@@ -600,7 +611,8 @@
     "level": 2,
     "order": 66,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#12--evaluation-how-do-you-know-rl-actually-helped"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#12--evaluation-how-do-you-know-rl-actually-helped",
+    "coveredHash": "2026-06"
   },
   {
     "id": "multi-turn",
@@ -609,7 +621,8 @@
     "level": 2,
     "order": 67,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#13--from-single-turn-rlhf-to-multi-turn-agentic-rl"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#13--from-single-turn-rlhf-to-multi-turn-agentic-rl",
+    "coveredHash": "2026-06"
   },
   {
     "id": "environments",
@@ -618,7 +631,8 @@
     "level": 2,
     "order": 68,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#14--environments-the-bottleneck-and-difficulty--trainability"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#14--environments-the-bottleneck-and-difficulty--trainability",
+    "coveredHash": "2026-06"
   },
   {
     "id": "agent-safety",
@@ -627,7 +641,8 @@
     "level": 2,
     "order": 69,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#15--agent-safety-the-verifier-is-not-the-only-attack-surface"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#15--agent-safety-the-verifier-is-not-the-only-attack-surface",
+    "coveredHash": "2026-06"
   },
   {
     "id": "memory-parallelism",
@@ -636,7 +651,8 @@
     "level": 2,
     "order": 70,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#16--memory-parallelism-and-precision"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#16--memory-parallelism-and-precision",
+    "coveredHash": "2026-06"
   },
   {
     "id": "rollout-engines",
@@ -645,7 +661,8 @@
     "level": 2,
     "order": 71,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#17--rollout-engines-and-serving"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#17--rollout-engines-and-serving",
+    "coveredHash": "2026-06"
   },
   {
     "id": "async-rl",
@@ -654,6 +671,7 @@
     "level": 2,
     "order": 72,
     "hash": "2026-06",
-    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#18--async-rl-and-traininginference-consistency"
+    "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#18--async-rl-and-traininginference-consistency",
+    "coveredHash": "2026-06"
   }
 ]
