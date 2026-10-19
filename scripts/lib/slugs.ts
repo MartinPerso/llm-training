@@ -25,6 +25,13 @@ const CHAPTER_SLUGS: Record<string, string> = {
   'Precision': 'precision',
   'Parallelism': 'parallelism',
   'Multimodality': 'multimodality',
+  // The Parts of the RL & agentic RL interview-notes post (external source, see AGENTS.md)
+  'Foundations & problem setup': 'rlfoundations',
+  'Rewards & preferences': 'rlrewards',
+  'Policy optimization algorithms': 'rlpolicy',
+  'Reasoning, test-time scaling & evaluation': 'rlreasoning',
+  'Agentic RL': 'rlagentic',
+  'RL infrastructure & systems': 'rlsystems',
 };
 
 export function chapterSlug(chapter: string): string {

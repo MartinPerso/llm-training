@@ -1,0 +1,432 @@
+{
+  "chapter": "Foundations & problem setup",
+  "concepts": [
+    {
+      "id": "agenticrl.recipe-map.checker-replaces-model",
+      "section": "recipe-map",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "With reliable executable correctness checks, which part of the RLHF pipeline can you remove, and why?",
+          "answer": "The learned reward model: the checker can supply the optimization signal directly, avoiding errors from learning a proxy for correctness.",
+          "explanation": "A correctness checker supplies supervision without fitting human comparisons, so its scores need not generalize from a preference dataset. This removes reward-model overoptimization as a failure mode. It does not eliminate exploits in the checker, which becomes the relevant attack surface."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What failure mode does replacing a learned reward model with unit-test rewards directly remove?",
+          "choices": [
+            "Exploitation of incomplete test coverage",
+            "Overoptimization of learned reward predictions",
+            "Failure to sample successful programs",
+            "Instability from excessive policy updates"
+          ],
+          "correct": 1,
+          "explanation": "There is no learned reward predictor left for the policy to exploit through prediction errors. Incomplete tests can still reward incorrect programs, successful exploration remains necessary, and policy updates still need stabilization. RLVR changes the reward source, not every part of training."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.recipe-map.sft-readiness",
+      "section": "recipe-map",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What should SFT establish before handing a model to verifier-based RL?",
+          "answer": "A usable rollout distribution: mostly valid, scoreable outputs with some successes and failures, while retaining varied strategies.",
+          "explanation": "RL needs generated attempts that the verifier can interpret and distinguish. Fluent demonstrations alone do not establish that tool syntax, stopping behavior, or scoring works on sampled outputs. The handoff is therefore about producing useful training experience, not reaching perfect imitation."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which checkpoint gives the strongest evidence that SFT has prepared a model for verifier-based RL?",
+          "choices": [
+            "Low demonstration loss but mostly invalid tool calls",
+            "Valid outputs but frequent verifier crashes",
+            "Consistent formatting but no successful attempts",
+            "Scoreable, varied attempts with mixed outcomes"
+          ],
+          "correct": 3,
+          "explanation": "Mixed outcomes on valid, diverse attempts give RL something useful to optimize. Demonstration loss can hide rollout failures; verifier crashes make scores unreliable; valid but uniformly unsuccessful attempts lack positive examples. These checks assess the actual rollout distribution."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.recipe-map.external-distribution-pull",
+      "section": "recipe-map",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can extending SFT after rollouts become usable make subsequent RL less effective?",
+          "answer": "Further imitation can concentrate the model around the fixed demonstration distribution and reduce the exploration available to RL.",
+          "explanation": "SFT continues rewarding agreement with external examples even after format learning is sufficient. That pressure can narrow the strategies sampled during later RL, rather than improve task-directed exploration. The relevant tradeoff is imitation quality versus a diverse, learnable rollout distribution."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Additional SFT can lower demonstration loss while making the rollout distribution less useful for RL.",
+          "answer": true,
+          "explanation": "A better fit to demonstrations need not preserve alternative solution strategies. Once outputs are usable, further concentration on the dataset can reduce the exploration that verifier-based RL needs. Lower SFT loss and better preparation for RL are therefore different selection criteria."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.recipe-map.checkpoint-diversity",
+      "section": "recipe-map",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "When choosing an SFT checkpoint for later RL, which metric can reveal useful coverage missed by pass@1?",
+          "choices": [
+            "Pass@K across sampled attempts",
+            "Mean response length",
+            "Training-set token accuracy",
+            "Output-format validity alone"
+          ],
+          "correct": 0,
+          "explanation": "Pass@K can expose successful solutions that are available but not yet sampled reliably in one attempt. RL can then increase their probability. Length, imitation accuracy, and valid formatting describe other properties, but do not establish that sampled attempts cover successful solutions."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The SFT checkpoint with the highest pass@1 is necessarily the strongest starting point for RL.",
+          "answer": false,
+          "explanation": "A checkpoint can be strong on single attempts yet offer a narrower set of useful solutions across samples. Checkpoint selection for RL can favor pass@K and solution diversity instead. This asks what behavior RL can reinforce, rather than only what the checkpoint usually produces."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.recipe-map.complementary-alignment-stages",
+      "section": "recipe-map",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why might a training recipe use DPO first and GRPO with verifiable rewards afterward?",
+          "answer": "DPO provides inexpensive preference tuning from existing comparisons; later GRPO uses checkable outcomes to improve task performance through fresh rollouts.",
+          "explanation": "The stages exploit different available supervision: fixed preference data first, queryable correctness feedback later. Choosing DPO does not commit the whole recipe to offline training. Direct alignment can establish useful preferences before an online stage targets verifiable tasks."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A model tuned with DPO can subsequently undergo online RL using programmatic correctness rewards.",
+          "answer": true,
+          "explanation": "Post-training stages can be combined because each addresses a different learning opportunity. DPO uses preference comparisons without requiring an online reward loop; later RL can generate new attempts and score them automatically. The methods are compatible stages rather than exclusive pipelines."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.prefix-state",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is the last generated token insufficient as the state for ordinary autoregressive LLM RL?",
+          "answer": "The next-token policy conditions on the prompt and the entire generated prefix, not just the last token.",
+          "explanation": "Two prefixes ending in the same token can induce different next-token probabilities because their earlier context differs. The state representation must preserve that conditioning information. In the text-generation MDP, appending an action changes the prefix that defines the next decision."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Two generations end in the same token but have different prefixes. How should the text-generation MDP treat them?",
+          "choices": [
+            "As one state with different rewards",
+            "As one state with different discount factors",
+            "As different states for the next decision",
+            "As different actions in an unchanged state"
+          ],
+          "correct": 2,
+          "explanation": "The state includes the full available context, so different prefixes remain different states even when their final token matches. Neither changing the reward nor the discount factor restores omitted context. The next action is still a token sampled conditional on the corresponding prefix."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.transition-policy-randomness",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "Random next-token sampling makes the text-generation transition stochastic even after the token is fixed.",
+          "answer": false,
+          "explanation": "Sampling randomness belongs to the policy's choice of token. Once the prefix and chosen token are fixed, ordinary text generation forms the next state by appending that token. Tool-using agents add environment replies to the transition, so that simple deterministic description need not apply."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What changes in the transition dynamics when generation includes tool calls?",
+          "answer": "The next state includes the environment's reply, rather than being determined solely by appending the model's chosen token.",
+          "explanation": "A plain text transition is fixed once an action is chosen: append it to the prefix. A tool call also produces an external observation that enters subsequent context. This separates uncertainty in the model's action selection from uncertainty introduced by the environment."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.reward-discounting",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "For a finite episode, what value of $\\gamma$ removes discounting of later rewards?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "With $\\gamma=1$, $$G_t=\\sum_k\\gamma^k r_{t+k}=\\sum_k r_{t+k}.$$ Later rewards retain their full weight instead of being geometrically reduced. This changes the return being optimized; it is not a choice of how many rollouts to average when estimating that return."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can changing $\\gamma$ alter which behavior is optimal, rather than merely make training less noisy?",
+          "answer": "It changes the relative value assigned to rewards at different delays, so it changes the objective itself.",
+          "explanation": "In $G_t=\\sum_k\\gamma^k r_{t+k}$, smaller $\\gamma$ reduces the contribution of distant rewards more strongly. Two behaviors with different reward timing can consequently change order. Unlike a sampling choice for an estimator, discounting specifies what future outcomes are worth."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.action-value-continuation",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "$Q^\\pi(s,a)$ assumes optimal actions after the first action $a$, even if $\\pi$ is suboptimal.",
+          "answer": false,
+          "explanation": "$Q^\\pi(s,a)$ fixes the first action and then evaluates continuation under $\\pi$. It can therefore remain low when that policy makes poor later decisions. Optimal continuation belongs to $Q^*$, the quantity targeted by Bellman optimality backups in Q-learning."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which continuation determines $Q^\\pi(s,a)$ after taking $a$?",
+          "choices": [
+            "The highest-value action at every later state",
+            "Actions drawn from $\\pi$ at later states",
+            "The actions from the best recorded episode",
+            "No continuation; only immediate reward counts"
+          ],
+          "correct": 1,
+          "explanation": "The superscript identifies the policy used for the remaining trajectory, so future mistakes by $\\pi$ affect the value. Greedy optimal continuation instead defines $Q^*$; the best recorded episode is not an expectation. Immediate reward alone omits the future return that action-values summarize."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.cross-entropy-equivalence",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "With fixed target distribution $p$, why do cross-entropy and $\\mathrm{KL}(p\\|q)$ give the same gradients in $q$?",
+          "answer": "They differ only by $H(p)$, which is constant with respect to the model distribution $q$.",
+          "explanation": "$$\\mathrm{CE}(p,q)=H(p)+\\mathrm{KL}(p\\|q),\\quad \\nabla_q\\mathrm{CE}=\\nabla_q\\mathrm{KL}(p\\|q).$$ The removed term describes target uncertainty, not model error. This is why maximum-likelihood training can also be viewed as minimizing KL from the fixed data distribution."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "At $q=p$, cross-entropy must be zero because the model matches the target distribution.",
+          "answer": false,
+          "explanation": "$$\\mathrm{CE}(p,p)=H(p)+\\mathrm{KL}(p\\|p)=H(p).$$ Exact matching eliminates the KL mismatch, but target uncertainty remains. Confusing the two losses' values obscures why they can have identical optimization gradients without having identical numerical values."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.kl-direction-consequences",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is swapping the distributions in a KL objective more than a change in notation?",
+          "answer": "KL is asymmetric: reversing it changes which distribution weights discrepancies and can change mode-covering versus mode-seeking behavior.",
+          "explanation": "$$\\mathrm{KL}(p\\|q)=\\sum_x p(x)\\log\\frac{p(x)}{q(x)}.$$ Reversing the arguments changes both the weighting distribution and the logarithmic comparison. Thus the forward-KL interpretation of maximum likelihood does not justify replacing its objective with the reverse direction."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Reversing a KL objective can change whether optimization favors covering modes or concentrating on them.",
+          "answer": true,
+          "explanation": "The two directions weight mismatches under different distributions, so they need not favor the same approximate model. KL symmetry cannot be assumed merely because both quantities compare probabilities. This matters when relating data-fitting losses to the KL penalties used in policy optimization."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.importance-weight-concentration",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can unbiased importance sampling become unreliable when the sampling and target distributions diverge?",
+          "answer": "Rare samples can receive enormous weights and dominate the estimate, causing high variance and a low effective sample size.",
+          "explanation": "When an outcome is rare under the sampler but important under the target, its importance weight becomes large. Unbiasedness describes the expectation across repeated datasets, not the stability of one dataset. This is why limiting policy staleness matters even when probability corrections are available."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A few importance-weighted rollouts dominate an update. What is the most direct statistical consequence?",
+          "choices": [
+            "The reward function becomes deterministic",
+            "The target distribution becomes uniform",
+            "The estimator becomes supervised learning",
+            "Effective sample size falls as variance rises"
+          ],
+          "correct": 3,
+          "explanation": "Highly unequal weights make a large nominal batch behave like a much smaller informative sample. They do not change the reward function, force a uniform target, or convert the objective to supervised imitation. Keeping behavior and target policies close helps prevent this concentration."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.weighting-versus-selection",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which operation distinguishes importance sampling from rejection-based filtering?",
+          "choices": [
+            "Weighting samples rather than deciding which survive",
+            "Learning a critic rather than using a reward model",
+            "Changing prompts rather than sampling responses",
+            "Scoring tokens rather than scoring whole responses"
+          ],
+          "correct": 0,
+          "explanation": "Importance sampling adjusts contributions to an expectation; rejection-based filtering changes the retained sample set. Neither distinction requires a critic, a particular reward model, or a particular scoring granularity. In post-training, selecting high-scoring responses creates imitation data rather than an IS estimate."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Keeping only high-reward responses is equivalent to correcting off-policy samples with importance weights.",
+          "answer": false,
+          "explanation": "Reward-based selection favors a retained subset, whereas importance sampling weights contributions to estimate a specified target expectation. They can both use generated candidates but perform different statistical operations. Fine-tuning selected responses is therefore not the same update as reweighted policy optimization."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.math-toolkit.collection-policy-axes",
+      "section": "math-toolkit",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Training keeps collecting rollouts, but workers use older checkpoints. Which classification fits?",
+          "choices": [
+            "Offline and on-policy",
+            "Offline and off-policy",
+            "Online and off-policy",
+            "Online and on-policy"
+          ],
+          "correct": 2,
+          "explanation": "Continued interaction makes the procedure online; the workers' older policies make its samples off-policy for the current learner. Offline refers to learning without fresh collection, not to checkpoint age. The two axes describe separate properties of a training setup."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An online RL system can learn from data generated by a policy different from its current learner.",
+          "answer": true,
+          "explanation": "Online describes whether new experience continues to arrive during training. It does not require every consumed trajectory to match the latest learner weights, as asynchronous workers illustrate. This distinction explains why an online system can still need to manage off-policy data."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.algorithm-families.bellman-bootstrap-target",
+      "section": "algorithm-families",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What lets Q-learning update from a nonterminal transition before the episode's final return is known?",
+          "answer": "It substitutes an estimated future value into the target: $r_t+\\gamma\\max_{a'}Q(s_{t+1},a')$.",
+          "explanation": "The immediate reward is observed, while future return is supplied by the current action-value estimate. This is bootstrapping: supervision contains a prediction rather than only a completed outcome. It enables transition-level updates but also lets errors in future-value estimates enter the target."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A Q-learning target can change even when the observed transition and immediate reward stay fixed.",
+          "answer": true,
+          "explanation": "The target includes $\\gamma\\max_{a'}Q(s_{t+1},a')$, which changes as the value estimates change. Stored experience therefore does not imply fixed supervision. DQN's slowly updated target network addresses this moving-target effect rather than replacing bootstrapping with complete returns."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.algorithm-families.target-network-stability",
+      "section": "algorithm-families",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does DQN use a slowly updated network when computing TD targets?",
+          "answer": "It slows changes in the bootstrap supervision, so each update does not immediately move the target being fitted.",
+          "explanation": "Using the rapidly changing network on both sides couples predictions to their own moving targets. A delayed copy reduces that feedback while still allowing targets to improve over time. Replay addresses a different issue: correlated experience and reuse of past transitions."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which DQN component directly limits how quickly its bootstrap supervision changes?",
+          "choices": [
+            "The replay buffer",
+            "The target network",
+            "The random-action branch",
+            "The immediate reward"
+          ],
+          "correct": 1,
+          "explanation": "The target network changes slowly, so the future-value predictions used as labels do too. Replay changes which transitions are sampled, random actions provide exploration, and immediate rewards come from experience. These mechanisms serve different roles in stabilizing or supplying value learning."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.algorithm-families.replay-decorrelation",
+      "section": "algorithm-families",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Besides reusing experience, what does randomly sampling DQN's replay buffer fix about consecutive transitions?",
+          "answer": "It reduces the strong temporal correlation in the data presented to successive learning updates.",
+          "explanation": "Adjacent transitions from one trajectory are closely related, so learning directly from their arrival order supplies correlated updates. Sampling stored transitions mixes that experience and allows reuse. Unlike the target network, the buffer changes the training data stream rather than slowing the value target."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which DQN mechanism addresses correlation between neighboring transitions?",
+          "choices": [
+            "Reducing the discount factor",
+            "Delaying target-network updates",
+            "Taking the greedy action",
+            "Random sampling from replay"
+          ],
+          "correct": 3,
+          "explanation": "Replay sampling breaks up the temporal order in which experience was gathered. A delayed target network stabilizes supervision, a greedy action determines behavior, and discounting changes the value of later rewards. None of those substitutes for mixing transitions during learning."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.algorithm-families.greedy-versus-exploratory",
+      "section": "algorithm-families",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "Using an argmax-derived policy prevents Q-learning from collecting exploratory actions.",
+          "answer": false,
+          "explanation": "The greedy choice can be wrapped in an $\\epsilon$-greedy behavior rule that sometimes takes a random action. This permits exploration without learning a separate policy distribution. ⚠️ Note: descriptions of value-based behavior as deterministic apply to the pure greedy rule, not its exploratory wrapper."
+        },
+        {
+          "kind": "recall",
+          "prompt": "How does $\\epsilon$-greedy Q-learning explore without learning a separate actor?",
+          "answer": "It usually selects the highest-valued action but sometimes substitutes a random action.",
+          "explanation": "Exploration is inserted into the action-selection rule rather than represented by a separately trained policy network. The value estimates still determine the greedy branch. This differs from policy-gradient methods, which directly optimize the distribution from which actions are sampled."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.algorithm-families.long-horizon-backups",
+      "section": "algorithm-families",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why would cheap vocabulary-wide maximization not solve Q-learning's main difficulty for long text generation?",
+          "answer": "Sparse terminal rewards still need to propagate through many bootstrapped prefix values, making long-horizon credit assignment brittle.",
+          "explanation": "Accelerating one token-level maximum does not shorten the chain of decisions separating early actions from final success. Q-learning still relies on estimated continuation values across a huge prefix space. Direct policies can instead sample full trajectories without deriving generation from greedy Q-values."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Making token-level argmax cheap removes the main credit-assignment obstacle to Q-learning on long responses.",
+          "answer": false,
+          "explanation": "The final reward still arrives after many decisions, while earlier Q-values are learned through bootstrap targets. Cheap maximization leaves that long chain and its estimation errors in place. The motivation for explicit policies therefore extends beyond the computational size of the vocabulary."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.algorithm-families.actor-controls-generation",
+      "section": "algorithm-families",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "In actor-critic LLM training, which component supplies the distribution used to generate the next token?",
+          "choices": [
+            "The actor's token probabilities",
+            "The critic's greedy action ranking",
+            "The reward model's score distribution",
+            "The replay buffer's action frequencies"
+          ],
+          "correct": 0,
+          "explanation": "The actor explicitly represents the conditional token distribution used for generation. The critic supplies value information for training, rather than selecting tokens through a Q-value argmax. A reward model scores behavior, while replay stores experience; neither is the generating policy."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Actor-critic methods can retain a learned stochastic policy even when their critic is a scalar state-value predictor.",
+          "answer": true,
+          "explanation": "Generation uses the actor's probability distribution, so the critic need not supply an action ranking to choose tokens. A scalar value estimate can support learning while the actor remains independently sampleable. This separates actor-critic from a pure value-based greedy decision rule."
+        }
+      ]
+    }
+  ]
+}

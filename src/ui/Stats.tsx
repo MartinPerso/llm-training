@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { bank } from '../bank/index.ts';
-import { sectionLink, sectionLinkLabel } from '../bank/types.ts';
+import { BOOK_TITLE, sectionLink, sectionLinkLabel } from '../bank/types.ts';
 import { chapterStats, mostMissed } from '../srs/stats.ts';
 import Markdown from './Markdown.tsx';
 import { useProgress } from './useProgress.ts';
@@ -20,7 +20,10 @@ export default function Stats() {
         {chapters.map((c) => (
           <li key={c.chapter}>
             <div className="row between">
-              <span>{c.chapter}</span>
+              <span>
+                {bank.sourceOf.get(c.chapter) !== BOOK_TITLE && <span className="muted small">{bank.sourceOf.get(c.chapter)} · </span>}
+                {c.chapter}
+              </span>
               <span className="muted">
                 {c.seen}/{c.total} seen
               </span>

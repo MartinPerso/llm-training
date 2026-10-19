@@ -372,7 +372,8 @@ export function resolveChapter(files: RawChapterFile[], chapters: ChapterInfo[])
     const prefixes = new Set(f.concepts.map((c) => idPrefix((c as { id?: unknown } | null)?.id)).filter((p): p is string => !!p));
     const byTitle = title ? findChapter(chapters, title) : undefined;
     if (byTitle) {
-      const wrong = [...prefixes].filter((p) => p !== byTitle.slug);
+      // Chapters of an external source share one id prefix (not their slug): bank:check validates it.
+      const wrong = byTitle.sourceUrl ? [] : [...prefixes].filter((p) => p !== byTitle.slug);
       if (wrong.length) {
         errors.push(`${label}the chapter is "${byTitle.title}" (ids must start with "${byTitle.slug}.") but some ids start with ${wrong.map((p) => `"${p}."`).join(', ')}.`);
         return;
@@ -381,9 +382,12 @@ export function resolveChapter(files: RawChapterFile[], chapters: ChapterInfo[])
       found.push(byTitle);
       return;
     }
-    const bySlug = prefixes.size === 1 ? chapters.find((c) => c.slug === [...prefixes][0]) : undefined;
+    // Without a known title: the external chapter owning the concepts' sections, else the id prefix (the slug).
+    const owners = new Set(f.concepts.map((c) => chapters.find((ch) => ch.sourceUrl && ch.sections.some((s) => s.id === (c as { section?: unknown } | null)?.section))?.slug));
+    const bySection = owners.size === 1 && !owners.has(undefined) ? chapters.find((c) => c.slug === [...owners][0]) : undefined;
+    const bySlug = bySection ?? (prefixes.size === 1 ? chapters.find((c) => c.slug === [...prefixes][0]) : undefined);
     if (bySlug) {
-      notes.push(`${label}chapter title ${title ? `"${title}" is unknown` : 'is missing'}; used "${bySlug.title}" from the id prefix "${bySlug.slug}.".`);
+      notes.push(`${label}chapter title ${title ? `"${title}" is unknown` : 'is missing'}; used "${bySlug.title}" from ${bySection ? 'the concepts\' sections' : `the id prefix "${bySlug.slug}."`}.`);
       found.push(bySlug);
       return;
     }

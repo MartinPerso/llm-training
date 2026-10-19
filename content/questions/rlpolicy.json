@@ -1,0 +1,454 @@
+{
+  "chapter": "Policy optimization algorithms",
+  "concepts": [
+    {
+      "id": "agenticrl.ppo-trust-regions.trpo-constrained-optimization",
+      "section": "ppo-trust-regions",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What optimization cost does PPO avoid by replacing TRPO's explicit KL constraint?",
+          "answer": "Solving a constrained update with conjugate gradient and line search; PPO instead uses a clipped surrogate with first-order optimization.",
+          "explanation": "TRPO explicitly constrains the average KL between old and new action distributions on sampled states. Enforcing that constraint requires more machinery than optimizing PPO's surrogate. The computational saving comes with an approximate safeguard, rather than an equivalent hard constraint."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which method explicitly constrains old-to-new policy KL during its update?",
+          "choices": [
+            "PPO's clipped surrogate",
+            "CISPO's clipped importance weight",
+            "TRPO's constrained optimization",
+            "GRPO's reward standardization"
+          ],
+          "correct": 2,
+          "explanation": "TRPO formulates policy improvement subject to a KL limit and uses constrained optimization to enforce it. PPO changes the objective, CISPO bounds a multiplier, and reward standardization changes advantage scaling. These are related stabilization ideas, but they do not impose the same constraint."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.ppo-trust-regions.clipping-not-hard-bounds",
+      "section": "ppo-trust-regions",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "PPO's clipped objective guarantees that updated token probability ratios stay inside the clipping interval.",
+          "answer": false,
+          "explanation": "PPO alters the incentive in its surrogate objective; it does not project policy probabilities onto a feasible interval. Ratios can therefore lie outside the band despite clipping. ⚠️ Note: describing PPO as bounding every token's probability change overstates what its objective enforces."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why is PPO clipping an approximate trust region rather than a hard constraint on the updated policy?",
+          "answer": "It modifies the surrogate objective instead of explicitly restricting the allowable policy distributions.",
+          "explanation": "The optimization still operates on shared model parameters without a constraint that every resulting ratio satisfy the clip limits. TRPO instead includes an explicit average-KL constraint in its optimization problem. ⚠️ Note: the clipped surrogate lower-bounds the unclipped surrogate, not generally the true return."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.ppo-trust-regions.local-versus-cumulative-drift",
+      "section": "ppo-trust-regions",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can repeated PPO updates move far from an initial policy even when each update is conservative?",
+          "answer": "The local comparison moves with the behavior policy, so many small changes can accumulate into a large departure from the initial model.",
+          "explanation": "A local update safeguard concerns the current step relative to the rollout-generating policy. It does not compare the final model with the original starting point. This explains why reasoning runs can retain PPO-style stabilization while allowing large cumulative changes by removing reference regularization."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Keeping PPO clipping while removing reference KL can allow substantial cumulative policy drift.",
+          "answer": true,
+          "explanation": "The two controls use different comparisons: clipping moderates a local surrogate update, while reference KL penalizes departure from a fixed model. Repeated local improvements can accumulate after the fixed anchor is removed. A stable-looking individual step therefore does not establish small total drift."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.ppo-trust-regions.typical-clip-width",
+      "section": "ppo-trust-regions",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "What is a commonly used symmetric PPO clipping parameter $\\epsilon$, expressed as a decimal?",
+          "answer": 0.2,
+          "tolerance": 0.05,
+          "explanation": "A representative setting is $\\epsilon\\approx0.2$, giving the surrogate's ratio band $[1-\\epsilon,1+\\epsilon]=[0.8,1.2]$. This is a typical starting value rather than a universal optimum. The interval controls the clipping operation, not a guaranteed hard bound on resulting probabilities."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.ppo-trust-regions.gae-bootstrap-horizon",
+      "section": "ppo-trust-regions",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Which GAE value of $\\lambda$ leaves only the current one-step TD residual?",
+          "answer": 0,
+          "tolerance": 0,
+          "explanation": "With $\\lambda=0$, $$\\hat A_t^{\\mathrm{GAE}(\\gamma,0)}=\\delta_t=r_t+\\gamma V(s_{t+1})-V(s_t).$$ Future residuals receive zero weight. This reduces reliance on sampled future outcomes but makes the estimate depend directly on the accuracy of the next-state value prediction."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "Which GAE value of $\\lambda$ recovers return minus current value for a complete episode with zero terminal value?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "At $\\lambda=1$, the discounted value terms telescope: $$\\hat A_t=\\sum_l\\gamma^l\\delta_{t+l}=G_t-V(s_t).$$ For a complete episode, the zero terminal value removes the remaining bootstrap term. The estimate uses observed future rewards, so it is noisier but avoids intermediate bootstrap errors."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why does lowering GAE's $\\lambda$ trade lower variance for greater sensitivity to critic errors?",
+          "answer": "It shortens the effective return horizon, relying more on predicted continuation values and less on observed future rewards.",
+          "explanation": "Short-horizon estimates substitute a value prediction for more of the uncertain future, reducing sampling noise. If that prediction is inaccurate, the substitution introduces bias. Increasing $\\lambda$ includes more future TD residuals, approaching a complete-return estimate when the episode terminates."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.ppo-trust-regions.cispo-gradient-preservation",
+      "section": "ppo-trust-regions",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can CISPO bound an excessive importance weight without silencing the token's policy gradient?",
+          "answer": "It clips a stop-gradient importance-weight multiplier while retaining the differentiable log-probability term.",
+          "explanation": "CISPO keeps a term proportional to $\\texttt{sg}(w_t)\\hat A_t\\nabla_\\theta\\log\\pi_\\theta(a_t\\mid s_t)$, with the weight clipped. The derivative still runs through log-probability, unlike a flat PPO surrogate branch. ⚠️ Note: bounding this multiplier is not a hard KL trust-region guarantee."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What does CISPO clip to retain learning on high-ratio tokens?",
+          "choices": [
+            "The importance-weight multiplier",
+            "The sampled token's log-probability",
+            "The response's terminal reward",
+            "The critic's next-state prediction"
+          ],
+          "correct": 0,
+          "explanation": "CISPO clips the multiplier applied to a score-function update, so the log-probability derivative remains available. Clipping the log-probability itself could flatten that path; changing rewards or critic values would change the supervision. This matters when high-ratio tokens carry useful reasoning changes."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "CISPO's clipped weight can still multiply a nonzero log-probability gradient.",
+          "answer": true,
+          "explanation": "Clipping determines the magnitude of a detached multiplier rather than making the differentiated log-probability term flat. A token with nonzero advantage can therefore still contribute after its weight saturates. This preserves useful updates that PPO-style objective clipping can suppress."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.kl-loss-placement",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Where does original GRPO put reference KL, compared with the PPO RLHF recipe that uses a shaped reward?",
+          "answer": "Original GRPO adds KL directly to the optimization objective; the described PPO RLHF recipe incorporates the penalty into the reward.",
+          "explanation": "The same anchoring idea can enter training through different paths. Shaping the reward affects the return used for advantage estimation, whereas a separate objective term contributes its own regularization signal. This placement is distinct from GRPO's replacement of the learned critic."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A separate GRPO KL term can contribute to optimization even when the reward-based policy term is zero.",
+          "answer": true,
+          "explanation": "A zero reward-based advantage removes that group's contribution to the advantage-weighted policy term, not automatically to a separately added KL penalty. Whether the penalty contributes depends on its own derivative. ⚠️ Note: claims that zero reward spread implies zero total gradient omit such auxiliary terms."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.k3-kl-estimator",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which sampled KL expression does GRPO use to avoid negative individual log-ratio estimates?",
+          "answer": "$\\frac{\\pi_{\\text{ref}}}{\\pi_\\theta}-\\log\\frac{\\pi_{\\text{ref}}}{\\pi_\\theta}-1$, evaluated for sampled actions.",
+          "explanation": "For $u=\\pi_{\\text{ref}}/\\pi_\\theta$, the expression $u-\\log u-1$ is nonnegative and equals zero at $u=1$. With actions sampled from $\\pi_\\theta$ and suitable support, its expectation gives the desired KL. ⚠️ Note: nonnegative is more precise than the claim that it is always positive."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What is the pointwise sign property of GRPO's $k3$ KL estimator?",
+          "choices": [
+            "It can be negative whenever the reference is more likely",
+            "It is positive even when the two probabilities match",
+            "It is nonnegative and zero when the probabilities match",
+            "It has the same sign as the sampled reward"
+          ],
+          "correct": 2,
+          "explanation": "Writing the expression as $u-\\log u-1$ shows why it cannot be negative and vanishes at equality. A raw log-ratio can have either sign for one sample; reward signs are unrelated. ⚠️ Note: unbiasedness also depends on the sampling distribution, not just this pointwise property."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.reasoning-kl-removal",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why do some verifier-based reasoning runs remove reference KL while retaining update stabilization?",
+          "answer": "The fixed anchor can restrain useful changes in reasoning behavior, while a reliable verifier reduces reliance on it as protection against learned-reward errors.",
+          "explanation": "Reference regularization trades reward improvement against staying near the starting model. With checkable outcomes, some runs accept greater movement and keep clipping for local optimization stability. This is a task-dependent tradeoff: a verifier can still be exploited, and removing KL is not automatically safe."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A programmatic verifier makes reference regularization unnecessary for every reasoning task.",
+          "answer": false,
+          "explanation": "A checker can reduce dependence on a learned reward proxy, but weak tests and other verifier shortcuts still exist. Dropping KL permits more policy drift and may affect neighboring capabilities. The reasoning recipe is an empirical tradeoff, not a consequence guaranteed merely by using a checker."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.dr-grpo-normalization-removal",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which variant specifically removes GRPO's reward-standard-deviation and per-response-length normalizations?",
+          "choices": [
+            "DAPO",
+            "Dr. GRPO",
+            "GSPO",
+            "CISPO"
+          ],
+          "correct": 1,
+          "explanation": "Dr. GRPO targets those two normalization choices. DAPO combines exploration and sampling changes with a token-level loss; GSPO changes importance-ratio granularity; CISPO changes what is clipped. Removing normalization also makes deliberate control of reward scale more important."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.dapo-asymmetric-clipping",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What does DAPO's clip-higher change permit that a tied symmetric clip setting does not?",
+          "answer": "It allows more upward probability movement without equally relaxing the lower clipping side.",
+          "explanation": "Decoupling upper and lower clip thresholds makes exploration pressure independently adjustable on the upward side. A symmetric change would relax both sides together. The purpose is to retain room for emerging actions, rather than changing the group baseline or moving the ratio to sequence level."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which DAPO change directly gives emerging actions more upward probability headroom?",
+          "choices": [
+            "Removing the reference model alone",
+            "Moving clipping to whole sequences",
+            "Clipping detached importance weights",
+            "Separating upper and lower clip thresholds"
+          ],
+          "correct": 3,
+          "explanation": "Clip-higher allows a larger upper threshold without requiring the same change below one. Removing reference KL concerns cumulative drift, GSPO changes granularity, and detached-weight clipping is CISPO's mechanism. These interventions can all affect training but address different constraints."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.dapo-dynamic-sampling",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What does DAPO change in data selection when a sampled prompt group lacks reward contrast?",
+          "answer": "It filters out all-pass or all-fail prompt groups instead of treating every sampled group as equally useful training data.",
+          "explanation": "Dynamic sampling spends training capacity on groups whose outcomes distinguish responses, rather than blindly retaining every prompt group. It changes sample selection, not the algebra used to create contrast from equal rewards. The useful selection can change as the policy's task success rates improve."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.gspo-sequence-granularity",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can GSPO be more stable than token-level ratio methods for MoE reasoning training?",
+          "answer": "It uses sequence-level importance ratios and clipping, reducing sensitivity to noisy ratios at individual tokens.",
+          "explanation": "MoE routing differences can make individual token probabilities fragile between rollout and training paths. GSPO changes the granularity of the ratio and optimization to match sequence-level outcomes. It does not make those paths numerically identical; routing consistency remains a separate systems concern."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "GSPO improves robustness to token-level ratio noise by moving the importance comparison to sequence level.",
+          "answer": true,
+          "explanation": "A whole-response comparison is less sensitive to isolated token-ratio fluctuations than independently clipped token comparisons. That aligns naturally with a response-level reward, at the cost of coarser token credit. This is different from CISPO, which changes the clipping operation on a weight."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.group-size-budget",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What does increasing GRPO's completions-per-prompt count $G$ trade off, and what starting range is suggested?",
+          "answer": "A better-sampled group baseline versus more generation compute; a suggested starting range is $G=8$–$16$.",
+          "explanation": "More responses provide more information for estimating within-prompt reward statistics, but each response requires generation. The suggested range is a practical starting point rather than a guarantee of good learning. It does not replace checking task difficulty or whether generated rewards provide useful contrast."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "With a fixed prompt count, what is the main tradeoff when GRPO's $G$ increases?",
+          "choices": [
+            "More rollout cost for a better-sampled baseline",
+            "More critic parameters for lower reward variance",
+            "Less rollout cost for a noisier baseline",
+            "Less reference KL for longer responses"
+          ],
+          "correct": 0,
+          "explanation": "Increasing $G$ adds sampled responses rather than model parameters, so its direct cost is generation. The benefit is more information about the prompt's reward distribution. It does not inherently change reference regularization, introduce a critic, or determine the resulting response lengths."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.policy-learning-rate",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "What policy learning-rate order of magnitude is suggested as a starting point for GRPO?",
+          "answer": 0.000001,
+          "tolerance": 0.1,
+          "explanation": "The suggested starting scale is approximately $10^{-6}$, reflecting the sensitivity of policy optimization to large updates. This is not a transferable optimum across models and batch sizes. A rate that is too aggressive can cause instability even when the basic GRPO objective is implemented correctly."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.rollout-reuse-default",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "How many PPO epochs per rollout batch are suggested as the conservative GRPO starting default?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "The suggested default is about one epoch, with larger values treated as task-dependent exceptions. Reusing the batch more increases the gap between its generating policy and the updated learner. This setting favors fresher experience rather than assuming that extra optimization on each rollout is free."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.grpo-variants.generation-cap-tradeoff",
+      "section": "grpo-variants",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can lowering a reasoning rollout's generation cap damage learning even when throughput improves?",
+          "answer": "It can truncate the reasoning needed to reach a correct answer, removing useful successful trajectories from the training signal.",
+          "explanation": "The cap controls which complete attempts the verifier gets to judge, not just generation cost. A short cap can cut off valid reasoning; an excessive one wastes compute and can invite length exploitation. It therefore needs to fit the task's reasoning budget rather than maximize raw tokens per second."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Raising the generation cap is an unqualified way to improve reasoning RL's training signal.",
+          "answer": false,
+          "explanation": "A larger budget may let reasoning finish, but it also increases rollout cost and can encourage overlong responses that exploit reward design. More generated tokens do not establish more useful supervision. The appropriate cap depends on task needs and observed truncation or length pathologies."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.direct-alignment.preferred-likelihood-displacement",
+      "section": "direct-alignment",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can DPO improve its preference objective while making the preferred response less likely?",
+          "answer": "The rejected response's likelihood can fall faster, increasing the preference margin even while the preferred response loses likelihood.",
+          "explanation": "DPO rewards a relative comparison, so a better margin does not by itself establish higher absolute probability for the chosen answer. Adding an SFT or NLL term on chosen responses directly rewards their likelihood. That anchor addresses displacement rather than merely increasing the pairwise separation."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A larger DPO preference margin guarantees higher likelihood for the chosen response.",
+          "answer": false,
+          "explanation": "Both response likelihoods can decline while the rejected one declines more, improving the objective's relative comparison. The preferred answer can then become less likely to be generated. An additional chosen-response likelihood term targets that missing absolute constraint rather than just the margin."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.direct-alignment.preference-length-shortcut",
+      "section": "direct-alignment",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can DPO trained on mostly longer preferred answers learn the wrong preference?",
+          "answer": "Length becomes a predictive shortcut for the preference labels, so the policy may learn verbosity instead of the intended quality.",
+          "explanation": "The objective cannot infer that a dataset's correlation between length and preference is incidental. Optimizing it can therefore amplify the correlated style feature. Length-aware objectives or normalization address this risk, whereas merely removing an explicit reward model does not remove dataset shortcuts."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which failure remains possible in DPO even though it has no separately trained reward model?",
+          "choices": [
+            "A critic producing inconsistent value targets",
+            "A group baseline dividing by zero reward spread",
+            "A learned preference shortcut favoring length",
+            "A reward-model forward pass exhausting memory"
+          ],
+          "correct": 2,
+          "explanation": "DPO can exploit correlations in its preference data, including systematically longer chosen answers. The other failures require components that ordinary DPO does not use. Eliminating a separate reward model simplifies the pipeline but does not make its preference objective immune to overoptimization."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.direct-alignment.iterative-preference-refresh",
+      "section": "direct-alignment",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What mismatch does regenerating DPO preference data from the current policy address?",
+          "answer": "A fixed preference dataset can stop representing the responses the changing policy actually produces.",
+          "explanation": "Refreshing candidates brings the compared responses closer to the current policy's behavior. This can reduce the coverage gap of a frozen preference set, rather than merely fitting that old set for more epochs. It does not itself guarantee that the new labels are accurate or free of judge bias."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Iterative DPO can refresh its training distribution without introducing a separately trained scalar reward model.",
+          "answer": true,
+          "explanation": "New policy-generated candidates can be compared and labeled for another round of direct preference training. The refresh addresses stale data coverage; the direct objective still need not use a standalone scalar reward network. This separates collecting new preferences from adopting the PPO training recipe."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.direct-alignment.ipo-conservative-preferences",
+      "section": "direct-alignment",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which direct-alignment variant is presented as a way to curb preference-objective overoptimization?",
+          "choices": [
+            "KTO",
+            "IPO",
+            "GSPO",
+            "CISPO"
+          ],
+          "correct": 1,
+          "explanation": "IPO reformulates preference optimization to address overoptimization. KTO changes the required supervision to unpaired good/bad labels, while GSPO and CISPO modify online policy optimization. These methods solve different problems, so a simpler training loop is not enough to make them interchangeable."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.direct-alignment.kto-unpaired-labels",
+      "section": "direct-alignment",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which direct-alignment method fits independent good/bad response labels when paired preferences are unavailable?",
+          "answer": "KTO.",
+          "explanation": "KTO is designed to learn from unpaired desirability labels rather than requiring a chosen and rejected answer for each comparison. This changes the usable supervision format, unlike IPO's focus on overoptimization or SimPO's reference-free scoring. Missing pairs need not force creation of artificial comparisons."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which data limitation specifically motivates choosing KTO over standard pairwise DPO?",
+          "choices": [
+            "Preference labels are unpaired good/bad judgments",
+            "The rollout engine cannot save old log-probabilities",
+            "The critic is too large to fit in memory",
+            "Groups contain too many equally rewarded responses"
+          ],
+          "correct": 0,
+          "explanation": "KTO can consume separate good/bad labels instead of paired preferences. Saved rollout probabilities, critic memory, and group reward spread belong to online RL machinery rather than this supervision problem. The relevant choice is the structure of the available feedback."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.direct-alignment.simpo-reference-free-scoring",
+      "section": "direct-alignment",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which two scoring choices distinguish SimPO from standard reference-based DPO?",
+          "answer": "It uses a reference-free reward based on length-normalized log-probability.",
+          "explanation": "SimPO removes the need to score responses with a reference model and normalizes the policy's sequence score by length. These are scoring changes, not a switch to unpaired labels or online rollouts. They distinguish it from KTO's data-format change and from merely adding an SFT anchor to DPO."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "SimPO's reference-free scoring still requires reference-model log-probabilities for each preference pair.",
+          "answer": false,
+          "explanation": "The reference-free construction removes that scoring dependency while retaining preference-based optimization. Its length normalization also addresses how sequence scores vary with response length. This differs from standard DPO's use of policy-to-reference likelihood comparisons."
+        }
+      ]
+    }
+  ]
+}

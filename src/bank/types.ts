@@ -5,6 +5,7 @@ export interface Section {
   id: string;           // Notion block id (with dashes); deep link uses it without dashes. External sources: a short key
   url?: string;         // external sources only: link to this section (with its #anchor); book sections have none
   chapter: string;      // H1 title
+  source?: string;      // external sources only: short title of the source page, used to group its chapters
   title: string;        // heading title (equals chapter for the H1 itself)
   level: 1 | 2 | 3;
   order: number;        // position in the book
@@ -34,6 +35,8 @@ export interface ChapterFile {
 // Numeric tolerance is relative; default 5%, 0 = exact.
 export const DEFAULT_TOLERANCE = 0.05;
 
+/** Group label of the Notion book's chapters (external sources are grouped under their `source`). */
+export const BOOK_TITLE = "Alisa's book of LLMs";
 export const BOOK_URL = "https://alisawuffles.notion.site/alisa-s-book-of-llms";
 /** Where to read a concept's source: the section's own url for external sources, else the Notion book's deep link. */
 export const sectionLink = (sectionId: string, section?: Pick<Section, "url">) =>

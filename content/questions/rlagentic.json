@@ -1,0 +1,294 @@
+{
+  "chapter": "Agentic RL",
+  "concepts": [
+    {
+      "id": "agenticrl.multi-turn.observation-loss-masking",
+      "section": "multi-turn",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why must tool-output tokens be excluded from an agent's policy-gradient loss?",
+          "answer": "They are environment observations, not actions sampled from the policy; only the model-generated action tokens belong in that loss.",
+          "explanation": "An agent transcript mixes tokens from two different sources. Treating tool replies as policy actions assigns learning credit to text the model did not choose. The replies still provide context for later decisions, so loss masking does not mean removing them from the model's input."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Masking tool-output tokens from the RL loss requires removing those tokens from subsequent model context.",
+          "answer": false,
+          "explanation": "Loss participation and conditioning context are different roles. Observations must remain available to inform later actions, while their own token positions are excluded from the policy loss. Otherwise the agent either loses essential environmental information or receives action credit for external text."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.multi-turn.full-episode-grouping",
+      "section": "multi-turn",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In multi-turn GRPO with terminal task rewards, what should each member of a task's rollout group contain?",
+          "answer": "A complete tool-interleaved trajectory for that task, not an isolated assistant turn detached from its later outcome.",
+          "explanation": "The final verifier judges the outcome of the whole interaction, so the sampled unit must preserve the actions and observations leading to it. Grouping isolated turns would break that connection to episode success. The optimization still applies only to model-generated tokens within each trajectory."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What is the appropriate rollout unit when GRPO rewards completion of a multi-tool task?",
+          "choices": [
+            "Every tool reply as an independent response",
+            "Each assistant turn grouped across unrelated tasks",
+            "The full interaction through its terminal outcome",
+            "Only the final answer with all earlier actions discarded"
+          ],
+          "correct": 2,
+          "explanation": "The terminal result belongs to the full episode, including earlier actions that made it possible. Individual turns or tool replies do not independently carry that outcome. Keeping the complete trajectory preserves the task-level comparison while observation tokens remain excluded from the action loss."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.multi-turn.cross-turn-credit-resolution",
+      "section": "multi-turn",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What can a terminal trajectory advantage fail to distinguish in an agent that succeeds after correcting an earlier mistake?",
+          "answer": "Which turns helped and which hurt: a shared episode-level advantage does not identify the contribution of each individual decision.",
+          "explanation": "A final success label summarizes the entire path, including potentially unnecessary or harmful intermediate actions. Step-level values or per-turn rewards can provide finer distinctions, but require extra estimation or supervision. Whole-trajectory learning is simpler, at the cost of less precise cross-turn credit."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A successful episode's shared advantage establishes that every intermediate tool choice was beneficial.",
+          "answer": false,
+          "explanation": "Success can follow a mistaken action and a later recovery, so an episode label does not certify each decision. A trajectory-level signal lacks that resolution even when the final verifier is accurate. Finer credit requires additional machinery such as step values or intermediate rewards."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.multi-turn.process-reward-tradeoff",
+      "section": "multi-turn",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What new weakness can process rewards introduce when replacing sparse outcome-only supervision?",
+          "answer": "The intermediate-step scorer becomes another imperfect signal the policy can exploit.",
+          "explanation": "Process scoring supplies denser guidance about the route to an answer, potentially improving credit assignment. But validating each step is itself difficult, and learned step scores can reward shortcuts. This trades some outcome-reward sparsity for more verifier design and another source of exploitable error."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What is the main tradeoff when adding a process reward model to long-horizon agent RL?",
+          "choices": [
+            "Denser credit, but another scorer to validate and protect",
+            "Less supervision, but automatically unbiased advantages",
+            "No terminal checks, with guaranteed correct trajectories",
+            "Less rollout compute, with no extra learned components"
+          ],
+          "correct": 0,
+          "explanation": "Intermediate scores can help identify useful steps, but their accuracy and resistance to exploitation must be established. They do not guarantee trajectory correctness, remove the need for outcome validation, or come without modeling cost. This explains why simple terminal-verifier approaches remain attractive."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.environments.executable-environment-supply",
+      "section": "environments",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is a collection of static benchmark examples insufficient infrastructure for large-scale agent RL?",
+          "answer": "Training needs many executable, stateful tasks that support interaction and reliable outcome verification, not just examples for measuring answers.",
+          "explanation": "Agents must act, receive observations, and change state over an episode. A small evaluation set does not supply enough varied interactive experience for repeated optimization. Environment synthesis therefore needs executable tasks and verifiers, rather than merely more written questions."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which resource most directly expands the usable training supply for tool-using agents?",
+          "choices": [
+            "More paraphrases of a fixed evaluation score",
+            "More independent, executable tasks with verifiers",
+            "More optimizer steps on an unchanged tiny benchmark",
+            "More prose descriptions without runnable environments"
+          ],
+          "correct": 1,
+          "explanation": "Executable tasks generate the action-observation trajectories that agent RL consumes, while verifiers turn their outcomes into supervision. Paraphrases and extra updates do not create new interactive experience. Written descriptions alone cannot provide the state transitions needed to train tool use."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.environments.binary-reward-trainability",
+      "section": "environments",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "At what per-task success probability $p$ is binary reward variance maximal?",
+          "answer": 0.5,
+          "tolerance": 0,
+          "explanation": "For a binary reward, $\\operatorname{Var}(R)=p(1-p)=\\tfrac14-(p-\\tfrac12)^2$, maximized at $p=0.5$. This motivates selecting tasks with uncertain outcomes. ⚠️ Note: reward variance alone does not determine policy-gradient magnitude or guarantee maximal learning progress."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can an extremely difficult task be less useful for current verifier-based training than a moderately difficult one?",
+          "answer": "If successful behavior is effectively never sampled, its binary outcomes provide little useful contrast for learning; moderate tasks can supply both outcomes.",
+          "explanation": "Task difficulty is relative to the current policy's reachable behavior. Binary reward variation is greatest away from near-certain failure or success, motivating a learnable task band. ⚠️ Note: this is a selection heuristic, not a general theorem that gradient magnitude equals reward variance."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.environments.moving-difficulty-curriculum",
+      "section": "environments",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why must a learnability-based curriculum change as the policy improves?",
+          "answer": "Previously informative tasks can become nearly certain successes, so the curriculum must introduce tasks that still produce uncertain outcomes.",
+          "explanation": "A task's usefulness depends on the current policy rather than a permanent difficulty label. Re-estimating success rates lets selection follow the changing frontier of what the model can learn. A fixed collection can become dominated by solved tasks even when it was initially well chosen."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A task's suitability for a learnability-based curriculum can change without any change to the task itself.",
+          "answer": true,
+          "explanation": "Improving the policy changes its success probability on the same environment. A task can move from rarely solvable to informative and then to routine. Curriculum selection must therefore track the learner, rather than assuming that an initial difficulty ranking remains a useful training allocation."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.environments.verified-success-cold-start",
+      "section": "environments",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can verifier-based RL be bootstrapped when the initial policy almost never solves the target task?",
+          "answer": "Harvest verified successes with heavier sampling or filtered teacher traces, then use SFT or OPD and easier tasks to establish useful success before RL.",
+          "explanation": "A cold start needs successful behavior for the learner to reach, not simply more updates on uniformly unsuccessful attempts. Sampling and filtering can convert rare successes into a warm-start dataset, while a curriculum supplies easier learnable cases. Teacher prestige alone does not replace verification."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A weak teacher's occasional verified successes can still provide useful warm-start data for agent RL.",
+          "answer": true,
+          "explanation": "Low average success does not make every generated trajectory unsuitable. Filtering with a trusted verifier can retain successful traces for imitation before online optimization. This is different from blindly copying the teacher's outputs, which would also transfer its frequent errors."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.environments.smallest-viable-base",
+      "section": "environments",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why start an agent-RL prototype with the smallest model that has adequate task coverage?",
+          "answer": "Generation often dominates RL cost, so a smaller capable model makes it cheaper to test the training recipe before scaling.",
+          "explanation": "The relevant minimum is sufficient coverage, not minimum parameter count regardless of ability. A model that cannot reach useful trajectories is a poor substrate even if fast. Once coverage is adequate, cheaper repeated rollouts can make recipe iteration more practical than immediately choosing the largest model."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which base-model choice best fits a rollout-limited prototype?",
+          "choices": [
+            "The largest model regardless of task coverage",
+            "The smallest model even if verified success is absent",
+            "The model with the longest outputs regardless of cost",
+            "The smallest trainable model with adequate task coverage"
+          ],
+          "correct": 3,
+          "explanation": "Adequate coverage establishes that useful trajectories are available, while a smaller trainable model reduces repeated generation cost. Size alone does not establish suitability, and long outputs need not be useful. Scaling up is warranted when the smaller candidate lacks the needed coverage."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.agent-safety.permissions-before-rewards",
+      "section": "agent-safety",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why should tool permissions be restricted before agent RL begins, even if unsafe actions receive negative reward?",
+          "answer": "Reward penalties are learning signals, not an access-control boundary; exploration can still execute harmful actions.",
+          "explanation": "The environment should expose scoped tools and credentials so disallowed effects cannot occur merely because the policy tries them. Negative feedback arrives through optimization and cannot itself revoke capabilities. This makes least privilege a property of the execution setup, with rewards as an additional check."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A penalty for reading secrets makes ambient credentials safe to expose during agent training.",
+          "answer": false,
+          "explanation": "An agent may still attempt the read while exploring or find a reward shortcut that makes it attractive. A penalty does not prevent the access or reverse disclosure after it happens. Scoped credentials and the absence of unnecessary secrets provide a boundary that reward shaping alone cannot supply."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.agent-safety.untrusted-observation-boundary",
+      "section": "agent-safety",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A tool result tells an agent to ignore its task and reveal credentials. How should that text be classified?",
+          "answer": "As untrusted observation content, not as an instruction with authority over the agent.",
+          "explanation": "Tool outputs describe external content and can include adversarial instructions. Preserving the instruction hierarchy prevents those strings from acquiring authority merely because a tool returned them. Loss masking also distinguishes observations from actions, but is not by itself a complete prompt-injection defense."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Tool-output loss masking can be correct while the agent remains vulnerable to instructions embedded in observations.",
+          "answer": true,
+          "explanation": "Masking prevents external text from being treated as policy-generated actions during optimization. The agent still reads that text as context, where malicious instructions can influence later decisions. Instruction boundaries and isolation of untrusted observations remain necessary beyond correct loss bookkeeping."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.agent-safety.irreversible-action-gates",
+      "section": "agent-safety",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why put destructive tools behind dry-run modes or approval gates instead of relying only on terminal task verification?",
+          "answer": "Verification can report success or failure after an irreversible effect has already occurred; the gate constrains execution beforehand.",
+          "explanation": "A final task score does not undo deletion, a purchase, or an outbound message. Dry runs and approval boundaries control whether the external change happens at all. They complement outcome verification by addressing the timing and reversibility of side effects rather than only judging the final state."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which control directly prevents exploration from immediately executing an irreversible external action?",
+          "choices": [
+            "A larger group of rollout rewards",
+            "A stricter response-format regex",
+            "A dry-run or explicit approval boundary",
+            "A higher coefficient on the final success reward"
+          ],
+          "correct": 2,
+          "explanation": "A dry run or approval boundary intercepts the operation before its external effect is committed. Larger groups, format checks, and reward scaling influence learning but do not block the tool action. The execution boundary is therefore distinct from improving the reward signal."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.agent-safety.clean-episode-reset",
+      "section": "agent-safety",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can incomplete environment resets produce misleadingly high agent-training rewards?",
+          "answer": "State left by previous episodes can provide shortcuts or partial solutions unavailable in a genuinely fresh task.",
+          "explanation": "The next rollout may exploit artifacts from earlier attempts instead of solving the intended initial problem. Deterministic resets to clean snapshots restore the assumed task conditions. Reliable scoring alone cannot catch this if the verifier accepts an outcome achieved using leaked episode state."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A correct final-state verifier can accept success made artificially easy by state leaked from earlier episodes.",
+          "answer": true,
+          "explanation": "The verifier may accurately recognize the requested final state while overlooking how previous episodes made it easier to reach. State leakage changes the task presented to later rollouts. Clean snapshots and deterministic resets protect episode validity independently of the final outcome check."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.agent-safety.verifier-versus-benchmark-failure",
+      "section": "agent-safety",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "What distinguishes verifier hacking from benchmark overfitting?",
+          "choices": [
+            "Checker quirks versus repeated evaluation exposure",
+            "Human scoring versus programmatic scoring",
+            "Changing model weights versus fixed model weights",
+            "Training-time failure versus deployment-only failure"
+          ],
+          "correct": 0,
+          "explanation": "Verifier hacking exploits what a checker accepts; benchmark overfitting benefits from repeated or leaked exposure to the evaluation distribution. They can overlap in one pipeline. Hidden adversarial tests target checker weaknesses, while contamination control and independent environments address exposure."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why might stronger hidden tests fail to fix benchmark overfitting on their own?",
+          "answer": "The policy may still be trained toward the evaluation distribution through repeated exposure or leakage, even if the checker is harder to exploit.",
+          "explanation": "Strengthening verification changes what counts as success, not necessarily which tasks or distributions the learner has encountered. Independent held-out environments and contamination checks address that separate channel. Evaluation integrity therefore requires both trustworthy checks and separation from training exposure."
+        }
+      ]
+    }
+  ]
+}

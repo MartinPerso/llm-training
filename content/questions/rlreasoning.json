@@ -1,0 +1,359 @@
+{
+  "chapter": "Reasoning, test-time scaling & evaluation",
+  "concepts": [
+    {
+      "id": "agenticrl.rlvr-reasoning.latent-reasoning-elicitation",
+      "section": "rlvr-reasoning",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can final-answer rewards improve reasoning without providing demonstrations of each reasoning step?",
+          "answer": "They can increase the probability of successful reasoning trajectories that the pretrained model already sometimes generates.",
+          "explanation": "Pretraining supplies patterns from mathematics, code, and worked solutions; terminal rewards then favor trajectories that use those patterns successfully. This does not require a label for every intermediate step. It also does not establish that RL learned the underlying knowledge from scratch."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A model's more reliable reasoning after RLVR establishes that the reasoning knowledge originated in RL.",
+          "answer": false,
+          "explanation": "A pretrained model may already generate successful reasoning occasionally, with RL changing how reliably it does so. Better observed behavior therefore does not locate where the underlying knowledge was acquired. Comparing single-sample success with broader sampling coverage helps distinguish elicitation from expansion."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rlvr-reasoning.sharpening-versus-coverage",
+      "section": "rlvr-reasoning",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What does higher pass@1 with unchanged large-$k$ pass@k suggest about an RLVR improvement?",
+          "answer": "The policy is sampling existing successful solutions more reliably, rather than showing broader task coverage under the tested sampling budget.",
+          "explanation": "Single-sample improvement can come from concentrating probability on successes already reachable before RL. Unchanged large-$k$ performance supports that interpretation. ⚠️ Note: finite-budget pass@k measures sampled coverage, not the exact support of the model or a proof that no new capability exists."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which comparison best separates more reliable sampling from broader reasoning coverage?",
+          "choices": [
+            "Training reward versus policy loss",
+            "Pass@1 versus large-$k$ pass@k",
+            "Mean length versus maximum length",
+            "Training throughput versus batch size"
+          ],
+          "correct": 1,
+          "explanation": "Pass@1 probes success on a single attempt, while larger-$k$ evaluation probes success across a broader sample of attempts. Reward, length, and throughput do not make that distinction. ⚠️ Note: the comparison needs matched decoding and budgets; finite sampling does not identify an absolute capability boundary."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rlvr-reasoning.entropy-collapse-plateau",
+      "section": "rlvr-reasoning",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can reasoning RL plateau despite continuing to generate many rollouts?",
+          "answer": "Policy entropy can collapse, making additional rollouts repeat a narrow set of behaviors instead of discovering useful alternatives.",
+          "explanation": "Rollout count measures how much experience is generated, not how varied that experience remains. As the policy concentrates, it may stop visiting alternative reasoning paths that could earn better rewards. Continued optimization can therefore exhaust exploration before it exhausts available compute."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "More rollout samples can remain uninformative when the policy has collapsed onto a narrow reasoning pattern.",
+          "answer": true,
+          "explanation": "Sampling repeatedly from a concentrated policy can produce little new behavioral variation. Extra generation then does not repair the underlying loss of exploration. Entropy monitoring helps distinguish this situation from insufficient rollout throughput, which is a different limitation on training."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rlvr-reasoning.targeted-entropy-guidance",
+      "section": "rlvr-reasoning",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why use high-entropy reasoning regions as an exploration signal instead of simply maximizing randomness everywhere?",
+          "answer": "High-entropy regions can mark branching, reflection, or self-correction decisions where exploration is especially useful.",
+          "explanation": "The described approach adds a clipped, gradient-detached entropy term to the advantage, using uncertainty to guide learning at selected decisions. It does not treat arbitrary randomness throughout a response as equally valuable. This complements work that controls entropy collapse across training."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which mechanism uses token uncertainty to guide reasoning exploration in the described entropy-based approach?",
+          "choices": [
+            "Length-normalizing every response reward",
+            "Replacing rewards with random token labels",
+            "Freezing the policy after entropy falls",
+            "Adding a clipped, detached entropy term to advantage"
+          ],
+          "correct": 3,
+          "explanation": "The entropy term augments the advantage so uncertain decisions can receive exploration-oriented weighting. Length normalization changes another bias, random labels discard the task signal, and freezing prevents further learning. The aim is useful exploration around reasoning decisions rather than indiscriminate entropy maximization."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.test-time-scaling.training-inference-complementarity",
+      "section": "test-time-scaling",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can test-time scaling still help a model after reasoning RL has improved it?",
+          "answer": "RL improves the sampling distribution, while extra inference compute can still search or reason further within that improved distribution.",
+          "explanation": "Training changes the weights that generate candidates; test-time scaling spends additional compute on a particular query with those weights fixed. The levers therefore compose rather than replace each other. Comparing models still requires controlling the inference budget so the two sources of gain are distinguishable."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Using best-of-N at inference makes prior reasoning RL redundant.",
+          "answer": false,
+          "explanation": "Best-of-N selects among outputs available from the current policy, so their quality and probabilities still matter. RL can improve that candidate distribution before selection occurs. More inference sampling and better trained weights are complementary ways to improve answers, with different compute costs."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.test-time-scaling.exploration-budget-limits",
+      "section": "test-time-scaling",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "What directly limits best-of-N exploration with fixed model weights?",
+          "choices": [
+            "The candidate distribution and inference budget",
+            "The number of critic-training epochs",
+            "The reference-policy reset schedule",
+            "The optimizer's accumulated moments"
+          ],
+          "correct": 0,
+          "explanation": "Best-of-N draws candidates from a fixed model and can inspect only as many as its inference budget allows. Critic epochs, reference resets, and optimizer state concern training rather than this search. Unlike RL, this inference procedure does not update the policy after discovering a better candidate."
+        },
+        {
+          "kind": "recall",
+          "prompt": "How do the limiting resources for RL exploration and fixed-model test-time sampling differ?",
+          "answer": "RL depends on retaining behavioral diversity across updates; test-time sampling depends on the fixed model's diversity and the compute available for the current query.",
+          "explanation": "RL changes future sampling through learning, so entropy lost early can restrict what later updates discover. Fixed-model sampling spends compute exploring an unchanged distribution for one request. Increasing that request's budget is therefore not the same intervention as preserving exploration throughout training."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.test-time-scaling.prolonged-exploration-preserving-rl",
+      "section": "test-time-scaling",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What makes ProRL-style prolonged training more than just running an unchanged short RL recipe for longer?",
+          "answer": "It combines sustained training with exploration and stability controls, including KL control, periodic reference/optimizer resets, and diverse verifiable tasks.",
+          "explanation": "Longer training only helps if the policy continues to explore and the updates remain usable. Reference resets and diversity measures support that sustained search rather than assuming extra steps alone will create new solutions. Reported coverage gains remain task-dependent and need large-$k$ evaluation."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Reports of broader coverage after prolonged RL imply that extending any short GRPO run will expand capability.",
+          "answer": false,
+          "explanation": "The reported recipe includes exploration-preserving and stabilizing interventions, not just more identical updates. Gains also depend on the task and the available data. A pass@1 increase on one benchmark is insufficient evidence for broad capability expansion, so coverage must be evaluated separately."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.test-time-scaling.mixed-domain-retention",
+      "section": "test-time-scaling",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why mix reasoning, agent, and alignment tasks in a final RL stage after specialist training?",
+          "answer": "To improve the combined model while reducing catastrophic forgetting from optimizing domains in isolated successive stages.",
+          "explanation": "A later specialized stage can change behavior learned earlier, so isolated gains need not survive the whole recipe. Mixed RL keeps several desired behaviors represented during consolidation. This is a data-and-training-recipe choice, not evidence that a new policy-gradient algorithm is required."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What risk motivates mixed-domain RL instead of many isolated domain-specific stages?",
+          "choices": [
+            "Inability to generate multiple responses",
+            "Catastrophic forgetting across stages",
+            "Failure to represent a token distribution",
+            "The need to use paired preference labels"
+          ],
+          "correct": 1,
+          "explanation": "Sequentially optimizing separate domains can overwrite capabilities learned in earlier stages. Mixing tasks gives the final optimization simultaneous exposure to several desired behaviors. Candidate generation, policy representation, and paired labels are not the specific retention problem this recipe addresses."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.inference-budget-control",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is a higher benchmark score inconclusive if the RL-trained model gets more samples or tool calls?",
+          "answer": "The gain may come from extra inference resources rather than improved policy quality at the same budget.",
+          "explanation": "Model comparisons should hold prompts, decoding, sampling count, and tool limits consistent. Otherwise a stronger search budget can masquerade as better learned behavior. This control connects reasoning evaluation to test-time scaling: both can improve answers, but they should not be conflated."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Equal prompt sets are sufficient for comparing pre-RL and post-RL models when their inference budgets differ.",
+          "answer": false,
+          "explanation": "The same questions can become easier with more sampled attempts, longer generation, or additional tool use. Matching prompts does not control those opportunities. A useful comparison fixes the inference conditions as well, so a score difference can be attributed more clearly to the trained policy."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.generator-verifier-separation",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why keep evaluation verifiers unavailable to the generator that creates training tasks?",
+          "answer": "To prevent the generator from leaking evaluation-specific information or shortcuts into the training distribution.",
+          "explanation": "A nominal split between task files is insufficient if the generation process can inspect the evaluator. Hidden tests and independent held-out environments help preserve an actual separation between learning and measurement. This matters especially for executable tasks, where checker details can reveal shortcuts."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which setup best protects an evaluation split when training tasks are synthesized?",
+          "choices": [
+            "Give the generator hidden test details for realism",
+            "Reuse evaluation environments under different names",
+            "Keep evaluation verifiers hidden from the generator",
+            "Tune generation until public evaluation scores peak"
+          ],
+          "correct": 2,
+          "explanation": "Keeping the evaluation checker out of the generation loop reduces a direct path for contamination. Renaming tasks does not remove shared information, and optimizing synthesis against public scores can overfit the evaluation distribution. File-level separation needs to be supported by separation of information access."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.failure-signal-ordering",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why inspect which metric changed first when an RL run collapses, rather than only the metrics at the collapse step?",
+          "answer": "The sequence of changes helps distinguish an earlier loss of exploration from an abrupt optimization or systems failure.",
+          "explanation": "Entropy falling before reward suggests that exploration deteriorated first; a sudden ratio or gradient spike without that history points elsewhere. At the final collapse, several metrics may already be abnormal. Their timing narrows the diagnosis, although it does not establish causality by itself."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which pattern most strongly suggests exploration loss preceded an RL collapse?",
+          "choices": [
+            "A checkpoint reload followed immediately by NaNs",
+            "A reward jump with worse held-out quality",
+            "A sudden ratio spike without earlier entropy drift",
+            "Entropy falling toward zero before reward drops"
+          ],
+          "correct": 3,
+          "explanation": "An earlier entropy decline suggests the policy lost diversity before performance deteriorated. A reload-associated NaN or abrupt ratio spike instead points toward numerical or update issues, while reward rising as quality falls suggests proxy exploitation. Temporal order helps choose the next investigation."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.clip-fraction-diagnosis",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A PPO-style run clips most sampled tokens. Which update and data settings should you inspect first?",
+          "answer": "Learning rate, rollout-reuse epochs, and asynchronous staleness: updates may be too large or the data too far from the learner.",
+          "explanation": "High clip fraction indicates that many sampled terms reach the surrogate's clipping regime. Large steps or a growing behavior-policy gap can cause that pattern, so lowering the rate, reducing reuse, or tightening staleness are candidate interventions. The metric is a diagnostic clue, not a standalone root-cause proof."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A clip fraction near one proves that PPO is keeping the training run healthy.",
+          "answer": false,
+          "explanation": "Frequent clipping can instead indicate excessive update sizes or increasingly off-policy data. The safeguard being activated is not evidence that the underlying training conditions are appropriate. Ratio distributions, learning rate, and rollout age help determine whether the run needs corrective changes."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.ratio-tail-diagnosis",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Heavy-tailed rollout-to-learner importance ratios should first trigger checks for which issues?",
+          "choices": [
+            "Staleness and training–inference probability mismatch",
+            "Only the number of preference labels",
+            "Only the evaluator's answer-order bias",
+            "Insufficiently long reference-model generations"
+          ],
+          "correct": 0,
+          "explanation": "Large ratio tails indicate that the probabilities being compared differ substantially or are inconsistent. Stale behavior policies and numerical differences between rollout and training paths are direct candidates. Preference-label count and judge ordering can matter elsewhere but do not directly explain this diagnostic."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can heavy-tailed importance ratios require an engine-consistency check even when rollout checkpoints are fresh?",
+          "answer": "The inference engine and trainer may compute different token probabilities for the same nominal policy.",
+          "explanation": "Checkpoint age is only one source of mismatch. Kernels, precision, or MoE routing can disagree between generation and training, distorting the probability comparison without old weights. Checking ratios therefore complements staleness logging rather than being replaced by it."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.change-aligned-numerical-spikes",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A gradient norm suddenly spikes or becomes NaN. What should you align with that step before changing the RL algorithm?",
+          "answer": "Recent changes such as warmup ending, a checkpoint reload, a data-shard switch, or an infrastructure change.",
+          "explanation": "A sudden numerical event can coincide with a configuration transition rather than a slow failure of exploration. Aligning logs with the change history narrows checks for learning-rate, bad-batch, reduction, or precision problems. Replacing the algorithm before doing that can conceal a reproducible implementation issue."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A numerical spike at a checkpoint reload warrants checking the reload and execution path before blaming entropy collapse.",
+          "answer": true,
+          "explanation": "An abrupt event tied to a system transition differs from entropy declining gradually before reward falls. That timing makes the reload, numerical settings, and probability computation relevant suspects. It does not prove the cause, but it gives a more targeted starting point for investigation."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.agent-operating-costs",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can equal agent task-success rates hide a meaningful regression after RL?",
+          "answer": "The same success rate may require more turns, tool calls, or cost, or may come with more errors and side effects.",
+          "explanation": "A terminal success score does not describe the path used to achieve it. Agent evaluation therefore includes trajectory measures such as tool errors, side-effect rate, and cost per success. These reveal operating regressions that a single success aggregate can conceal."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which additional measures can reveal an agent regression hidden by unchanged task success?",
+          "choices": [
+            "Training loss and optimizer step count only",
+            "Tool errors, side effects, and cost per success",
+            "Reward-model parameter count only",
+            "Tokenizer size and vocabulary ordering"
+          ],
+          "correct": 1,
+          "explanation": "These measures describe the reliability and cost of executing the successful policy. Training loss, model size, and tokenizer properties do not establish whether the agent now causes more operational trouble. Evaluating the trajectory complements evaluating the final task outcome."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.rollout-starvation-diagnosis",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why log trainer idle time alongside rollout throughput during RL?",
+          "answer": "To detect whether the learner is starved for completed experience rather than limited by gradient computation.",
+          "explanation": "Fresh generation feeds the training loop, and a trainer that waits for it cannot benefit fully from faster backpropagation. Rollout throughput, queue size, and idle time expose that supply bottleneck. This separates systems starvation from a policy that receives data but fails to learn from it."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Faster gradient computation may give little end-to-end benefit when the trainer mostly waits for rollouts.",
+          "answer": true,
+          "explanation": "The training loop cannot update on experience that has not arrived. If generation or synchronization dominates, reducing update time leaves the main waiting period intact. Measuring idle time and rollout throughput is therefore necessary before deciding where optimization effort will help."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.evaluation.controlled-collapse-recovery",
+      "section": "evaluation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why restart from a pre-collapse checkpoint and change one suspected cause at a time?",
+          "answer": "To test whether the intervention prevents the failure without confounding it with several simultaneous changes.",
+          "explanation": "Changing learning rate, data selection, and verifier behavior together can recover training without revealing which problem was fixed. A pre-failure checkpoint preserves a comparable starting point for a targeted test. Logs and inspected samples should determine the first intervention rather than trial-and-error changes to everything."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Recovery after changing several RL settings at once identifies which setting caused the original collapse.",
+          "answer": false,
+          "explanation": "Joint changes confound the explanation: success could come from one intervention, their interaction, or an unrelated difference in the run. Returning to a checkpoint before failure and varying one suspected cause supports a more interpretable test. The diagnosis should begin with the metric sequence and rollout examples."
+        }
+      ]
+    }
+  ]
+}

@@ -81,10 +81,14 @@ export default function Today({ onStart, onOpenSettings }: { onStart: (chapter: 
             <span>Focus</span>
             <select value={chapter} onChange={(e) => setChapter(e.target.value)}>
               <option value="">All chapters</option>
-              {bank.chapters.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+              {bank.chapterGroups.map((g) => (
+                <optgroup key={g.source} label={g.source}>
+                  {g.chapters.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>

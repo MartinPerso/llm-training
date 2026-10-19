@@ -16,7 +16,7 @@ const book: Section[] = [
   { id: 'i1', chapter: 'Inference', title: 'KV cache', level: 2, order: 1, hash: 'h1', coveredHash: 'h1' },
 ];
 const ext = (id: string, title: string, order: number, over: Partial<Section> = {}): Section => ({
-  id, chapter: 'Agentic RL', title, level: 2, order, hash: '2026-06', url: `${POST}#${id}`, ...over,
+  id, chapter: 'Agentic RL', source: 'RL notes', title, level: 2, order, hash: '2026-06', url: `${POST}#${id}`, ...over,
 });
 const external: Section[] = [ext('ppo-trust-regions', 'The PPO family and trust regions', 2), ext('async-rl', 'Async RL', 3)];
 const sections = [...book, ...external];
@@ -34,8 +34,8 @@ const concept = (id: string, section = 'ppo-trust-regions') => ({
 const agentic = (concepts: unknown[]) => ({ chapter: 'Agentic RL', concepts });
 
 describe('sections.json', () => {
-  it('stores the url between hash and coveredHash', () => {
-    expect(Object.keys(toStoredSection(external[0], 'c'))).toEqual(['id', 'chapter', 'title', 'level', 'order', 'hash', 'url', 'coveredHash']);
+  it('stores the source after the chapter and the url between hash and coveredHash', () => {
+    expect(Object.keys(toStoredSection(external[0], 'c'))).toEqual(['id', 'chapter', 'source', 'title', 'level', 'order', 'hash', 'url', 'coveredHash']);
     expect(isExternal(external[0])).toBe(true);
     expect(isExternal(book[0])).toBe(false);
   });
@@ -60,18 +60,62 @@ describe('sections.json', () => {
       'sections.json: (file): chapter "Agentic RL" mixes book sections and external-source sections (with a url)',
     ]);
   });
+
+  it('requires a source with a url, forbids it without, and one source per chapter', () => {
+    const bad = [
+      ext('a', 'A', 9, { source: undefined }),
+      ext('b', 'B', 10, { source: ' ' }),
+      { ...book[1], id: 'i9', source: 'Oops' },
+      ext('c', 'C', 11, { source: 'Other' }),
+    ];
+    const msgs = checkSections([...sections, ...bad]).map((i) => i.message);
+    expect(msgs).toContain('section a: an external-source section (with a url) needs a non-empty source');
+    expect(msgs).toContain('section b: an external-source section (with a url) needs a non-empty source');
+    expect(msgs).toContain('section i9: a book section (no url) must not have a source');
+    expect(msgs).toContain('chapter "Agentic RL" has sections with different sources ("RL notes", " ", "Other")');
+  });
 });
 
 describe('bank:check', () => {
   it('accepts concepts attached to external section keys', () => {
-    const r = checkBank([{ name: 'agenticrl.json', data: agentic([concept('agenticrl.ppo-trust-regions.clip-ratio'), concept('agenticrl.async-rl.staleness', 'async-rl')]) }], sections);
+    const r = checkBank([{ name: 'rlagentic.json', data: agentic([concept('agenticrl.ppo-trust-regions.clip-ratio'), concept('agenticrl.async-rl.staleness', 'async-rl')]) }], sections);
     expect(r.errors).toEqual([]);
     expect(r.warnings).toEqual([]);
     expect(r.stats.chapters['Agentic RL']).toEqual({ concepts: 2, variants: 2 });
   });
 
+  describe('chapters split from one source', () => {
+    const split: Section[] = [
+      ...book,
+      ext('s1', 'S1', 2, { chapter: 'Part one' }),
+      ext('s2', 'S2', 3, { chapter: 'Part two' }),
+      ext('s3', 'S3', 4, { chapter: 'Part three', source: 'Other source' }),
+    ];
+    const file = (name: string, chapter: string, id: string, section: string) => ({ name, data: { chapter, concepts: [concept(id, section)] } });
+    // chapterSlug of unknown titles: "partone", "parttwo", "partthree"
+
+    it('accepts a prefix shared by the chapters of a source, different from their slugs', () => {
+      const r = checkBank([file('partone.json', 'Part one', 'rl.s1.a', 's1'), file('parttwo.json', 'Part two', 'rl.s2.b', 's2')], split);
+      expect(r.errors).toEqual([]);
+      expect(r.warnings).toEqual([]);
+    });
+
+    it('warns when another chapter of the same source uses a different prefix', () => {
+      const r = checkBank([file('partone.json', 'Part one', 'rl.s1.a', 's1'), file('parttwo.json', 'Part two', 'other.s2.b', 's2')], split);
+      expect(r.errors).toEqual([]);
+      expect(r.warnings.map((w) => w.message)).toEqual(['id prefix "other" differs from "rl", the prefix of the other chapters of source "RL notes"']);
+    });
+
+    it('does not compare prefixes across sources, and keeps the book rule', () => {
+      const bank = [file('partone.json', 'Part one', 'rl.s1.a', 's1'), file('partthree.json', 'Part three', 'zz.s3.c', 's3')];
+      expect(checkBank(bank, split).warnings).toEqual([]);
+      const bookFile = { name: 'inference.json', data: { chapter: 'Inference', concepts: [concept('rl.kv.x', 'i1')] } };
+      expect(checkBank([bookFile], split).warnings.map((w) => w.message)).toContain('id prefix "rl" differs from the chapter slug "inference"');
+    });
+  });
+
   it('still rejects unknown keys and keys of another chapter', () => {
-    const r = checkBank([{ name: 'agenticrl.json', data: agentic([concept('agenticrl.x.a', 'nope'), concept('agenticrl.x.b', 'i1')]) }], sections);
+    const r = checkBank([{ name: 'rlagentic.json', data: agentic([concept('agenticrl.x.a', 'nope'), concept('agenticrl.x.b', 'i1')]) }], sections);
     expect(r.errors.map((e) => e.message)).toEqual([
       'section nope does not exist in sections.json',
       'section "KV cache" belongs to chapter "Inference", not "Agentic RL"',
@@ -80,9 +124,9 @@ describe('bank:check', () => {
 });
 
 describe('bank:status', () => {
-  const files = [{ name: 'agenticrl.json', data: agentic([concept('agenticrl.ppo-trust-regions.clip-ratio')]) }];
+  const files = [{ name: 'rlagentic.json', data: agentic([concept('agenticrl.ppo-trust-regions.clip-ratio')]) }];
   const chapters = buildChapters(sections, files, cache);
-  const rl = findChapter(chapters, 'agenticrl')!;
+  const rl = findChapter(chapters, 'rlagentic')!;
 
   it('lists the chapter with its source page and every section as non-trivial', () => {
     expect(rl.title).toBe('Agentic RL');
@@ -102,15 +146,15 @@ describe('bank:status', () => {
     expect(t.chars).toBe(710);
     expect(t.target).toBe(2);
     expect(t.nonTrivialSections).toBe(3);
-    const row = formatStatusTable(chapters, t).split('\n').find((l) => l.startsWith('agenticrl'))!;
-    expect(row).toMatch(/agenticrl\s+Agentic RL\s+2\s+-\s+-\s+1\s+1/);
+    const row = formatStatusTable(chapters, t).split('\n').find((l) => l.startsWith('rlagentic'))!;
+    expect(row).toMatch(/rlagentic\s+Agentic RL\s+2\s+-\s+-\s+1\s+1/);
   });
 
   it('finds sections by key or title, and marks them covered', () => {
     expect(findSection(rl, 'async-rl')?.title).toBe('Async RL');
     expect(findSection(rl, 'The PPO family and trust regions')?.id).toBe('ppo-trust-regions');
     const copy = sections.map((s) => ({ ...s }));
-    expect(markCovered(copy, ['agenticrl'], ['async-rl'])).toBe(1);
+    expect(markCovered(copy, ['rlagentic'], ['async-rl'])).toBe(1);
     expect(copy.find((s) => s.id === 'async-rl')!.coveredHash).toBe('2026-06');
   });
 });
@@ -131,11 +175,21 @@ describe('bank:import', () => {
     const p = planImport(reply([concept('agenticrl.ppo-trust-regions.clip-ratio')]), sections, () => ({}));
     expect(p.ok).toBe(true);
     if (p.ok) {
-      expect(p.chapter.slug).toBe('agenticrl');
+      expect(p.chapter.slug).toBe('rlagentic');
       expect(p.merged.chapter).toBe('Agentic RL');
       expect(p.merge.added).toEqual(['agenticrl.ppo-trust-regions.clip-ratio']);
       expect(p.warnings).toEqual([]);
     }
+  });
+
+  it('resolves one of several chapters sharing an id prefix, by title or by the sections of the concepts', () => {
+    const split: Section[] = [...book, ext('s1', 'S1', 2, { chapter: 'Part one' }), ext('s2', 'S2', 3, { chapter: 'Part two' })];
+    const body = (chapter: string | undefined, id: string, sec: string) =>
+      '```json\n' + JSON.stringify({ ...(chapter ? { chapter } : {}), concepts: [concept(id, sec)] }) + '\n```';
+    const byTitle = planImport(body('Part two', 'rl.s2.a', 's2'), split, () => ({}));
+    expect(byTitle.ok && byTitle.chapter.title).toBe('Part two');
+    const bySection = planImport(body(undefined, 'rl.s2.a', 's2'), split, () => ({}));
+    expect(bySection.ok && bySection.chapter.title).toBe('Part two');
   });
 
   it('fails on a section key that is not registered', () => {

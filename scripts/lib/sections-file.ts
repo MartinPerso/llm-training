@@ -12,7 +12,7 @@ export const isExternal = (s: Pick<Section, 'url'>) => typeof s.url === 'string'
 
 /** Section as stored in sections.json (stable key order, no text). */
 export function toStoredSection(s: Section, coveredHash: string | undefined): Section {
-  const out: Section = { id: s.id, chapter: s.chapter, title: s.title, level: s.level, order: s.order, hash: s.hash };
+  const out: Section = { id: s.id, chapter: s.chapter, ...(s.source !== undefined ? { source: s.source } : {}), title: s.title, level: s.level, order: s.order, hash: s.hash };
   if (s.url !== undefined) out.url = s.url;
   if (coveredHash) out.coveredHash = coveredHash;
   return out;

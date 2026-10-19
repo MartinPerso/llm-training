@@ -1,4 +1,4 @@
-import type { ChapterFile, Concept, Section } from './types.ts';
+import { BOOK_TITLE, type ChapterFile, type Concept, type Section } from './types.ts';
 
 /** Everything the app needs to know about the question bank, in book order. */
 export interface Bank {
@@ -8,6 +8,10 @@ export interface Bank {
   /** Chapter titles in book order (only chapters that have at least one concept). */
   chapters: string[];
   chapterOf: Map<string, string>;
+  /** Chapter title -> group label: the section's `source` for external sources, BOOK_TITLE for the book. */
+  sourceOf: Map<string, string>;
+  /** Chapters (those in `chapters`) grouped by source, in book order: the book first, then external sources. */
+  chapterGroups: { source: string; chapters: string[] }[];
   sections: Map<string, Section>;
   /** Concept ids per chapter, in book order. */
   idsByChapter: Map<string, string[]>;
@@ -65,7 +69,18 @@ export function buildBank(sectionList: Section[], files: ChapterFile[]): Bank {
     list.push(e.concept.id);
     idsByChapter.set(e.chapter, list);
   }
-  return { concepts, byId, chapters: [...idsByChapter.keys()], chapterOf, sections, idsByChapter };
+  const chapters = [...idsByChapter.keys()];
+  const sourceOf = new Map<string, string>();
+  for (const s of [...sectionList].sort((a, b) => a.order - b.order)) {
+    if (!sourceOf.has(s.chapter)) sourceOf.set(s.chapter, s.source ?? BOOK_TITLE);
+  }
+  const groups = new Map<string, string[]>();
+  for (const c of chapters) {
+    const source = sourceOf.get(c) ?? BOOK_TITLE;
+    groups.set(source, [...(groups.get(source) ?? []), c]);
+  }
+  const chapterGroups = [...groups].map(([source, list]) => ({ source, chapters: list }));
+  return { concepts, byId, chapters, chapterOf, sourceOf, chapterGroups, sections, idsByChapter };
 }
 
 /** Turn the result of `import.meta.glob(..., { eager: true, import: 'default' })` into a bank. */

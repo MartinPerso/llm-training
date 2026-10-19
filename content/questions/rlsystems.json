@@ -1,0 +1,397 @@
+{
+  "chapter": "RL infrastructure & systems",
+  "concepts": [
+    {
+      "id": "agenticrl.memory-parallelism.grpo-model-accounting",
+      "section": "memory-parallelism",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "With learned rewards and reference KL, how many model roles does GRPO retain, excluding a separate rollout replica?",
+          "answer": 3,
+          "tolerance": 0,
+          "explanation": "The roles are policy, reference, and reward model: $1+1+1=3$, with no learned critic. A verifiable reward removes the reward-model role, and removing reference KL removes the reference role. This count excludes optimizer memory, activations, and any separate serving replica."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why does policy-only RLVR accounting not imply that a disaggregated run stores just one set of weights?",
+          "answer": "Separate rollout workers may hold serving replicas of the policy in addition to the trainer's policy and training state.",
+          "explanation": "Removing the reward model and reference removes those logical roles, not every physical copy needed by the system. A separate generation service can retain its own policy replica, sometimes quantized. Colocation can share weights, so actual memory accounting depends on how rollout and training are deployed."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.memory-parallelism.adam-moment-storage",
+      "section": "memory-parallelism",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "How many per-parameter moment estimates does Adam retain, excluding weights, gradients, and master copies?",
+          "answer": 2,
+          "tolerance": 0,
+          "explanation": "Adam retains two moment estimates per parameter, so this contribution is $2\\times$ one parameter-sized array at the moments' precision. It is additional to model weights and other training state. ⚠️ Note: its byte cost relative to weights depends on their respective precisions, not just the array count."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Two FP32 Adam moment arrays can use more than twice the bytes of lower-precision model weights.",
+          "answer": true,
+          "explanation": "The number of arrays and the number of bytes per element both matter. Two FP32 moment arrays contain two values per parameter at a different precision from BF16 weights. ⚠️ Note: describing optimizer memory as simply twice parameter memory is ambiguous unless the precision used for that comparison is specified."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.memory-parallelism.distributed-reduction-scaling",
+      "section": "memory-parallelism",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can summing data-parallel gradients where an average was intended destabilize training?",
+          "answer": "It multiplies the gradient scale by the number of ranks, changing the update fed to the optimizer.",
+          "explanation": "A sum and a mean differ by the world-size factor, so correct local losses can still produce an incorrectly scaled distributed update. Reduction and accumulation normalization must agree. ⚠️ Note: repeated averaging of identical values is idempotent; extra reduction is not automatically scaling, and Adam is not simply SGD."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An extra mean reduction can leave already identical gradients unchanged across ranks.",
+          "answer": true,
+          "explanation": "A mean of identical values returns that same value; a sum returns a world-size multiple. The failure depends on the reduction operation and the values being reduced. ⚠️ Note: broad claims that every extra all-reduce scales gradients conflate summation, averaging, and the actual reduction path."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.memory-parallelism.low-precision-range",
+      "section": "memory-parallelism",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can FP8 suit training values whose range changes more than calibrated inference values?",
+          "answer": "Its exponent represents a wider dynamic range, while integer quantization allocates resolution within a chosen scaled range.",
+          "explanation": "Training gradients and activations can vary widely, making representable range important. Integer quantization can work well when a useful range is calibrated for inference. ⚠️ Note: FP8 for training and INT8 for inference is a rule of thumb, not an exclusive division or a guarantee that either works without scaling."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which property chiefly motivates floating-point FP8 for widely varying training values?",
+          "choices": [
+            "Exact representation of every gradient",
+            "Elimination of scaling and calibration",
+            "Exponent-based dynamic range",
+            "Guaranteed equality with full-precision logits"
+          ],
+          "correct": 2,
+          "explanation": "The exponent helps represent values over a broad scale at low precision. It does not make all gradients exact, remove numerical-management requirements, or ensure identical logits. This distinguishes range from resolution within a calibrated interval, a central tradeoff in low-precision execution."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.memory-parallelism.parameter-versus-context-sharding",
+      "section": "memory-parallelism",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why might parameter sharding alone fail to solve memory pressure from very long agent trajectories?",
+          "answer": "Long sequences also increase activation and KV-cache memory; sharding parameters and optimizer state does not directly split that sequence dimension.",
+          "explanation": "FSDP and ZeRO primarily distribute model and training state, whereas context parallelism divides sequence work across devices. A model can fit in weights yet run out of memory on a long trajectory. Choosing the parallelism axis requires identifying which memory component is actually growing."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which parallelism axis directly partitions the sequence for long-context processing?",
+          "choices": [
+            "Context parallelism",
+            "Pipeline parallelism",
+            "Expert parallelism",
+            "Optimizer-state sharding alone"
+          ],
+          "correct": 0,
+          "explanation": "Context parallelism splits the sequence dimension. Pipeline parallelism assigns layers to stages, expert parallelism distributes experts, and optimizer sharding distributes training state. These can be composed, but they do not address the same source of memory or computation."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.memory-parallelism.expert-routing-communication",
+      "section": "memory-parallelism",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can an MoE run remain slow despite activating only a few experts per token?",
+          "answer": "Expert parallelism must route tokens between devices, and all-to-all communication or an overloaded expert can dominate throughput.",
+          "explanation": "Sparse activation reduces expert compute, not the cost of moving tokens to their assigned experts and back. Throughput depends on communication overlap and balanced routing load. A frequently selected expert can become a straggler even while other expert devices have spare capacity."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Reducing the number of active MoE experts per token eliminates expert-parallel communication bottlenecks.",
+          "answer": false,
+          "explanation": "Tokens still need to reach the devices holding the selected experts. Communication and uneven expert demand can limit the run independently of how much arithmetic is skipped. Overlapping all-to-all traffic with compute and balancing expert load address these remaining costs."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rollout-engines.continuous-batching-boundary",
+      "section": "rollout-engines",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can continuous batching keep rollout GPUs busy without removing a synchronous trainer's wait for its batch?",
+          "answer": "It refills freed generation slots, but the trainer may still require the last trajectory in its designated batch to finish.",
+          "explanation": "Continuous batching improves the inference scheduler's use of available slots as sequences complete. It does not itself change the training step's dependency on a particular set of rollouts. Asynchronous consumption or tail controls address that separate barrier between generation and optimization."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Continuous batching automatically removes the training barrier imposed by a synchronous rollout batch.",
+          "answer": false,
+          "explanation": "Replacing completed requests keeps the serving engine occupied, but the optimizer can still wait for a long unfinished member of its training batch. Inference scheduling and learner synchronization are separate design choices. An asynchronous architecture changes that dependency rather than merely refilling decode slots."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rollout-engines.kv-layout-versus-reuse",
+      "section": "rollout-engines",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which pairing correctly distinguishes the cache ideas behind PagedAttention and RadixAttention?",
+          "choices": [
+            "PagedAttention: prefix reuse; RadixAttention: parameter sharding",
+            "PagedAttention: less fragmentation; RadixAttention: prefix reuse",
+            "PagedAttention: expert routing; RadixAttention: gradient averaging",
+            "PagedAttention: layer splitting; RadixAttention: length penalties"
+          ],
+          "correct": 1,
+          "explanation": "PagedAttention manages KV storage in blocks to reduce fragmentation, while RadixAttention organizes reusable shared prefixes. GRPO's many responses per prompt make prefix reuse especially relevant. These describe the cited techniques, not mutually exclusive capabilities of every current engine implementation."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why is shared-prefix KV reuse especially attractive for group-based RL rollouts?",
+          "answer": "Several sampled responses start from the same prompt, allowing its prefix computation and cache to be reused.",
+          "explanation": "The responses branch after common context, so recomputing that context for each candidate wastes work. Prefix-aware caching targets this duplication, whereas paging targets how KV memory is allocated. Both can improve generation without changing the reward or policy-gradient objective."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rollout-engines.prefill-decode-disaggregation",
+      "section": "rollout-engines",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can separate GPUs for prefill and decode improve serving utilization?",
+          "answer": "Prefill is relatively compute-heavy while decode is often memory-bandwidth-heavy, so separating them allows different scheduling and resource allocation.",
+          "explanation": "The two generation phases stress hardware differently, which can make one shared execution arrangement inefficient. Disaggregation trades that interference for transferring the prefix's KV cache to decode workers. The potential gain therefore depends on communication cost as well as the phase-specific resource profiles."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What state must move when a request is handed from prefill workers to separate decode workers?",
+          "choices": [
+            "The optimizer's second moments",
+            "The reward model's training labels",
+            "The critic's gradient history",
+            "The request's attention KV cache"
+          ],
+          "correct": 3,
+          "explanation": "Prefill computes the context keys and values that later autoregressive decoding reuses. Transferring that request-local cache lets decode continue without repeating the whole prefill. Optimizer, reward-label, and critic-gradient state are training objects rather than the needed generation state."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rollout-engines.straggler-tail-control",
+      "section": "rollout-engines",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a small number of long tool-use rollouts dominate a synchronous RL step's duration?",
+          "answer": "The optimizer waits for the slowest required trajectory, so the tail rather than the average completion time sets the barrier.",
+          "explanation": "Most requests can finish quickly while a few long generations or tool interactions keep the batch incomplete. Length or turn caps bound that tail, and asynchronous processing changes the waiting dependency. Caps have a learning cost because they can discard trajectories that would eventually provide useful outcomes."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Capping rollout turns can improve throughput while removing useful training outcomes.",
+          "answer": true,
+          "explanation": "A cap can terminate a trajectory before it completes a valid multi-step solution. It reduces straggler cost but also changes which outcomes and action sequences reach training. Tail management therefore trades throughput against retained experience rather than offering a cost-free speedup."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rollout-engines.cache-pressure-diagnosis",
+      "section": "rollout-engines",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "High KV-cache occupancy with frequent request evictions most directly suggests which intervention?",
+          "choices": [
+            "Raise the policy learning rate",
+            "Add more reference-model copies",
+            "Reduce serving batch size or context length",
+            "Increase PPO epochs on each completed batch"
+          ],
+          "correct": 2,
+          "explanation": "Evictions under high occupancy indicate pressure on inference cache capacity. Smaller batches or shorter contexts reduce that demand, unlike learning-rate or reuse changes. Cache occupancy should be read alongside throughput and scheduling metrics, because low GPU utilization alone does not identify the bottleneck."
+        },
+        {
+          "kind": "recall",
+          "prompt": "How does low GPU utilization with low KV occupancy differ from high occupancy with repeated evictions?",
+          "answer": "The former suggests waiting or scheduling bottlenecks; the latter suggests inference memory pressure.",
+          "explanation": "Low utilization is not sufficient evidence that the model needs fewer parameters. Sparse cache use can indicate CPU work, synchronization, or insufficient scheduled requests, while repeated evictions reveal cache contention. Jointly reading compute and cache metrics helps avoid optimizing the wrong resource."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.async-rl.async-queue-tradeoff",
+      "section": "async-rl",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What replaces the generate-then-train barrier in fully asynchronous RL, and what new control does it require?",
+          "answer": "A stream or queue of rollouts connects independently running workers and learner; their policy-version gap must be controlled.",
+          "explanation": "Decoupling allows generation and optimization to overlap rather than reserving whole phases for each. But queued or unfinished trajectories can originate from older learner versions. Utilization gains therefore introduce a need to track and limit staleness, not merely to maximize queue depth."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A deeper asynchronous rollout queue is an unqualified improvement because it keeps the trainer supplied.",
+          "answer": false,
+          "explanation": "A queue can reduce starvation, but old samples may wait while the learner keeps changing. Increasing supply without controlling age can worsen the behavior-to-learner gap. Queue size, throughput, and staleness must therefore be considered together rather than optimizing utilization alone."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.async-rl.staleness-update-units",
+      "section": "async-rl",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What does rollout staleness count in asynchronous RL, and what practical range is suggested?",
+          "answer": "The number of learner updates since the generating policy version; roughly one to four updates is suggested as a small-lag range.",
+          "explanation": "Wall-clock duration matters operationally, but the stated staleness measure counts policy updates separating behavior from learner. A long rollout can therefore age differently depending on learner speed. The suggested range is a starting heuristic, not a guarantee that every update changes the policy equally."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Two rollouts take equal wall-clock time but overlap different numbers of learner updates. Which is staler by policy-version lag?",
+          "choices": [
+            "The one spanning more learner updates",
+            "The one containing fewer generated tokens",
+            "The one receiving the lower verifier reward",
+            "They must have identical staleness"
+          ],
+          "correct": 0,
+          "explanation": "Version-based lag measures how far the learner advanced while the rollout used its behavior checkpoint. Equal elapsed time does not imply equal update counts, and length or reward does not define the lag. Importance-ratio health still matters because equal update counts can hide different amounts of policy change."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.async-rl.policy-specific-kv-cache",
+      "section": "async-rl",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why is a partially generated rollout's KV cache unsafe to reuse as though it came from newly updated weights?",
+          "answer": "The cached keys and values were computed by the old policy, so they are not the new policy's representation of the prefix.",
+          "explanation": "A cache is tied to both the request prefix and the model version that processed it. Continuing under that same behavior version is different from combining old intermediates with new weights. Version tags and saved behavior log-probabilities preserve the provenance needed for later training."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A partial rollout can reuse its cache when continuing under the same behavior-policy version.",
+          "answer": true,
+          "explanation": "Identical input tokens do not imply identical hidden representations under different parameters. An old cache can support continuation with its original behavior model, but cannot certify probabilities for the updated one. The rollout's policy version is therefore part of its execution state."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.async-rl.batch-invariant-probabilities",
+      "section": "async-rl",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can changing neighboring requests in an inference batch alter an unchanged model's token log-probability?",
+          "answer": "Batching can change kernel or reduction order, and floating-point operations can yield different numerical results under that order.",
+          "explanation": "The mathematical model is the same, but its numerical execution can depend on batch shape or packing. Batch-invariant kernels aim to make a token's result independent of that surrounding batch. This matters for RL because probability comparisons can otherwise reflect execution differences rather than policy updates."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Deterministic execution for one fixed batch layout establishes probability invariance across different batch layouts.",
+          "answer": false,
+          "explanation": "Repeating one layout can be reproducible while a different layout selects a different reduction path and produces different values. Batch invariance is the stronger requirement relevant to changing rollout and training batches. Matching model weights alone does not establish that numerical property."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.async-rl.atomic-reduction-order",
+      "section": "async-rl",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does using atomic addition not automatically make parallel probability computations reproducible?",
+          "answer": "Atomicity protects each addition from conflicting writes, but does not fix the order in which contributions are accumulated.",
+          "explanation": "Floating-point sums can change with accumulation order, so a valid atomic operation sequence may still vary numerically across executions. Fixed-order reductions address that issue more directly. ⚠️ Note: atomic updates prevent certain races; they are not a general guarantee of deterministic floating-point sums."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which property is needed to avoid variability caused by floating-point reduction order?",
+          "choices": [
+            "A larger asynchronous queue",
+            "A fixed accumulation order",
+            "More random sampling from the policy",
+            "A larger terminal reward"
+          ],
+          "correct": 1,
+          "explanation": "A fixed reduction order controls the numerical path used to combine contributions. Queue size, sampling diversity, and reward scale do not fix that path. Atomic additions can serialize individual writes without defining their order, so atomicity and reproducibility are different guarantees."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.async-rl.moe-routing-replay",
+      "section": "async-rl",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How can replaying rollout-time expert choices on the trainer reduce MoE probability mismatch?",
+          "answer": "It makes the training forward pass use the same selected experts for the recorded tokens instead of allowing routing to choose a different path.",
+          "explanation": "A token's probability depends on which experts process it, so inconsistent routing can corrupt behavior-to-learner comparisons. Replaying expert selections addresses that execution difference. Sequence-level ratios improve robustness to token noise, but do not themselves force the two paths to select matching experts."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Routing replay can complement GSPO by reducing the execution mismatch that sequence-level ratios only make less disruptive.",
+          "answer": true,
+          "explanation": "Changing ratio granularity can reduce sensitivity to token-level fluctuations without removing their source. Different expert choices can still make the two execution paths disagree. Routing replay and matched numerical kernels therefore complement algorithmic robustness rather than becoming unnecessary."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.async-rl.faithful-behavior-probabilities",
+      "section": "async-rl",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which probabilities must the denominator of an off-policy correction represent when rollout and training engines disagree?",
+          "answer": "The actual behavior probabilities used to generate the sampled actions, preserved or faithfully recomputed with the matching execution setup.",
+          "explanation": "Recomputing under the learner's engine is not automatically equivalent to recovering the generating distribution. Stored behavior log-probabilities and version metadata retain that distinction. ⚠️ Note: trainer-side recomputation alone cannot eliminate a genuine inference-engine mismatch in the behavior policy."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Recomputing old log-probabilities with any implementation of the same checkpoint necessarily recovers the sampling distribution.",
+          "answer": false,
+          "explanation": "The checkpoint does not specify every numerical detail of execution, such as precision, kernels, and MoE routing. Those differences can affect the probabilities that actually generated the actions. Faithful correction requires matching or recording the behavior path, not merely loading nominally identical weights."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.async-rl.ordinary-distributed-backprop",
+      "section": "async-rl",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What additional batch bookkeeping makes ordinary distributed backprop usable for agent RL?",
+          "answer": "Recorded trajectories need action masks, behavior log-probabilities, rewards, and advantages so the trainer can assemble the policy loss.",
+          "explanation": "Tool execution provides observations and outcomes, while the trainer differentiates log-probabilities for the model's sampled actions. Distributed sharding and gradient synchronization work as in other model training. RL changes the batch contents and loss rather than requiring differentiable environment execution."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which part of distributed LLM RL is most specific to RL rather than ordinary distributed model training?",
+          "choices": [
+            "The existence of matrix multiplications",
+            "The need to store model parameters",
+            "The use of gradient synchronization",
+            "Assembling masks, behavior log-probabilities, and advantages"
+          ],
+          "correct": 3,
+          "explanation": "RL batches need trajectory provenance and credit information to form the correct policy loss. The resulting model gradients are then sharded or synchronized using standard distributed mechanisms. Matrix operations, parameter storage, and synchronization are shared with supervised training rather than unique to RL."
+        }
+      ]
+    }
+  ]
+}

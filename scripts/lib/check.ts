@@ -88,6 +88,9 @@ export function checkBank(files: BankFile[], sections: Section[]): CheckResult {
   const knownChapters = new Set(sections.map((s) => s.chapter));
   const seenIds = new Map<string, string>(); // concept id -> file
   const seenChapters = new Map<string, string>(); // chapter -> file
+  const sourceOfChapter = new Map<string, string>(); // chapter -> source (external chapters only)
+  for (const s of sections) if (s.url !== undefined && s.source && !sourceOfChapter.has(s.chapter)) sourceOfChapter.set(s.chapter, s.source);
+  const sourcePrefix = new Map<string, string>(); // source -> id prefix of the first file of that source
 
   for (const file of files) {
     const err = (message: string, concept?: string) => errors.push({ file: file.name, concept, message });
@@ -109,6 +112,7 @@ export function checkBank(files: BankFile[], sections: Section[]): CheckResult {
     if (file.name !== `${expectedSlug}.json`) warn(`file name should be ${expectedSlug}.json for chapter "${chapter}"`);
 
     const chapterStats = (stats.chapters[chapter] ??= { concepts: 0, variants: 0 });
+    const source = sourceOfChapter.get(chapter);
     let firstSegment: string | undefined;
 
     for (const raw of concepts) {
@@ -127,7 +131,11 @@ export function checkBank(files: BankFile[], sections: Section[]): CheckResult {
           const seg = id.split('.')[0];
           firstSegment ??= seg;
           if (seg !== firstSegment) err(`id starts with "${seg}" but other ids in this file start with "${firstSegment}"`, id);
-          else if (seg !== expectedSlug) warn(`id prefix "${seg}" differs from the chapter slug "${expectedSlug}"`, id);
+          else if (source !== undefined) {
+            // Chapters split from one external source share one prefix (the first file seen sets it).
+            const shared = sourcePrefix.get(source) ?? (sourcePrefix.set(source, seg), seg);
+            if (seg !== shared) warn(`id prefix "${seg}" differs from "${shared}", the prefix of the other chapters of source "${source}"`, id);
+          } else if (seg !== expectedSlug) warn(`id prefix "${seg}" differs from the chapter slug "${expectedSlug}"`, id);
         }
       }
 
@@ -191,23 +199,31 @@ export function checkBank(files: BankFile[], sections: Section[]): CheckResult {
 
 /**
  * Problems in content/sections.json itself: duplicate ids, and external-source sections (those with a `url`):
- * the url must be http(s), and a chapter is either all book sections or all external ones.
+ * the url must be http(s), a chapter is either all book sections or all external ones,
+ * and external sections have a `source` (the same for the whole chapter) which book sections lack.
  */
 export function checkSections(sections: Section[]): Issue[] {
   const issues: Issue[] = [];
   const err = (message: string) => issues.push({ file: 'sections.json', message });
   const seen = new Set<string>();
   const kinds = new Map<string, Set<'book' | 'external'>>();
+  const sources = new Map<string, Set<string>>();
   for (const s of sections) {
     if (seen.has(s.id)) err(`duplicate section id ${s.id}`);
     seen.add(s.id);
     if (s.url !== undefined && !/^https?:\/\/\S+$/.test(s.url)) err(`section ${s.id}: url must be an http(s) link, got "${s.url}"`);
+    if (s.url !== undefined && !s.source?.trim()) err(`section ${s.id}: an external-source section (with a url) needs a non-empty source`);
+    if (s.url === undefined && s.source !== undefined) err(`section ${s.id}: a book section (no url) must not have a source`);
+    if (s.source) sources.set(s.chapter, (sources.get(s.chapter) ?? new Set()).add(s.source));
     const set = kinds.get(s.chapter) ?? new Set();
     set.add(s.url === undefined ? 'book' : 'external');
     kinds.set(s.chapter, set);
   }
   for (const [chapter, set] of kinds) {
     if (set.size > 1) err(`chapter "${chapter}" mixes book sections and external-source sections (with a url)`);
+  }
+  for (const [chapter, set] of sources) {
+    if (set.size > 1) err(`chapter "${chapter}" has sections with different sources (${[...set].map((x) => `"${x}"`).join(', ')})`);
   }
   return issues;
 }

@@ -51,7 +51,7 @@ chat-packs/                   gitignored: packs for chat assistants (contain the
 .github/workflows/pages.yml   bank:check, test, build, deploy
 ```
 
-Chapter slugs: `basics`, `math`, `transformer`, `inference`, `scaling`, `gpus`, `architectures`, `posttraining`, `precision`, `parallelism`, `multimodality` (full titles in `content/GUIDE.md` section 11 or `npm run bank:status`).
+Chapter slugs: `basics`, `math`, `transformer`, `inference`, `scaling`, `gpus`, `architectures`, `posttraining`, `precision`, `parallelism`, `multimodality`, plus the six RL chapters of the external source below: `rlfoundations`, `rlrewards`, `rlpolicy`, `rlreasoning`, `rlagentic`, `rlsystems` (full titles in `content/GUIDE.md` section 11 or `npm run bank:status`).
 
 ## Writing questions
 
@@ -80,14 +80,15 @@ For writing questions in a chat (claude.ai, ChatGPT, Gemini...) with no coding a
 
 ## External sources (chapters from a web page)
 
-A chapter can come from a web page instead of the Notion book, for example "Agentic RL" (slug `agenticrl`) from [a blog post on RL and agentic RL](https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/). Its sections are ordinary entries of `content/sections.json` with a `url`:
+A chapter can come from a web page instead of the Notion book. The current one is [a blog post on RL and agentic RL](https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/), split into six chapters following its Parts and grouped in the app under the source "RL & agentic RL interview notes": `rlfoundations` (Foundations & problem setup), `rlrewards` (Rewards & preferences), `rlpolicy` (Policy optimization algorithms), `rlreasoning` (Reasoning, test-time scaling & evaluation), `rlagentic` (Agentic RL), `rlsystems` (RL infrastructure & systems). Their sections are ordinary entries of `content/sections.json` with a `url`:
 
 ```json
-{ "id": "ppo-trust-regions", "chapter": "Agentic RL", "title": "The PPO family and trust regions", "level": 2, "order": 61, "hash": "2026-06",
+{ "id": "ppo-trust-regions", "chapter": "Policy optimization algorithms", "source": "RL & agentic RL interview notes", "title": "The PPO family and trust regions", "level": 2, "order": 61, "hash": "2026-06",
   "url": "https://jxzhangjhu.github.io/blog/2026/everything-about-rl-and-agentic-rl/#7--the-ppo-family-and-trust-regions" }
 ```
 
-- `id` is a short kebab-case key (the concepts' `section`, and by convention the middle segment of their ids). `url` is the page plus the heading's `#anchor` (the app's "Read the source" link). `hash` is a revision label of your choice (the post's date): `book:diff` reports the section as changed only when you bump it. `order` goes after the book; `book:fetch` keeps these entries and renumbers them after the book's sections. A chapter is either all book sections or all external ones (`bank:check` enforces it, and that each `url` is http(s)).
+- `source` is the short title of the page: required on sections with a `url`, forbidden on book sections, identical for all sections of a chapter. The app groups chapters by it (Focus menu; the book's chapters sit under "Alisa's book of LLMs"). `id` is a short kebab-case key (the concepts' `section`, and by convention the middle segment of their ids). `url` is the page plus the heading's `#anchor` (the app's "Read the source" link). `hash` is a revision label of your choice (the post's date): `book:diff` reports the section as changed only when you bump it. `order` goes after the book; `book:fetch` keeps these entries and renumbers them after the book's sections. A chapter is either all book sections or all external ones (`bank:check` enforces it, and that each `url` is http(s)).
+- Concept ids of a source split into several chapters all share one first segment (here `agenticrl.`), not the chapter slug: the first file of the source sets it and `bank:check` warns when another chapter of the same source differs (no "differs from the chapter slug" warning for external chapters). The id is permanent, so chapters can be re-split without renaming concepts. `bank:import` finds the chapter by its title, or else by the sections of the concepts.
 - `bank:check`, `bank:import`, `bank:status` (sizes and targets show `-`), `book:diff` and `book:covered` work as for book chapters. `bank:task` and `bank:pack` refuse: the text is not cached, so write a self-contained prompt that links the page, with the section keys, and import the reply with `bank:import`.
 - To add a source: append one entry per section (the page's headings, in order) with the chapter title, make sure `chapterSlug` (`scripts/lib/slugs.ts`) gives a slug without hyphens (it does for most titles), run `npm run bank:check`, and commit `content/sections.json`.
 

@@ -496,7 +496,8 @@
   },
   {
     "id": "recipe-map",
-    "chapter": "Agentic RL",
+    "chapter": "Foundations & problem setup",
+    "source": "RL & agentic RL interview notes",
     "title": "What post-training is, and the recipe map",
     "level": 2,
     "order": 55,
@@ -506,7 +507,8 @@
   },
   {
     "id": "math-toolkit",
-    "chapter": "Agentic RL",
+    "chapter": "Foundations & problem setup",
+    "source": "RL & agentic RL interview notes",
     "title": "RL background and the math toolkit",
     "level": 2,
     "order": 56,
@@ -516,7 +518,8 @@
   },
   {
     "id": "algorithm-families",
-    "chapter": "Agentic RL",
+    "chapter": "Foundations & problem setup",
+    "source": "RL & agentic RL interview notes",
     "title": "Algorithm families: value-based, policy-gradient, actor-critic",
     "level": 2,
     "order": 57,
@@ -526,7 +529,8 @@
   },
   {
     "id": "reward-modeling",
-    "chapter": "Agentic RL",
+    "chapter": "Rewards & preferences",
+    "source": "RL & agentic RL interview notes",
     "title": "Preferences and reward modeling",
     "level": 2,
     "order": 58,
@@ -536,7 +540,8 @@
   },
   {
     "id": "verifiable-rewards",
-    "chapter": "Agentic RL",
+    "chapter": "Rewards & preferences",
+    "source": "RL & agentic RL interview notes",
     "title": "Verifiable rewards, regularization, and reward hacking",
     "level": 2,
     "order": 59,
@@ -546,7 +551,8 @@
   },
   {
     "id": "rejection-distillation",
-    "chapter": "Agentic RL",
+    "chapter": "Rewards & preferences",
+    "source": "RL & agentic RL interview notes",
     "title": "Rejection sampling and on-policy distillation",
     "level": 2,
     "order": 60,
@@ -556,7 +562,8 @@
   },
   {
     "id": "ppo-trust-regions",
-    "chapter": "Agentic RL",
+    "chapter": "Policy optimization algorithms",
+    "source": "RL & agentic RL interview notes",
     "title": "The PPO family and trust regions",
     "level": 2,
     "order": 61,
@@ -566,7 +573,8 @@
   },
   {
     "id": "grpo-variants",
-    "chapter": "Agentic RL",
+    "chapter": "Policy optimization algorithms",
+    "source": "RL & agentic RL interview notes",
     "title": "GRPO and the variant zoo",
     "level": 2,
     "order": 62,
@@ -576,7 +584,8 @@
   },
   {
     "id": "direct-alignment",
-    "chapter": "Agentic RL",
+    "chapter": "Policy optimization algorithms",
+    "source": "RL & agentic RL interview notes",
     "title": "Direct alignment (DPO and friends)",
     "level": 2,
     "order": 63,
@@ -586,7 +595,8 @@
   },
   {
     "id": "rlvr-reasoning",
-    "chapter": "Agentic RL",
+    "chapter": "Reasoning, test-time scaling & evaluation",
+    "source": "RL & agentic RL interview notes",
     "title": "RLVR and reasoning",
     "level": 2,
     "order": 64,
@@ -596,7 +606,8 @@
   },
   {
     "id": "test-time-scaling",
-    "chapter": "Agentic RL",
+    "chapter": "Reasoning, test-time scaling & evaluation",
+    "source": "RL & agentic RL interview notes",
     "title": "RL vs test-time scaling",
     "level": 2,
     "order": 65,
@@ -606,7 +617,8 @@
   },
   {
     "id": "evaluation",
-    "chapter": "Agentic RL",
+    "chapter": "Reasoning, test-time scaling & evaluation",
+    "source": "RL & agentic RL interview notes",
     "title": "Evaluation: how do you know RL actually helped?",
     "level": 2,
     "order": 66,
@@ -617,6 +629,7 @@
   {
     "id": "multi-turn",
     "chapter": "Agentic RL",
+    "source": "RL & agentic RL interview notes",
     "title": "From single-turn RLHF to multi-turn agentic RL",
     "level": 2,
     "order": 67,
@@ -627,6 +640,7 @@
   {
     "id": "environments",
     "chapter": "Agentic RL",
+    "source": "RL & agentic RL interview notes",
     "title": "Environments: the bottleneck, and difficulty ≠ trainability",
     "level": 2,
     "order": 68,
@@ -637,6 +651,7 @@
   {
     "id": "agent-safety",
     "chapter": "Agentic RL",
+    "source": "RL & agentic RL interview notes",
     "title": "Agent safety: the verifier is not the only attack surface",
     "level": 2,
     "order": 69,
@@ -646,7 +661,8 @@
   },
   {
     "id": "memory-parallelism",
-    "chapter": "Agentic RL",
+    "chapter": "RL infrastructure & systems",
+    "source": "RL & agentic RL interview notes",
     "title": "Memory, parallelism, and precision",
     "level": 2,
     "order": 70,
@@ -656,7 +672,8 @@
   },
   {
     "id": "rollout-engines",
-    "chapter": "Agentic RL",
+    "chapter": "RL infrastructure & systems",
+    "source": "RL & agentic RL interview notes",
     "title": "Rollout engines and serving",
     "level": 2,
     "order": 71,
@@ -666,7 +683,8 @@
   },
   {
     "id": "async-rl",
-    "chapter": "Agentic RL",
+    "chapter": "RL infrastructure & systems",
+    "source": "RL & agentic RL interview notes",
     "title": "Async RL and training-inference consistency",
     "level": 2,
     "order": 72,

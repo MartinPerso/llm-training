@@ -1,0 +1,263 @@
+{
+  "chapter": "Rewards & preferences",
+  "concepts": [
+    {
+      "id": "agenticrl.reward-modeling.policy-induced-distribution-shift",
+      "section": "reward-modeling",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a frozen reward model become less trustworthy as the policy improves its predicted reward?",
+          "answer": "Optimization can move the policy toward responses outside the reward model's training distribution, where its predictions are less reliable.",
+          "explanation": "Freezing parameters preserves the scoring function, not its accuracy on new kinds of responses. The policy can increasingly sample regions poorly covered by preference training. Good performance on the original comparison data therefore does not establish reliability on the optimized policy's outputs."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Freezing a reward model preserves its reliability as the policy's response distribution changes.",
+          "answer": false,
+          "explanation": "The scorer remains unchanged, but the examples it must judge do not. As optimization changes response behavior, prediction errors outside the preference data can become consequential. This is distinct from a changing judge: distribution shift can undermine even a perfectly fixed scoring function."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.reward-modeling.judge-position-bias",
+      "section": "reward-modeling",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "An LLM judge changes its preference when the same answers swap positions. Which intervention targets this problem?",
+          "choices": [
+            "Length-normalize the policy loss",
+            "Swap presentation order and average judgments",
+            "Increase the policy's sampling temperature",
+            "Replace comparisons with absolute scores"
+          ],
+          "correct": 1,
+          "explanation": "Reversing order exposes each answer to both positions, reducing a systematic presentation advantage when judgments are combined. Policy length normalization and temperature address different mechanisms. Absolute scoring changes the task but does not directly test or counter the observed order sensitivity."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Repeatedly judging an answer pair in one fixed order can preserve a systematic position bias.",
+          "answer": true,
+          "explanation": "Repeating the same presentation does not remove a consistent preference for one position. Swapping order and combining judgments targets that asymmetry; repetition alone mainly samples the judge under the same conditions. Other biases, such as favoring verbosity, still require separate checks."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.reward-modeling.rubric-grounded-judging",
+      "section": "reward-modeling",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What can constrain an LLM judge that rewards verbose answers instead of the requested content?",
+          "answer": "An explicit task rubric or reference answer, so the judgment is tied to specified content rather than presentation alone.",
+          "explanation": "A rubric makes the intended criteria explicit, while a reference supplies a content anchor. Order swapping targets position bias instead and does not specify what a good answer contains. Grounding improves consistency but does not prove correctness, so agreement with human judgments still matters."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which change most directly anchors an LLM judge's decisions to task-specific quality criteria?",
+          "choices": [
+            "A longer generation budget",
+            "More samples in the same order",
+            "A higher policy learning rate",
+            "An explicit rubric or reference answer"
+          ],
+          "correct": 3,
+          "explanation": "Rubrics and references tell the judge which properties to evaluate. Generation budget and learning rate change the policy, while repeated judgments do not add missing criteria. This grounding complements order randomization and external calibration rather than replacing either one."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.reward-modeling.human-calibration-checks",
+      "section": "reward-modeling",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A judge gives stable pairwise rankings. What additional check tests whether those rankings reflect human preferences?",
+          "answer": "Measure agreement with human labels on a comparison sample.",
+          "explanation": "Consistency measures whether the judge repeats itself, not whether it ranks responses as humans do. Pairwise scoring can be more stable than absolute scores while retaining verbosity or self-preference bias. Human agreement provides an external check that repeated model judgments cannot supply."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Pairwise scoring can improve judge stability while still requiring calibration against human labels.",
+          "answer": true,
+          "explanation": "Comparing responses avoids some instability of assigning standalone numerical grades. It does not remove systematic preferences for position, length, or the judge's own model family. Human-labeled comparisons test whether the resulting rankings align with the intended preference signal."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.reward-modeling.frozen-judge-target",
+      "section": "reward-modeling",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can changing the judge prompt midway through RL make an apparent reward improvement uninterpretable?",
+          "answer": "The scoring rule changed, so the increase may reflect the evaluator rather than better policy behavior.",
+          "explanation": "A reward curve compares policy outputs through a scoring function. Changing that function mixes policy learning with a new evaluation standard, even if the judge's model weights stay fixed. Versioning and freezing its prompt during a run preserves a consistent target for interpreting progress."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which practice keeps an LLM-based reward target comparable across training steps?",
+          "choices": [
+            "Version and freeze the judge prompt",
+            "Freeze only the policy's generation length",
+            "Increase judge temperature over time",
+            "Rewrite the rubric after reward plateaus"
+          ],
+          "correct": 0,
+          "explanation": "Holding the judge prompt fixed keeps its stated evaluation criteria consistent over the run. Generation length does not define those criteria, and changing temperature or rewriting the rubric can alter scores independently of learning. Calibration is still needed because consistency does not eliminate bias."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.verifiable-rewards.cheapest-reward-shortcut",
+      "section": "verifiable-rewards",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why might a format reward favor empty reasoning even when its regex is implemented correctly?",
+          "answer": "The checker verifies the required form without establishing that meaningful reasoning or task success occurred.",
+          "explanation": "The policy can satisfy the measurable condition through a shortcut that omits the intended work. A correctly implemented format test therefore need not be a sufficient task objective. Reward design should examine the easiest way to obtain credit, not only whether intended solutions pass."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Passing a format regex can be compatible with a response containing no useful reasoning.",
+          "answer": true,
+          "explanation": "A structural check can verify delimiters or output shape while leaving the content untested. Optimizing that signal can reward empty reasoning that meets the format. This is a specification shortcut, so testing the checker only on well-formed successful examples would miss it."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.verifiable-rewards.proxy-quality-divergence",
+      "section": "verifiable-rewards",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which pattern most directly suggests reward overoptimization rather than useful improvement?",
+          "choices": [
+            "Training reward and independent quality both rise",
+            "Training reward stays flat while quality rises",
+            "Training reward rises while independent quality falls",
+            "Training reward and response length both stay flat"
+          ],
+          "correct": 2,
+          "explanation": "The decisive evidence is disagreement between the optimized proxy and an independent quality signal. Joint improvement does not show this gap, and flat reward or length alone is not diagnostic. Held-out checks or human inspection are needed because the training score cannot independently validate itself."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can early stopping on independent held-out quality beat stopping at the highest training reward?",
+          "answer": "True quality can peak and then deteriorate while optimization keeps increasing the proxy score.",
+          "explanation": "Continued pressure on an imperfect reward can increasingly select its errors rather than desirable behavior. The maximum proxy score can therefore occur after the best useful checkpoint. An independent held-out signal can reveal that turning point, whereas the optimized reward alone cannot."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.verifiable-rewards.complementary-sample-audits",
+      "section": "verifiable-rewards",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why inspect both the highest-reward rollouts and a random sample when checking for reward hacking?",
+          "answer": "Top-scoring samples concentrate successful exploits; random samples can reveal broader, quieter regressions that top-score inspection misses.",
+          "explanation": "The two selections answer different questions about behavior. Extreme scores are useful for finding shortcuts the optimizer strongly rewards, but they need not represent ordinary outputs. Combining targeted and random inspection complements the proxy-versus-held-out comparison with concrete failure examples."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Inspecting only the highest-reward rollouts is enough to detect quiet regressions in ordinary outputs.",
+          "answer": false,
+          "explanation": "A top-score audit concentrates on what earns exceptional reward, including exploits. It does not sample the ordinary behavior where less conspicuous regressions may appear. Adding random inspection broadens coverage without giving up the targeted search for high-reward shortcuts."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.verifiable-rewards.component-reward-monitoring",
+      "section": "verifiable-rewards",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "A reward combines helpfulness, safety, and correctness. What should be monitored besides the combined score?",
+          "choices": [
+            "Only the largest-weight component",
+            "Each component separately",
+            "Only the response-length distribution",
+            "Only the policy's training loss"
+          ],
+          "correct": 1,
+          "explanation": "An aggregate can improve while one of its components worsens, hiding a tradeoff the weights permit. Watching only the largest term, length, or loss does not expose all component regressions. Explicit weighting and separate monitoring make the multi-objective optimization interpretable."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A rising weighted reward establishes that each quality represented in the reward is improving.",
+          "answer": false,
+          "explanation": "Improvement in one term can outweigh deterioration in another under the chosen weights. The combined score reports the tradeoff, not progress on every objective. This is why helpfulness, safety, and verifiability need individual monitoring alongside their aggregate reward."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rejection-distillation.selection-cost-amortization",
+      "section": "rejection-distillation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What makes rejection-sampling fine-tuning more than inference-time best-of-N selection?",
+          "answer": "It trains the model on selected responses, putting the selection's benefit into the weights for future requests.",
+          "explanation": "Best-of-N selects an answer for the current request without changing the model. Fine-tuning instead uses retained samples as supervised targets, so future generation can improve without repeating the same selection budget each time. Both still depend on useful candidates being sampled and recognized."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which operation lets selected high-quality responses improve later generation without repeating best-of-N each time?",
+          "choices": [
+            "Return the highest-scoring candidate",
+            "Store candidate scores without updating weights",
+            "Increase the candidate count at inference",
+            "Apply the SFT loss to selected responses"
+          ],
+          "correct": 3,
+          "explanation": "Supervised updates on selected responses change the distribution used for later generation. Returning a winner or storing its score does not do that, and increasing inference samples pays the selection cost again. Rejection-sampling fine-tuning amortizes selection through learning rather than only choosing."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rejection-distillation.student-visited-states",
+      "section": "rejection-distillation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can distilling only teacher-generated trajectories leave a student poorly prepared for its own mistakes?",
+          "answer": "At deployment the student visits prefixes absent from the teacher trajectories, so it has not learned suitable behavior in those states.",
+          "explanation": "A fixed teacher corpus supplies supervision along the teacher's behavior distribution. On-policy distillation instead obtains teacher guidance on prefixes the student actually generates, including its errors. The gain comes from matching the states encountered during use, not merely collecting more polished examples."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "On-policy distillation obtains teacher guidance on trajectories generated by the student.",
+          "answer": true,
+          "explanation": "The student supplies the visited states, while the teacher supplies guidance at those states. This arrangement lets supervision address errors arising from the student's own behavior. Having the teacher generate the entire corpus instead would lose the specific distributional benefit of the on-policy setup."
+        }
+      ]
+    },
+    {
+      "id": "agenticrl.rejection-distillation.dense-teacher-supervision",
+      "section": "rejection-distillation",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "What gives on-policy distillation denser guidance than RL using a terminal correctness reward?",
+          "choices": [
+            "Teacher targets at individual token decisions",
+            "More frequent updates of the reference policy",
+            "A larger group of terminal binary rewards",
+            "Selecting only the longest student responses"
+          ],
+          "correct": 0,
+          "explanation": "Token-level teacher guidance supplies learning information throughout the student's trajectory instead of only a final success score. Updating a reference, enlarging a reward group, or selecting long outputs does not provide that supervision. OPD combines student-generated experience with a richer teaching signal."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why does a teacher API that hides token distributions limit on-policy distillation?",
+          "answer": "It restricts access to the dense token-level targets used to guide the student along its own rollouts.",
+          "explanation": "A teacher's final answer is not the same information as its probabilities at the student's intermediate prefixes. Access to token-level distributions supports the dense supervision that distinguishes OPD from sparse terminal feedback. Hidden logits limit that form of guidance without making every distillation approach impossible."
+        }
+      ]
+    }
+  ]
+}
