@@ -1,0 +1,419 @@
+{
+  "chapter": "Quant: Signal and Decision",
+  "concepts": [
+    {
+      "id": "quantprep.qp-signal.mean-versus-realization",
+      "section": "qp-signal",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A signal identifies a small positive conditional mean return. Why might most individual forecasts still be noisy?",
+          "answer": "Most of the outcome variance can remain within signal groups.",
+          "explanation": "A mean forecast averages over many possible returns. Large variation around that mean can swamp the signal on any given draw. A small mean shift can still matter to a decision rule if it survives aggregation, estimation error and costs."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A small conditional mean shift can persist across many decisions even when single-period outcomes are hard to predict.",
+          "answer": true,
+          "explanation": "A mean forecast averages over many possible returns. Large variation around that mean can swamp the signal on any given draw. A small mean shift can still matter to a decision rule if it survives aggregation, estimation error and costs."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-signal.position-rule",
+      "section": "qp-signal",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Two desks use identical return forecasts. What sits between their forecast and their gross next-period gains?",
+          "answer": "The size and direction of the positions each desk actually takes.",
+          "explanation": "If $q_t$ is position size, $Y_{t+1}$ the realized return and $C_{t+1}$ the cost, gross gain is $q_tY_{t+1}$ and net gain is $q_tY_{t+1}-C_{t+1}$. Changing position changes gross exposure. Net scaling also depends on the cost model, while the forecasts are held fixed."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "The forecast is unchanged and selected positions double. Which result scales exactly in a linear payoff model?",
+          "choices": [
+            "Gross gains and losses double",
+            "Forecast correlation doubles",
+            "Net gains and losses double",
+            "The realized returns double"
+          ],
+          "correct": 0,
+          "explanation": "If $q_t$ is position size, $Y_{t+1}$ the realized return and $C_{t+1}$ the cost, gross gain is $q_tY_{t+1}$ and net gain is $q_tY_{t+1}-C_{t+1}$. Changing position changes gross exposure. Net scaling also depends on the cost model, while the forecasts are held fixed."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-signal.small-score",
+      "section": "qp-signal",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A return model adds little out-of-sample $R^2$. What would establish a useful contribution to an existing strategy?",
+          "answer": "A repeatable improvement in decisions under the strategy’s execution and risk constraints after costs.",
+          "explanation": "Forecast error is measured across observations, including cases where actions are unchanged. A useful signal improves the decisions that can actually be taken. Position limits, transaction costs and the existing signals can all change the economic value of the same statistical improvement."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Even if $R^2$ improves, why could the live strategy stay the same?",
+          "answer": "The forecast changes may leave every feasible position decision unchanged.",
+          "explanation": "Forecast error is measured across observations, including cases where actions are unchanged. A useful signal improves the decisions that can actually be taken. Position limits, transaction costs and the existing signals can all change the economic value of the same statistical improvement."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-execution.bid-ask-bounce",
+      "section": "qp-execution",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "The best bid and ask stay fixed. How can transaction returns still reverse sign on successive trades?",
+          "answer": "Trades switch sides of the spread, so prints move between the bid and ask while the midpoint stays fixed.",
+          "explanation": "With best bid $b$ and best ask $a$, the midpoint $(a+b)/2$ stays constant. A trade at $a$ followed by one at $b$ prints a decline of $a-b$, and a return to $a$ reverses it. The spread can therefore produce short-horizon movement even without a quote change."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "With fixed quotes, which series loses the price oscillation caused by trades alternating between bid and ask?",
+          "choices": [
+            "Last transaction prices",
+            "Quoted midpoint prices",
+            "Trade prices net of fees",
+            "Volume-weighted individual prints"
+          ],
+          "correct": 1,
+          "explanation": "With best bid $b$ and best ask $a$, the midpoint $(a+b)/2$ stays constant. A trade at $a$ followed by one at $b$ prints a decline of $a-b$, and a return to $a$ reverses it. The spread can therefore produce short-horizon movement even without a quote change."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-execution.passive-fill",
+      "section": "qp-execution",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A passive buy order gets a better quoted price. What uncertainty must be included when comparing it with crossing the spread?",
+          "answer": "Whether and when it fills, and how the price moves conditional on that fill.",
+          "explanation": "A resting order trades only when enough opposing volume reaches it. That arrival can select conditions with adverse subsequent price moves, while favorable moves can leave the order behind. Crossing buys more immediacy and typically pays the spread relative to a resting order."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A passive buy can get filled more often just before the midpoint falls, even if its average fill price beats an aggressive buy.",
+          "answer": true,
+          "explanation": "A resting order trades only when enough opposing volume reaches it. That arrival can select conditions with adverse subsequent price moves, while favorable moves can leave the order behind. Crossing buys more immediacy and typically pays the spread relative to a resting order."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-execution.latency",
+      "section": "qp-execution",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a price forecast with a one-tick horizon lose value even before transaction fees are charged?",
+          "answer": "The quote or predicted move can change before the order can reach the book and execute.",
+          "explanation": "A strategy acts on a view of the book that can already be stale. During the time to send and process an order or cancellation, other traders can deplete or update the quote. Simulating instantaneous action can give the strategy fills or cancellations it could not obtain."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What latency should a simulation use when deciding whether a resting quote can realistically be canceled?",
+          "choices": [
+            "Time to compute the forecast alone",
+            "Time between adjacent data rows",
+            "Time until the cancellation reaches the venue",
+            "Time to receive the next daily close"
+          ],
+          "correct": 2,
+          "explanation": "A strategy acts on a view of the book that can already be stale. During the time to send and process an order or cancellation, other traders can deplete or update the quote. Simulating instantaneous action can give the strategy fills or cancellations it could not obtain."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-order-book.displayed-depth",
+      "section": "qp-order-book",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which volumes enter a top-of-book queue imbalance?",
+          "answer": "The displayed quantities resting at the best bid and best ask.",
+          "explanation": "With resting bid and ask sizes $B$ and $A$, the measure $(B-A)/(B+A)$ is a snapshot of displayed depth when $B+A>0$. New orders and cancellations can move it without executions. A trade-flow measure instead needs executed quantities over time."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A canceled best-bid order can change top-of-book queue imbalance without any trade taking place.",
+          "answer": true,
+          "explanation": "With resting bid and ask sizes $B$ and $A$, the measure $(B-A)/(B+A)$ is a snapshot of displayed depth when $B+A>0$. New orders and cancellations can move it without executions. A trade-flow measure instead needs executed quantities over time."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-trading-costs.turnover-budget",
+      "section": "qp-trading-costs",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Two strategies have the same gross gain. Why can the one with more turnover have a smaller net gain?",
+          "answer": "More traded volume can incur more spread and fees and require consuming more liquidity.",
+          "explanation": "Net improvement equals the gross improvement less the increase in cost. Repeated changes of position can pay spreads and fees on each fill. Larger trades can also consume liquidity at worse prices, so costs need not be proportional to trade size."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A forecast improves gross gain by trading more often. What should its incremental gross gain be compared with?",
+          "choices": [
+            "The total gross gain of the baseline",
+            "The forecast error variance",
+            "The average cost of holding exposure",
+            "The incremental cost of trading"
+          ],
+          "correct": 3,
+          "explanation": "Net improvement equals the gross improvement less the increase in cost. Repeated changes of position can pay spreads and fees on each fill. Larger trades can also consume liquidity at worse prices, so costs need not be proportional to trade size."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-trading-costs.capacity",
+      "section": "qp-trading-costs",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can scaling up a profitable paper strategy reduce its net gain per unit of capital?",
+          "answer": "Larger orders can move execution prices against the strategy by more per unit.",
+          "explanation": "Available size at the best quote can be exhausted. Additional size may execute at worse prices or require waiting, while a small-order model pays the top price throughout. Economic improvements should be tested at a plausible trade size."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A backtest’s tiny simulated orders fill at the best quote. What breaks first when scaling through limited depth?",
+          "choices": [
+            "The assumed execution price",
+            "The definition of the target",
+            "The historical signal value",
+            "The forecast’s ranking of assets"
+          ],
+          "correct": 0,
+          "explanation": "Available size at the best quote can be exhausted. Additional size may execute at worse prices or require waiting, while a small-order model pays the top price throughout. Economic improvements should be tested at a plausible trade size."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-data-value.vendor-timestamps",
+      "section": "qp-data-value",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A vendor factor correlates with same-day returns but arrives after the close. Which returns could test a tradable forecast?",
+          "answer": "A forward return starting after the signal is available and a position can actually be placed.",
+          "explanation": "The timestamp of the period described by a record can precede the timestamp when the buyer receives it. Align the factor with returns following a feasible decision. This isolates prediction from contemporaneous association."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A strong correlation between a daily factor and that day’s return can persist even when the factor arrives too late to trade that return.",
+          "answer": true,
+          "explanation": "The timestamp of the period described by a record can precede the timestamp when the buyer receives it. Align the factor with returns following a feasible decision. This isolates prediction from contemporaneous association."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-data-value.vendor-vintages",
+      "section": "qp-data-value",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A vendor backfills corrected historical values. What should replace those values in a replication of live decisions?",
+          "answer": "The archived values, release times and coverage that the user would have had at each historical decision.",
+          "explanation": "A time lag addresses when a period first becomes reportable. It cannot undo later restatements or historical coverage changes. The value available at the decision date is the proper input, even when a revised value is more accurate."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A fixed lag applied to the latest database reproduces historical values even after a vendor revises the original records.",
+          "answer": false,
+          "explanation": "A time lag addresses when a period first becomes reportable. It cannot undo later restatements or historical coverage changes. The value available at the decision date is the proper input, even when a revised value is more accurate."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-data-evidence.vendor-selection",
+      "section": "qp-data-evidence",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A vendor shows one excellent backtest selected from many experiments. What check best reassesses the reported gain?",
+          "answer": "Replicate the frozen candidate on eligible point-in-time data outside the vendor’s selection process, with uncertainty for the incremental performance.",
+          "explanation": "A standard error for a single fixed backtest omits the search that picked the result. Ask which targets, windows and configurations were tried, and evaluate the frozen candidate on a protected sample. Use a dependence-aware estimate of uncertainty for the comparison."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A tight ordinary confidence interval for a vendor’s best backtest accounts for the search that selected it.",
+          "answer": false,
+          "explanation": "A standard error for a single fixed backtest omits the search that picked the result. Ask which targets, windows and configurations were tried, and evaluate the frozen candidate on a protected sample. Use a dependence-aware estimate of uncertainty for the comparison."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-data-pricing.buyer-baseline",
+      "section": "qp-data-pricing",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A feed is predictive by itself. What comparison tests whether it is useful to a buyer with overlapping feeds?",
+          "answer": "Compare the buyer’s feasible workflow with and without the feed, keeping the existing information in both.",
+          "explanation": "Value depends on the improvement in the decisions available with the extra information. Strong isolated predictions can be redundant given current inputs or irrelevant under position constraints. Compare feasible policies using the same outcomes and risk criterion."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "In a frictionless decision model, if a new feed never changes any optimal choice, what gross decision value does it add?",
+          "choices": [
+            "The stand-alone forecast lift",
+            "Zero expected decision value",
+            "The cost of a comparable feed",
+            "The variance reduction in the data"
+          ],
+          "correct": 1,
+          "explanation": "Value depends on the improvement in the decisions available with the extra information. Strong isolated predictions can be redundant given current inputs or irrelevant under position constraints. Compare feasible policies using the same outcomes and risk criterion."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-data-pricing.price-ceiling",
+      "section": "qp-data-pricing",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What sets a risk-neutral buyer’s break-even license fee for a feed over a fixed evaluation horizon?",
+          "answer": "Expected incremental economic gain over that horizon after integration, operation and trading costs, expressed on the same present-value basis as the fee.",
+          "explanation": "A buying decision compares feasible gains with and without the feed under the buyer’s risk and execution limits. Integration and operation absorb part of the gross benefit. Uncertain estimates can change a risk-sensitive buyer’s willingness to pay, and the negotiated fee also depends on the deal."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Two buyers face the same feed price and forecast correlation. Can their break-even fees differ?",
+          "choices": [
+            "Only if the vendor quotes different fees",
+            "Only if one measures correlation incorrectly",
+            "Yes, their feasible gains and costs can differ",
+            "No, a common correlation fixes the fee"
+          ],
+          "correct": 2,
+          "explanation": "A buying decision compares feasible gains with and without the feed under the buyer’s risk and execution limits. Integration and operation absorb part of the gross benefit. Uncertain estimates can change a risk-sensitive buyer’s willingness to pay, and the negotiated fee also depends on the deal."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-data-deployment.rights-coverage",
+      "section": "qp-data-deployment",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A feed scores well in a historical trial. Which portion of that trial can support a deployable value estimate?",
+          "answer": "The slice with usable coverage at decision time and rights compatible with the planned use.",
+          "explanation": "Coverage limits which observations can inform decisions. The license limits which workflows can use those observations. Re-evaluate the gain for the actual assets, purposes and delivery schedule included in the proposed deployment."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why might a historical gain on broad coverage overstate value under a license covering only a narrow deployable universe?",
+          "answer": "The covered universe may lack the same opportunities, so the full-sample gross gain cannot be assumed for the narrower policy.",
+          "explanation": "Coverage limits which observations can inform decisions. The license limits which workflows can use those observations. Re-evaluate the gain for the actual assets, purposes and delivery schedule included in the proposed deployment."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-data-decay.advantage-decay",
+      "section": "qp-data-decay",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A vendor sells a predictive feed to many desks. Why might the buyer shorten its assumed period of economic benefit?",
+          "answer": "Other buyers may trade on the same information, moving prices sooner and reducing the value of acting on it later.",
+          "explanation": "Historical performance describes past conditions. If more traders act on the same information, the price response and execution competition can change. Estimate value over a plausible period of usefulness and consider how data access changes across the market."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Wider adoption can reduce a signal’s trading value only if it also reduces the signal’s historical backtest score.",
+          "answer": false,
+          "explanation": "Historical performance describes past conditions. If more traders act on the same information, the price response and execution competition can change. Estimate value over a plausible period of usefulness and consider how data access changes across the market."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-risk.homogeneous-leverage",
+      "section": "qp-risk",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "If every excess gain scales by the same positive leverage factor, what happens to Sharpe?",
+          "answer": "It stays the same because mean and standard deviation scale by the same factor.",
+          "explanation": "For excess gain $G$ with positive standard deviation, $S(LG)=L\\mathbb E[G]/(L\\operatorname{sd}(G))=S(G)$. Variance scales as $L^2$. The leverage result assumes homogeneous gains and costs. Nonlinear execution or financing costs can change the ratio."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "How does variance scale when additive excess gains are multiplied by a positive factor $L$?",
+          "choices": [
+            "$L$",
+            "$1/L$",
+            "$1$",
+            "$L^2$"
+          ],
+          "correct": 3,
+          "explanation": "For excess gain $G$ with positive standard deviation, $S(LG)=L\\mathbb E[G]/(L\\operatorname{sd}(G))=S(G)$. Variance scales as $L^2$. The leverage result assumes homogeneous gains and costs. Nonlinear execution or financing costs can change the ratio."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-risk.horizon-scaling",
+      "section": "qp-risk",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What dependence condition supports square-root-of-time Sharpe scaling for additive gains with common moments?",
+          "answer": "Zero autocovariances between distinct periods, or more generally a zero weighted sum of those autocovariances at the horizon.",
+          "explanation": "Over $T$ periods the mean is $T\\mu$. With uncorrelated gains the variance is $T\\sigma^2$, giving $\\sqrt T\\,S$. Positive net autocovariance contributions raise the variance of the sum above $T\\sigma^2$, increasing the denominator while leaving the mean fixed."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What happens to the actual horizon Sharpe versus square-root scaling when the mean is positive and the net autocovariance contribution is positive?",
+          "choices": [
+            "It is smaller",
+            "It is larger",
+            "It is unchanged",
+            "It changes sign"
+          ],
+          "correct": 0,
+          "explanation": "Over $T$ periods the mean is $T\\mu$. With uncorrelated gains the variance is $T\\sigma^2$, giving $\\sqrt T\\,S$. Positive net autocovariance contributions raise the variance of the sum above $T\\sigma^2$, increasing the denominator while leaving the mean fixed."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-risk.strategy-covariance",
+      "section": "qp-risk",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "At fixed weights and marginal gain variances, which dependence quantity governs the diversification benefit of two strategies?",
+          "answer": "The covariance of their gains over the same evaluation periods.",
+          "explanation": "For gain vector $G$, covariance matrix $\\Sigma$ and weights $w$, portfolio variance is $w^\\top\\Sigma w$. The relevant covariance is between realized strategy gains. Feature relationships describe model inputs and can differ sharply from the exposures created by positions."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Low correlation between two raw features is sufficient for strategies built from them to diversify each other.",
+          "answer": false,
+          "explanation": "For gain vector $G$, covariance matrix $\\Sigma$ and weights $w$, portfolio variance is $w^\\top\\Sigma w$. The relevant covariance is between realized strategy gains. Feature relationships describe model inputs and can differ sharply from the exposures created by positions."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-risk.correlated-bets",
+      "section": "qp-risk",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "With equal positive mean and variance per strategy, why does positive gain correlation limit the Sharpe benefit of equal weighting?",
+          "answer": "Positive covariance stops the portfolio variance from falling as fast as it would for independent bets.",
+          "explanation": "For $N$ strategies with common gain correlation $\\rho$, the variance of their mean is $\\sigma^2[1+(N-1)\\rho]/N$. For nonzero portfolio variance, Sharpe scales by $\\sqrt{N/[1+(N-1)\\rho]}$ relative to one strategy. Perfect correlation leaves effective diversification at one bet."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With equal positive means and equal positive variances, adding a perfectly correlated copy leaves the equal-weight portfolio Sharpe unchanged.",
+          "answer": true,
+          "explanation": "For $N$ strategies with common gain correlation $\\rho$, the variance of their mean is $\\sigma^2[1+(N-1)\\rho]/N$. For nonzero portfolio variance, Sharpe scales by $\\sqrt{N/[1+(N-1)\\rho]}$ relative to one strategy. Perfect correlation leaves effective diversification at one bet."
+        }
+      ]
+    }
+  ]
+}

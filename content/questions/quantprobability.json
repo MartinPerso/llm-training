@@ -1,0 +1,255 @@
+{
+  "chapter": "Quant: Probability",
+  "concepts": [
+    {
+      "id": "quantprep.qp-expectation.indicator-sum",
+      "section": "qp-expectation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What probabilities suffice to compute the expected number of triggered alerts?",
+          "answer": "The marginal probability that each alert fires, summed over alerts.",
+          "explanation": "Write the total as $N=\\sum_i I_i$, where $I_i$ is one when alert $i$ fires. Then $\\mathbb E[N]=\\sum_i P(I_i=1)$ even with dependence. Synchronization changes how often the alerts fire together and therefore changes the count distribution."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "At fixed marginal firing rates, synchronizing the alerts raises the expected number of alerts per trial.",
+          "answer": false,
+          "explanation": "Write the total as $N=\\sum_i I_i$, where $I_i$ is one when alert $i$ fires. Then $\\mathbb E[N]=\\sum_i P(I_i=1)$ even with dependence. Synchronization changes how often the alerts fire together and therefore changes the count distribution."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-expectation.permutation-matches",
+      "section": "qp-expectation",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "How many fixed points does a uniformly random permutation of $n\\geq1$ items have on average?",
+          "answer": 1,
+          "tolerance": 0,
+          "explanation": "Fix one item. Exactly $(n-1)!$ of the $n!$ permutations put it back, so its match probability is $1/n$. Summing over items gives $n/n=1$, even though observing one match changes the distribution of the remaining positions."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What cancels the growing number of items when computing the mean number of permutation matches?",
+          "answer": "Each item matches its own position with probability $1/n$.",
+          "explanation": "Fix one item. Exactly $(n-1)!$ of the $n!$ permutations put it back, so its match probability is $1/n$. Summing over items gives $n/n=1$, even though observing one match changes the distribution of the remaining positions."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-expectation.count-versus-union",
+      "section": "qp-expectation",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which quantity equals the expected count of successes for two mutually exclusive events?",
+          "choices": [
+            "Probability of at least one success",
+            "Probability of both successes",
+            "Product of the success rates",
+            "Larger of the two success rates"
+          ],
+          "correct": 0,
+          "explanation": "The count is $I_A+I_B$, while the union indicator caps that sum at one. Thus $\\mathbb E[N]=P(A\\cup B)+P(A\\cap B)$. The product only gives the intersection under independence. For mutually exclusive events the overlap vanishes."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What contribution does a trial with two successes make to the expected count versus the probability of at least one?",
+          "answer": "Its probability is weighted twice in the expected count and once in the union probability.",
+          "explanation": "The count is $I_A+I_B$, while the union indicator caps that sum at one. Thus $\\mathbb E[N]=P(A\\cup B)+P(A\\cap B)$. The product only gives the intersection under independence. For mutually exclusive events the overlap vanishes."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-counting.position-bijection",
+      "section": "qp-counting",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does choosing the locations of the size-two steps count ordered paths once their number is fixed?",
+          "answer": "The chosen slots determine every size-two step and all other slots must contain size-one steps.",
+          "explanation": "The size-one steps account for $n-2k$ units and hence $n-2k$ slots. Adding the $k$ larger steps gives $n-k$ slots. Each subset of $k$ slots determines exactly one order, giving $\\binom{n-k}{k}$ paths."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A path of total length $n$ contains exactly $k$ size-two steps. How many slots can those $k$ steps occupy?",
+          "choices": [
+            "$n-k$",
+            "$n$",
+            "$n-2k$",
+            "$n+k$"
+          ],
+          "correct": 0,
+          "explanation": "The size-one steps account for $n-2k$ units and hence $n-2k$ slots. Adding the $k$ larger steps gives $n-k$ slots. Each subset of $k$ slots determines exactly one order, giving $\\binom{n-k}{k}$ paths."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-counting.step-boundaries",
+      "section": "qp-counting",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For ordered paths using steps of size one or two, why does the count at total length zero equal one?",
+          "answer": "There is one empty path, which can end a valid sequence with no remaining distance.",
+          "explanation": "Appending a final one or two gives disjoint classes, so $a_n=a_{n-1}+a_{n-2}$ for $n>0$. Set $a_0=1$ for the empty path and $a_j=0$ for $j<0$. These boundaries count the path consisting of just the last step."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What makes partitioning length-$n$ paths by their last step count each path once?",
+          "answer": "Each path has a unique last step, and removing it leaves an arbitrary path of the corresponding shorter length.",
+          "explanation": "Appending a final one or two gives disjoint classes, so $a_n=a_{n-1}+a_{n-2}$ for $n>0$. Set $a_0=1$ for the empty path and $a_j=0$ for $j<0$. These boundaries count the path consisting of just the last step."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-bayes.coin-posterior",
+      "section": "qp-bayes",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "With equal prior odds of a fair or double-headed coin chosen once, what are the posterior odds for double-headed after $k$ heads?",
+          "answer": "$2^k$ to one.",
+          "explanation": "The likelihoods are $1$ and $2^{-k}$. With equal prior odds the posterior double-headed probability is $w=2^k/(1+2^k)$. Prediction averages the next-flip probabilities as $w+(1-w)/2$ using normalized posterior weights."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "After $k$ heads from a fixed coin that could be fair or double-headed, how do you weight the two next-flip probabilities?",
+          "choices": [
+            "Original coin probabilities",
+            "Posterior coin probabilities",
+            "The two sequence likelihoods",
+            "Past heads and tails frequencies"
+          ],
+          "correct": 1,
+          "explanation": "The likelihoods are $1$ and $2^{-k}$. With equal prior odds the posterior double-headed probability is $w=2^k/(1+2^k)$. Prediction averages the next-flip probabilities as $w+(1-w)/2$ using normalized posterior weights."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-bayes.latent-dependence",
+      "section": "qp-bayes",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A hidden coin is equally likely to be fair or double-headed. Why does seeing heads increase the chance of heads on the same coin?",
+          "answer": "It shifts probability toward the double-headed coin, which remains in use.",
+          "explanation": "Conditional on the chosen coin, flips factorize. A persistent coin couples flips after marginalizing because the same latent variable governs them all. Redrawing it independently each time makes the marginal joint probability factorize as well."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "If a coin is independently redrawn from the same fair/double-headed mixture before each flip, the outcomes are independent.",
+          "answer": true,
+          "explanation": "Conditional on the chosen coin, flips factorize. A persistent coin couples flips after marginalizing because the same latent variable governs them all. Redrawing it independently each time makes the marginal joint probability factorize as well."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-bayes.prior-odds",
+      "section": "qp-bayes",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "When does evidence favoring a rare hypothesis make it more probable than its alternative?",
+          "answer": "When the likelihood ratio exceeds the reciprocal of its prior odds.",
+          "explanation": "Bayes gives $O_{\\rm post}=O_{\\rm prior}\\,P(D\\mid H)/P(D\\mid \\neg H)$. Evidence can strongly favor a hypothesis and still leave posterior odds below one if its starting odds are small enough."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "An observation has likelihood ratio 10 in favor of a hypothesis. What must its prior odds exceed for posterior odds above one?",
+          "choices": [
+            "One to one hundred",
+            "One to two",
+            "One to ten",
+            "Ten to one"
+          ],
+          "correct": 2,
+          "explanation": "Bayes gives $O_{\\rm post}=O_{\\rm prior}\\,P(D\\mid H)/P(D\\mid \\neg H)$. Evidence can strongly favor a hypothesis and still leave posterior odds below one if its starting odds are small enough."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-waiting.geometric-first-step",
+      "section": "qp-waiting",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How do you account for the first trial when writing a recurrence for the mean wait to an IID success?",
+          "answer": "Count one trial in either branch and add a fresh mean wait only after failure.",
+          "explanation": "If $p>0$ is the success probability, $E=1+(1-p)E$, hence $E=1/p$. The first trial is paid in both branches. The failure branch returns to the initial state because future trials still have the original law."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "After five failures in IID Bernoulli trials, the expected remaining wait becomes shorter than it was at the start.",
+          "answer": false,
+          "explanation": "If $p>0$ is the success probability, $E=1+(1-p)E$, hence $E=1/p$. The first trial is paid in both branches. The failure branch returns to the initial state because future trials still have the original law."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-waiting.coupon-stages",
+      "section": "qp-waiting",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "With $m$ equally likely IID coupon types and $j$ types collected, what is the mean wait for another type?",
+          "answer": "$m/(m-j)$ draws for $j<m$.",
+          "explanation": "With $j$ types seen, a new type arrives with probability $(m-j)/m$. Summing geometric stage means gives $m\\sum_{r=1}^m 1/r$, which is $14.7$ for six faces. Linearity gives the mean of the sum without a separate independence argument."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "How many rolls of a fair die are needed on average to see all six faces?",
+          "answer": 14.7,
+          "tolerance": 0.001,
+          "explanation": "With $j$ types seen, a new type arrives with probability $(m-j)/m$. Summing geometric stage means gives $m\\sum_{r=1}^m 1/r$, which is $14.7$ for six faces. Linearity gives the mean of the sum without a separate independence argument."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-waiting.overlapping-patterns",
+      "section": "qp-waiting",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "How many IID fair flips are needed on average for the first HH, counting from scratch?",
+          "answer": 6,
+          "tolerance": 0,
+          "explanation": "From scratch, $E_0=1+(E_0+E_H)/2$. For HH, $E_H=1+E_0/2$, yielding $6$ flips. For HT, another head preserves the prefix, so $E_H=1+E_H/2$ and $E_0=4$. Equal fixed-window probabilities miss this difference in transitions."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "After a head, which failed attempt leaves a useful prefix when waiting for the named pattern?",
+          "choices": [
+            "A tail when seeking HH",
+            "A tail when seeking HT",
+            "Another head when seeking HH",
+            "Another head when seeking HT"
+          ],
+          "correct": 3,
+          "explanation": "From scratch, $E_0=1+(E_0+E_H)/2$. For HH, $E_H=1+E_0/2$, yielding $6$ flips. For HT, another head preserves the prefix, so $E_H=1+E_H/2$ and $E_0=4$. Equal fixed-window probabilities miss this difference in transitions."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-decisions.reroll-threshold",
+      "section": "qp-decisions",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A fair die result is visible. An optional reroll costs $c$ points and replaces it. When is rerolling better in expectation?",
+          "answer": "When the observed result is below $3.5-c$.",
+          "explanation": "Keep value $x$ competes with reroll value $3.5-c$ after observing $x$. At unit cost the two lowest faces are replaced in expectation by $2.5$, giving $(2.5+2.5+3+4+5+6)/6=23/6$. At a tie either action has the same mean."
+        },
+        {
+          "kind": "numeric",
+          "prompt": "A fair die gives points equal to its face. One optional reroll replaces that roll and costs one point. What is the optimal mean gain?",
+          "answer": 3.8333333333333335,
+          "tolerance": 0.001,
+          "explanation": "Keep value $x$ competes with reroll value $3.5-c$ after observing $x$. At unit cost the two lowest faces are replaced in expectation by $2.5$, giving $(2.5+2.5+3+4+5+6)/6=23/6$. At a tie either action has the same mean."
+        }
+      ]
+    }
+  ]
+}

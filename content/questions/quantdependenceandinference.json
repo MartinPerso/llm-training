@@ -1,0 +1,307 @@
+{
+  "chapter": "Quant: Dependence and Inference",
+  "concepts": [
+    {
+      "id": "quantprep.qp-covariance.covariance-pairs",
+      "section": "qp-covariance",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "When summing variances and covariances over unordered pairs, what coefficient goes on each off-diagonal covariance?",
+          "answer": 2,
+          "tolerance": 0,
+          "explanation": "Expanding $\\operatorname{Var}(\\sum_iX_i)$ gives a sum over ordered index pairs. Each unordered pair occurs twice, yielding $\\sum_i\\sigma_i^2+2\\sum_{i<j}\\operatorname{Cov}(X_i,X_j)$. Negative terms offset part of the diagonal contribution."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What changes in the variance of a sum when two contributions become negatively correlated at fixed marginal variances?",
+          "answer": "Their covariance contribution lowers it.",
+          "explanation": "Expanding $\\operatorname{Var}(\\sum_iX_i)$ gives a sum over ordered index pairs. Each unordered pair occurs twice, yielding $\\sum_i\\sigma_i^2+2\\sum_{i<j}\\operatorname{Cov}(X_i,X_j)$. Negative terms offset part of the diagonal contribution."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-covariance.common-component",
+      "section": "qp-covariance",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "With fixed positive pairwise correlation $\\rho$ and common variance $\\sigma^2$, what does the variance of the mean approach?",
+          "answer": "$\\rho\\sigma^2$ as the number of observations grows.",
+          "explanation": "For equicorrelation, $\\operatorname{Var}(\\bar X)=\\sigma^2[1+(n-1)\\rho]/n=\\sigma^2[\\rho+(1-\\rho)/n]$. In a common-shock representation averaging removes independent noise asymptotically while retaining the entire shared shock."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A cohort shares a random shock of fixed variance plus independent noise. Which component remains in the variance of a large cohort mean?",
+          "choices": [
+            "Variance of the shared shock",
+            "Variance of the independent noise",
+            "Variance of both terms in full",
+            "Variance of neither term"
+          ],
+          "correct": 0,
+          "explanation": "For equicorrelation, $\\operatorname{Var}(\\bar X)=\\sigma^2[1+(n-1)\\rho]/n=\\sigma^2[\\rho+(1-\\rho)/n]$. In a common-shock representation averaging removes independent noise asymptotically while retaining the entire shared shock."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-covariance.negative-equicorrelation",
+      "section": "qp-covariance",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For $n\\ge2$ equal-variance variables with common correlation $\\rho$, what lower bound follows from the mean having nonnegative variance?",
+          "answer": "$-1/(n-1)$.",
+          "explanation": "The mean variance is $\\sigma^2[1+(n-1)\\rho]/n$. The bracket must be nonnegative. When it is strictly between zero and one, matching to $\\sigma^2/n_{\\rm eff}$ gives $n_{\\rm eff}>n$. That equivalence concerns the mean and does not describe independent observations."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An admissible negative common correlation can give the mean an equivalent IID sample size larger than the actual sample.",
+          "answer": true,
+          "explanation": "The mean variance is $\\sigma^2[1+(n-1)\\rho]/n$. The bracket must be nonnegative. When it is strictly between zero and one, matching to $\\sigma^2/n_{\\rm eff}$ gives $n_{\\rm eff}>n$. That equivalence concerns the mean and does not describe independent observations."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-serial-averages.lag-pair-count",
+      "section": "qp-serial-averages",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For a stationary sample of length $n$, why does lag $k$ receive weight $1-k/n$ in the mean-variance formula?",
+          "answer": "There are $n-k$ pairs at lag $k$, compared with $n$ diagonal entries.",
+          "explanation": "Grouping pairs by lag gives $\\sigma^2[1+2\\sum_{k=1}^{n-1}(1-k/n)\\rho_k]/n$. Absolute summability keeps the bracket bounded. Unlike positive equicorrelation, this dependence pattern need not leave a fixed floor. This variance identity is general and the linked ESS discussion applies it in MCMC."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "For fixed nonzero marginal variance and absolutely summable autocorrelations, the stationary sample-mean variance tends to zero.",
+          "answer": true,
+          "explanation": "Grouping pairs by lag gives $\\sigma^2[1+2\\sum_{k=1}^{n-1}(1-k/n)\\rho_k]/n$. Absolute summability keeps the bracket bounded. Unlike positive equicorrelation, this dependence pattern need not leave a fixed floor. This variance identity is general and the linked ESS discussion applies it in MCMC."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-serial-averages.overlapping-increments",
+      "section": "qp-serial-averages",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "Two rolling sums each contain ten IID increments of positive finite variance and start one step apart. What is their correlation?",
+          "answer": 0.9,
+          "tolerance": 0.001,
+          "explanation": "Expansion pairs increments in the first sum with increments in the second. Distinct time indices contribute zero. Nine shared increments each contribute $\\sigma^2$, and both variances are $10\\sigma^2$, giving correlation $9/10$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "For two partially overlapping sums of independent increments, which increments contribute to their covariance?",
+          "choices": [
+            "Only increments exclusive to the first sum",
+            "Only increments shared by both sums",
+            "Only increments exclusive to either sum",
+            "All increments in either sum"
+          ],
+          "correct": 1,
+          "explanation": "Expansion pairs increments in the first sum with increments in the second. Distinct time indices contribute zero. Nine shared increments each contribute $\\sigma^2$, and both variances are $10\\sigma^2$, giving correlation $9/10$."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-random-walk.shared-history",
+      "section": "qp-random-walk",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For a random walk starting at zero with IID increments of variance $\\sigma^2$, what is $\\operatorname{Cov}(S_s,S_t)$ for $s<t$?",
+          "answer": "$s\\sigma^2$.",
+          "explanation": "$S_t=S_s+(S_t-S_s)$, and only the future increment sum is independent of $S_s$. Hence $\\operatorname{Cov}(S_s,S_t)=\\operatorname{Var}(S_s)=s\\sigma^2$. The variance grows with time even when the mean is constant."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A zero-drift random walk with IID increments of positive variance has stationary levels.",
+          "answer": false,
+          "explanation": "$S_t=S_s+(S_t-S_s)$, and only the future increment sum is independent of $S_s$. Hence $\\operatorname{Cov}(S_s,S_t)=\\operatorname{Var}(S_s)=s\\sigma^2$. The variance grows with time even when the mean is constant."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-random-walk.conditional-horizon",
+      "section": "qp-random-walk",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A walk has IID increments of known mean $\\mu$ and variance $\\sigma^2$. What is the $h$-step forecast of its level after observing $S_t$?",
+          "answer": "$S_t+h\\mu$, with uncertainty from future increments.",
+          "explanation": "Given $S_t$, the future sum has mean $h\\mu$ and variance $h\\sigma^2$ by independence. Unconditionally, the current level contributes another $t\\sigma^2$. The two answers concern different information sets."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A walk has IID increments of variance $\\sigma^2$. What is the conditional variance of level $S_{t+h}$ given level $S_t$?",
+          "choices": [
+            "$(t+h)\\sigma^2$",
+            "$t\\sigma^2$",
+            "$h\\sigma^2$",
+            "$h^2\\sigma^2$"
+          ],
+          "correct": 2,
+          "explanation": "Given $S_t$, the future sum has mean $h\\mu$ and variance $h\\sigma^2$ by independence. Unconditionally, the current level contributes another $t\\sigma^2$. The two answers concern different information sets."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-uncertainty.standard-error-versus-spread",
+      "section": "qp-uncertainty",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For IID observations, what happens to the variance of a new observation minus the sample mean as training size grows?",
+          "answer": "For an independent new draw it approaches the observation variance, because only the sample-mean uncertainty vanishes.",
+          "explanation": "Independence gives $\\operatorname{Var}(\\bar X)=\\sigma^2/n$ exactly. For a fresh draw, $\\operatorname{Var}(X_{\\rm new}-\\bar X)=\\sigma^2(1+1/n)$. A distributional approximation is a separate step if the goal is interval coverage."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The exact IID standard error $\\sigma/\\sqrt n$ for the sample mean holds for skewed data with finite variance.",
+          "answer": true,
+          "explanation": "Independence gives $\\operatorname{Var}(\\bar X)=\\sigma^2/n$ exactly. For a fresh draw, $\\operatorname{Var}(X_{\\rm new}-\\bar X)=\\sigma^2(1+1/n)$. A distributional approximation is a separate step if the goal is interval coverage."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-uncertainty.law-versus-limit",
+      "section": "qp-uncertainty",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "For IID observations with finite positive variance, what does the CLT establish beyond consistency of the mean?",
+          "answer": "The centered mean scaled by its standard error converges in distribution to a standard normal.",
+          "explanation": "The IID strong law gives $\\bar X\\to\\mu$ almost surely under absolute integrability. The classic finite-variance CLT concerns the fluctuations $\\sqrt n(\\bar X-\\mu)/\\sigma$. Existence of a mean alone does not justify that standard error or the Gaussian approximation."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "An absolutely integrable IID distribution with infinite variance meets the classic strong law assumptions for its mean.",
+          "answer": true,
+          "explanation": "The IID strong law gives $\\bar X\\to\\mu$ almost surely under absolute integrability. The classic finite-variance CLT concerns the fluctuations $\\sqrt n(\\bar X-\\mu)/\\sigma$. Existence of a mean alone does not justify that standard error or the Gaussian approximation."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-uncertainty.rare-event-limit",
+      "section": "qp-uncertainty",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a huge sample give a poor normal approximation for the count of a very rare IID event?",
+          "answer": "The expected event count can remain small, leaving substantial mass at zero and a skewed count distribution.",
+          "explanation": "Here $np=1$ and $P(N=0)=(1-p)^n\\approx e^{-1}$. The mean is much closer to the boundary than a large trial count suggests. The variance is exactly $np(1-p)$, while normal approximation accuracy depends on the effective number of events and non-events."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "For one million IID trials with event probability one per million, what dominates the shape of the count distribution?",
+          "choices": [
+            "A symmetric bell around the mean",
+            "A near-uniform spread over counts",
+            "A concentration at exactly one",
+            "A substantial atom at zero"
+          ],
+          "correct": 3,
+          "explanation": "Here $np=1$ and $P(N=0)=(1-p)^n\\approx e^{-1}$. The mean is much closer to the boundary than a large trial count suggests. The variance is exactly $np(1-p)$, while normal approximation accuracy depends on the effective number of events and non-events."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-intervals.estimated-center",
+      "section": "qp-intervals",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "How much expected squared deviation is removed by centering $n$ IID observations at their sample mean rather than their true mean?",
+          "answer": "One population variance $\\sigma^2$.",
+          "explanation": "The centered sum is $\\sum_i(X_i-\\mu)^2-n(\\bar X-\\mu)^2$. Its expectation is $n\\sigma^2-n(\\sigma^2/n)=(n-1)\\sigma^2$. The correction offsets the variation removed by choosing the center from the same data."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The denominator $n-1$ also gives an unbiased IID variance estimate when deviations are taken from the known true mean.",
+          "answer": false,
+          "explanation": "The centered sum is $\\sum_i(X_i-\\mu)^2-n(\\bar X-\\mu)^2$. Its expectation is $n\\sigma^2-n(\\sigma^2/n)=(n-1)\\sigma^2$. The correction offsets the variation removed by choosing the center from the same data."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-intervals.repeated-coverage",
+      "section": "qp-intervals",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "In an exact frequentist 95% confidence procedure, what varies in the coverage probability for a fixed true mean?",
+          "answer": "The sample and hence the interval endpoints.",
+          "explanation": "Coverage is $P_\\mu(\\mu\\in I(D))=0.95$, with randomness from data $D$ generated at fixed $\\mu$. Once the sample is observed, the interval endpoints are fixed. A posterior probability would require a probabilistic model for the unknown mean."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Exact 95% frequentist coverage implies a 95% posterior probability for the true mean inside the observed interval.",
+          "answer": false,
+          "explanation": "Coverage is $P_\\mu(\\mu\\in I(D))=0.95$, with randomness from data $D$ generated at fixed $\\mu$. Once the sample is observed, the interval endpoints are fixed. A posterior probability would require a probabilistic model for the unknown mean."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-tests.null-conditioning",
+      "section": "qp-tests",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Which probability is reported by a one-sided p-value for a simple null?",
+          "choices": [
+            "A null tail area at the observed statistic",
+            "A posterior probability of the null",
+            "A probability of rejecting under the alternative",
+            "A frequency of true nulls among rejections"
+          ],
+          "correct": 0,
+          "explanation": "The p-value integrates outcomes at least as extreme in the specified test direction under the null. Size and power condition on the hypothesis and measure the chance of rejection. The probability of a hypothesis given rejection reverses that conditioning."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can a small p-value coexist with low probability that a selected result is a genuine effect?",
+          "answer": "The p-value conditions on the null, while the probability of a genuine result after selection depends on prevalence and power.",
+          "explanation": "The p-value integrates outcomes at least as extreme in the specified test direction under the null. Size and power condition on the hypothesis and measure the chance of rejection. The probability of a hypothesis given rejection reverses that conditioning."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-test-base-rates.predictive-value",
+      "section": "qp-test-base-rates",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What extra input beyond sensitivity and false-positive rate is needed to compute the fraction of positive results that are genuine?",
+          "answer": "The pre-test prevalence in the population being tested.",
+          "explanation": "With prevalence $\\pi$, sensitivity $s$ and false-positive rate $f$, a unit mass of tests yields $\\pi s$ true positives and $(1-\\pi)f$ false positives. Their ratio to all positives gives $\\pi s/[\\pi s+(1-\\pi)f]$."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With unchanged positive sensitivity and false-positive rate, screening a lower-prevalence group leaves the fraction of genuine positives unchanged.",
+          "answer": false,
+          "explanation": "With prevalence $\\pi$, sensitivity $s$ and false-positive rate $f$, a unit mass of tests yields $\\pi s$ true positives and $(1-\\pi)f$ false positives. Their ratio to all positives gives $\\pi s/[\\pi s+(1-\\pi)f]$."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-test-base-rates.confirmation-independence",
+      "section": "qp-test-base-rates",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "When can you square a test’s false-positive rate to get the rate of two positive results?",
+          "answer": "When both tests have that rate and the results are independent conditional on the null.",
+          "explanation": "Requiring $k$ positives gives $f^k$ under the null and $s^k$ under the alternative if the relevant conditional independence holds in each group. When $s>f>0$, the positive likelihood ratio improves to $(s/f)^k$, although fewer genuine cases pass."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "For two identical conditionally independent tests with sensitivity strictly between zero and one, requiring both positives lowers sensitivity.",
+          "answer": true,
+          "explanation": "Requiring $k$ positives gives $f^k$ under the null and $s^k$ under the alternative if the relevant conditional independence holds in each group. When $s>f>0$, the positive likelihood ratio improves to $(s/f)^k$, although fewer genuine cases pass."
+        }
+      ]
+    }
+  ]
+}

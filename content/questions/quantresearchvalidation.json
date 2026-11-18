@@ -1,0 +1,311 @@
+{
+  "chapter": "Quant: Research Validation",
+  "concepts": [
+    {
+      "id": "quantprep.qp-multiplicity.false-count-versus-any",
+      "section": "qp-multiplicity",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "All $m$ nulls hold and each test has exact size $\\alpha$. What is the expected number rejected with arbitrary dependence?",
+          "answer": "$m\\alpha$.",
+          "explanation": "Each false-rejection indicator has expectation $\\alpha$, so the total has mean $m\\alpha$. At least one rejection is a union event. With identical decisions its probability is $\\alpha$, while independence gives $1-(1-\\alpha)^m$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Two true-null tests reject on exactly the same event. How does FWER compare with one test’s size?",
+          "choices": [
+            "Equal to one test’s size",
+            "Twice one test’s size",
+            "The square of one test’s size",
+            "Larger than either size but less than their sum"
+          ],
+          "correct": 0,
+          "explanation": "Each false-rejection indicator has expectation $\\alpha$, so the total has mean $m\\alpha$. At least one rejection is a union event. With identical decisions its probability is $\\alpha$, while independence gives $1-(1-\\alpha)^m$."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-multiplicity.familywise-threshold",
+      "section": "qp-multiplicity",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What per-test size gives exact familywise size $a$ for $m$ independent continuous null tests of equal size?",
+          "answer": "$1-(1-a)^{1/m}$.",
+          "explanation": "Independence gives no rejection probability $(1-\\alpha)^m$ under the complete null, so solve $(1-\\alpha)^m=1-a$. Bonferroni instead bounds the union by the sum and uses $a/m$, which remains valid under arbitrary dependence."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Bonferroni requires independent p-values to control the chance of at least one false rejection.",
+          "answer": false,
+          "explanation": "Independence gives no rejection probability $(1-\\alpha)^m$ under the complete null, so solve $(1-\\alpha)^m=1-a$. Bonferroni instead bounds the union by the sum and uses $a/m$, which remains valid under arbitrary dependence."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-multiplicity.discovery-proportion",
+      "section": "qp-multiplicity",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "If a procedure controls FDR at 5%, what quantity does it bound by 5%?",
+          "answer": "The expected fraction of rejections that are false, taking the fraction as zero when there are no rejections.",
+          "explanation": "With $V$ false rejections and $R$ total rejections, FDR is $\\mathbb E[V/\\max(R,1)]$. Under the complete null $V=R$, so the fraction is the indicator of any rejection. In mixed families, the proportion and the chance of even one false rejection can differ considerably."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "When all tested nulls hold, FDR equals the probability of making any rejection.",
+          "answer": true,
+          "explanation": "With $V$ false rejections and $R$ total rejections, FDR is $\\mathbb E[V/\\max(R,1)]$. Under the complete null $V=R$, so the fraction is the indicator of any rejection. In mixed families, the proportion and the chance of even one false rejection can differ considerably."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-selection.winner-selection",
+      "section": "qp-selection",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does the top backtest among many equally unskilled strategies tend to look profitable?",
+          "answer": "Choosing the maximum selects a strategy with unusually favorable estimation noise.",
+          "explanation": "Individual errors are centered before the selection rule is applied. With equal true performance, the reported error is the maximum of the candidate errors, typically positive on average. The search itself changes the sampling distribution and motivates independent evaluation."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Mean-zero backtest errors for each candidate imply mean-zero error for the candidate selected by highest backtest performance.",
+          "answer": false,
+          "explanation": "Individual errors are centered before the selection rule is applied. With equal true performance, the reported error is the maximum of the candidate errors, typically positive on average. The search itself changes the sampling distribution and motivates independent evaluation."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-selection.adaptive-holdout",
+      "section": "qp-selection",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Only aggregate scores from a holdout are shown. How can repeated model revisions still overfit that holdout?",
+          "answer": "Scores convey information about holdout errors and guide the sequence of candidates toward favorable noise.",
+          "explanation": "A score can guide feature, seed, and threshold choices even without exposing individual labels. That turns the holdout into part of the development loop. A protected final period evaluates the rule and success criterion chosen before its outcomes were consulted."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which use best preserves an untouched final evaluation?",
+          "choices": [
+            "Retune until final scores stabilize",
+            "Freeze the rule before opening final scores",
+            "Choose the seed by the final score",
+            "Set the success cutoff after scoring"
+          ],
+          "correct": 1,
+          "explanation": "A score can guide feature, seed, and threshold choices even without exposing individual labels. That turns the holdout into part of the development loop. A protected final period evaluates the rule and success criterion chosen before its outcomes were consulted."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-temporal-validation.forecast-origin",
+      "section": "qp-temporal-validation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What determines which training rows a rolling-origin forecasting comparison can use?",
+          "answer": "Whether their predictors and realized labels were available by that origin.",
+          "explanation": "The forecast origin defines what is observable and the target horizon defines which future outcome is scored. Moving the origin changes eligible training data while keeping the deployment task fixed. A timestamp marking the start of a training label is insufficient if the outcome arrives later."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A rolling-origin evaluation can use an expanding training window and still target a fixed multi-step horizon.",
+          "answer": true,
+          "explanation": "The forecast origin defines what is observable and the target horizon defines which future outcome is scored. Moving the origin changes eligible training data while keeping the deployment task fixed. A timestamp marking the start of a training label is insufficient if the outcome arrives later."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-temporal-validation.label-boundary",
+      "section": "qp-temporal-validation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A training label spans days 98–103 and an evaluation decision occurs on day 100. Why exclude the row from that fold?",
+          "answer": "Its realized training target uses days after the evaluation decision.",
+          "explanation": "A forward return becomes a training outcome only after its endpoint is observable, accounting for any reporting lag. A chronological split of row timestamps can still allow future outcomes to affect the fitted model. Labels and features each need their own availability check."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which timestamp determines whether a forward return may be used as a training label at the forecast origin?",
+          "choices": [
+            "When the position would have opened",
+            "When the input feature was generated",
+            "When the full return is observable",
+            "When the forecast horizon was chosen"
+          ],
+          "correct": 2,
+          "explanation": "A forward return becomes a training outcome only after its endpoint is observable, accounting for any reporting lag. A chronological split of row timestamps can still allow future outcomes to affect the fitted model. Labels and features each need their own availability check."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-fold-preprocessing.fold-transform",
+      "section": "qp-fold-preprocessing",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why can a scaler fitted on all dates leak information in a chronological test even if it uses no labels?",
+          "answer": "Its learned statistics depend on feature values unavailable at the training cutoff.",
+          "explanation": "Means and scales are fitted parameters of the pipeline. A whole-series scaler can expose the model to future distribution shifts through those parameters. Learn the transformation from eligible training rows and apply the resulting fixed map when evaluating the fold."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Applying a scaler fitted on the training fold to the evaluation fold can preserve the fold boundary.",
+          "answer": true,
+          "explanation": "Means and scales are fitted parameters of the pipeline. A whole-series scaler can expose the model to future distribution shifts through those parameters. Learn the transformation from eligible training rows and apply the resulting fixed map when evaluating the fold."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-experiments.paired-loss",
+      "section": "qp-experiments",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why use same-date loss differences when comparing two forecasting systems on one series?",
+          "answer": "They expose the incremental loss on matched outcomes and can cancel shared shocks to forecast difficulty.",
+          "explanation": "Analyze $d_t=\\ell(y_t,\\hat y^A_t)-\\ell(y_t,\\hat y^B_t)$. Its variance includes the contemporaneous covariance of the two losses. Serial covariance can remain in $d_t$, so inference about its mean must account for the time structure."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Pairing two models’ losses by date makes the resulting differences independent across dates.",
+          "answer": false,
+          "explanation": "Analyze $d_t=\\ell(y_t,\\hat y^A_t)-\\ell(y_t,\\hat y^B_t)$. Its variance includes the contemporaneous covariance of the two losses. Serial covariance can remain in $d_t$, so inference about its mean must account for the time structure."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-experiments.dependent-bootstrap",
+      "section": "qp-experiments",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why resample blocks of loss differences when a short-lived shock affects several consecutive forecast errors?",
+          "answer": "Resampling neighboring differences together retains some of the dependence that affects uncertainty in the mean.",
+          "explanation": "Blocks retain serial dependence within each block and cut it at the joins. Short blocks can lose important lag covariance. A standard stationary-series block bootstrap relies on reasonably stable dynamics and enough blocks to estimate uncertainty."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What can go wrong if bootstrap blocks are shorter than the dependence in the paired loss series?",
+          "choices": [
+            "The two models become unpaired",
+            "The forecast horizon changes",
+            "The loss mean becomes a median",
+            "Important lag covariance is lost"
+          ],
+          "correct": 3,
+          "explanation": "Blocks retain serial dependence within each block and cut it at the joins. Short blocks can lose important lag covariance. A standard stationary-series block bootstrap relies on reasonably stable dynamics and enough blocks to estimate uncertainty."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-diagnostics.negative-control",
+      "section": "qp-diagnostics",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What makes a negative control informative when investigating a suspected spurious association?",
+          "answer": "It should share the suspected bias pathway while excluding the hypothesized causal effect.",
+          "explanation": "The control is chosen so its intended causal effect should be absent, while a plausible source of bias could still produce an association. A positive finding can diagnose a shared failure mode. A null finding is limited by the sensitivity and relevance of that control."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A clean negative control rules out bias mechanisms that the control outcome does not share with the main outcome.",
+          "answer": false,
+          "explanation": "The control is chosen so its intended causal effect should be absent, while a plausible source of bias could still produce an association. A positive finding can diagnose a shared failure mode. A null finding is limited by the sensitivity and relevance of that control."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-robustness.period-influence",
+      "section": "qp-robustness",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Two models differ by a small mean loss, driven by one period. What comparison tests whether that period dominates?",
+          "answer": "Compare paired loss differences by period and recompute the overall result with the influential period omitted as a sensitivity analysis.",
+          "explanation": "A pooled average can largely reflect a few unusually favorable outcomes. Period-level differences show how broadly the gain is shared, and omission can quantify influence. Use the analysis to diagnose fragility while keeping the original evaluation visible."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "Outperformance concentrated in one period can reveal regime dependence even when the aggregate gain is statistically distinguishable from zero.",
+          "answer": true,
+          "explanation": "A pooled average can largely reflect a few unusually favorable outcomes. Period-level differences show how broadly the gain is shared, and omission can quantify influence. Use the analysis to diagnose fragility while keeping the original evaluation visible."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-benchmark.baseline-headroom",
+      "section": "qp-benchmark",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A complex forecast beats a constant mean. What extra baseline would isolate the benefit of the new model family?",
+          "answer": "A simple fitted model using the same eligible features and the same forecast origins.",
+          "explanation": "A constant benchmark measures the value of the whole pipeline over a weak reference. A matched simple model helps isolate complexity, while refitting after a focused feature removal tests what the remaining inputs can recover under the same protocol."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What must be held fixed to isolate the effect of removing one feature group in a forecasting pipeline?",
+          "choices": [
+            "The evaluation and model-selection protocol",
+            "The fitted coefficients for the remaining inputs",
+            "The observed losses after removing the group",
+            "The set of rows where the removed group worked"
+          ],
+          "correct": 0,
+          "explanation": "A constant benchmark measures the value of the whole pipeline over a weak reference. A matched simple model helps isolate complexity, while refitting after a focused feature removal tests what the remaining inputs can recover under the same protocol."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-benchmark.deployment-threshold",
+      "section": "qp-benchmark",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why specify a minimum useful gain before the final comparison?",
+          "answer": "It makes the decision depend on a gain large enough to justify adoption and avoids choosing the hurdle after seeing the estimate.",
+          "explanation": "A practical threshold can reflect additional serving, data or maintenance costs. A precise estimate of a tiny gain answers whether the new forecast helps on the chosen metric. Using a threshold fixed before evaluation also limits selection on the final scores."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "A very precise improvement that falls short of a predefined minimum gain can support abandoning the higher-cost model.",
+          "answer": true,
+          "explanation": "A practical threshold can reflect additional serving, data or maintenance costs. A precise estimate of a tiny gain answers whether the new forecast helps on the chosen metric. Using a threshold fixed before evaluation also limits selection on the final scores."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-panel-validation.shared-factors",
+      "section": "qp-panel-validation",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "A return model passes a holdout split by asset. Why might the holdout still share the training set’s main source of noise?",
+          "answer": "Both sets can react to the same market or sector shocks at the same dates.",
+          "explanation": "An asset split tests transfer to different names. Shared factor exposures can couple errors on both sides during the same period. A later date holdout probes temporal transfer, while serial dependence still matters for uncertainty within the evaluation period."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What design change probes whether success survives market episodes unseen at fit time?",
+          "choices": [
+            "Reshuffle the asset split within each date",
+            "Evaluate on later, withheld date blocks",
+            "Split each sector into equal asset groups",
+            "Bootstrap asset-days independently"
+          ],
+          "correct": 1,
+          "explanation": "An asset split tests transfer to different names. Shared factor exposures can couple errors on both sides during the same period. A later date holdout probes temporal transfer, while serial dependence still matters for uncertainty within the evaluation period."
+        }
+      ]
+    }
+  ]
+}

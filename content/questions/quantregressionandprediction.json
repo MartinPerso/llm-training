@@ -1,0 +1,246 @@
+{
+  "chapter": "Quant: Regression and Prediction",
+  "concepts": [
+    {
+      "id": "quantprep.qp-ols.centering-intercept",
+      "section": "qp-ols",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Why does centering the predictor make the OLS intercept equal the target mean?",
+          "answer": "The fitted residuals sum to zero, so the fitted line passes through the sample means.",
+          "explanation": "Optimizing the intercept gives $a=\\bar y-b\\bar x$. Substituting yields a centered least-squares problem whose derivative gives $b=\\sum_i(x_i-\\bar x)(y_i-\\bar y)/\\sum_i(x_i-\\bar x)^2$. With $\\bar x=0$, the intercept is $\\bar y$."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "What is the slope in simple OLS with an intercept and a nonconstant predictor?",
+          "choices": [
+            "$\\operatorname{Cov}(X,Y)/\\operatorname{Var}(X)$",
+            "$\\operatorname{Cov}(X,Y)/\\operatorname{Var}(Y)$",
+            "$\\operatorname{Var}(X)/\\operatorname{Cov}(X,Y)$",
+            "$\\operatorname{Cov}(X,Y)/[\\sigma_X\\sigma_Y]$"
+          ],
+          "correct": 0,
+          "explanation": "Optimizing the intercept gives $a=\\bar y-b\\bar x$. Substituting yields a centered least-squares problem whose derivative gives $b=\\sum_i(x_i-\\bar x)(y_i-\\bar y)/\\sum_i(x_i-\\bar x)^2$. With $\\bar x=0$, the intercept is $\\bar y$."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-ols.reverse-slopes",
+      "section": "qp-ols",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "When are the simple OLS slopes of $Y$ on $X$ and $X$ on $Y$ reciprocals, with intercepts and nonconstant variables?",
+          "answer": "Exactly when the absolute sample correlation is one.",
+          "explanation": "The two slopes divide the same covariance by different variances. Their product is $\\operatorname{Cov}(X,Y)^2/[\\operatorname{Var}(X)\\operatorname{Var}(Y)]=\\rho^2$. The objectives measure vertical and horizontal discrepancies respectively, and agree on the line when the cloud lies exactly on it."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why do regressing $Y$ on $X$ and reversing the fitted regression of $X$ on $Y$ generally give different lines?",
+          "answer": "They minimize squared deviations in different coordinate directions.",
+          "explanation": "The two slopes divide the same covariance by different variances. Their product is $\\operatorname{Cov}(X,Y)^2/[\\operatorname{Var}(X)\\operatorname{Var}(Y)]=\\rho^2$. The objectives measure vertical and horizontal discrepancies respectively, and agree on the line when the cloud lies exactly on it."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-ols.residual-geometry",
+      "section": "qp-ols",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "With an intercept and two features, an OLS residual can be correlated with their product even on the training sample.",
+          "answer": true,
+          "explanation": "The normal equations are $X^\\top e=0$ for the columns actually used to fit. The intercept inserts a column of ones. Interactions or nonlinear transforms of features can still align with the residual unless they lie in the column space."
+        },
+        {
+          "kind": "recall",
+          "prompt": "What extra orthogonality condition does an intercept impose in least squares?",
+          "answer": "Orthogonality to the constant vector, so the residuals sum to zero.",
+          "explanation": "The normal equations are $X^\\top e=0$ for the columns actually used to fit. The intercept inserts a column of ones. Interactions or nonlinear transforms of features can still align with the residual unless they lie in the column space."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-calibration.correlation-scale",
+      "section": "qp-calibration",
+      "variants": [
+        {
+          "kind": "numeric",
+          "prompt": "For centered nonconstant targets $y$, what is the evaluation $R^2$ if $\\hat y=3y$?",
+          "answer": -3,
+          "tolerance": 0,
+          "explanation": "Positive scaling preserves ranks and Pearson correlation. With $\\hat y=3y$ and $\\bar y=0$, the squared residual is $4y^2$ row by row, so $R^2=1-4=-3$. The skill score penalizes scale error relative to the evaluated target mean."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "Which operation preserves rank and Pearson correlation but can worsen squared-error fit?",
+          "choices": [
+            "Replacing predictions by their mean",
+            "Multiplying predictions by a positive constant",
+            "Reversing the signs of predictions",
+            "Permuting predictions independently of targets"
+          ],
+          "correct": 1,
+          "explanation": "Positive scaling preserves ranks and Pearson correlation. With $\\hat y=3y$ and $\\bar y=0$, the squared residual is $4y^2$ row by row, so $R^2=1-4=-3$. The skill score penalizes scale error relative to the evaluated target mean."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-calibration.training-projection-score",
+      "section": "qp-calibration",
+      "variants": [
+        {
+          "kind": "truefalse",
+          "prompt": "For nonconstant fitted values, training $R^2$ equals squared fitted-versus-observed correlation in OLS with an intercept.",
+          "answer": true,
+          "explanation": "On training data the constant mean is feasible, and projection gives $y-\\bar y=(\\hat y-\\bar y)+e$ with perpendicular terms. This yields $R^2=\\operatorname{Corr}(y,\\hat y)^2$ for nonconstant fitted values. Neither the projection identity nor the error comparison is guaranteed on test data."
+        },
+        {
+          "kind": "recall",
+          "prompt": "Why can test $R^2$ fall below zero even if an OLS fit included an intercept?",
+          "answer": "The test predictions need not beat the test-set mean in squared error.",
+          "explanation": "On training data the constant mean is feasible, and projection gives $y-\\bar y=(\\hat y-\\bar y)+e$ with perpendicular terms. This yields $R^2=\\operatorname{Corr}(y,\\hat y)^2$ for nonconstant fitted values. Neither the projection identity nor the error comparison is guaranteed on test data."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-calibration.conditional-calibration",
+      "section": "qp-calibration",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What property of forecasts with the correct overall mean can fail within each forecast bucket?",
+          "answer": "The average outcome for a given forecast value need not equal that value.",
+          "explanation": "Conditional mean calibration requires $\\mathbb E[Y\\mid\\hat Y]=\\hat Y$. Here the opposite bucket errors cancel overall and the ranking is right. The predicted separation is too large, and an OLS intercept ensures only training mean agreement, alongside linear residual orthogonality."
+        },
+        {
+          "kind": "mcq",
+          "prompt": "A model predicts 0.3 or 0.7 equally often. Observed rates are 0.4 and 0.6, respectively. What property holds?",
+          "choices": [
+            "Both forecast levels are conditionally calibrated",
+            "Forecasts are shrunk too much toward the mean",
+            "The overall predicted mean is correct",
+            "Forecasts reverse the ranking of the two groups"
+          ],
+          "correct": 2,
+          "explanation": "Conditional mean calibration requires $\\mathbb E[Y\\mid\\hat Y]=\\hat Y$. Here the opposite bucket errors cancel overall and the ranking is right. The predicted separation is too large, and an OLS intercept ensures only training mean agreement, alongside linear residual orthogonality."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-conditioning.squared-loss-target",
+      "section": "qp-conditioning",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "What property of the conditional-mean residual removes the cross term in the squared-loss decomposition?",
+          "answer": "It has mean zero given the predictors, making it orthogonal to every square-integrable function of them.",
+          "explanation": "Write $Y-f(X)=(Y-m(X))+(m(X)-f(X))$. The second term is fixed given $X$, so the cross term vanishes. Thus the risk is $\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\mathbb E[(m(X)-f(X))^2]$, minimized at $m(X)$."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "The errors of a squared-error-optimal point forecast have the same variance at every input.",
+          "answer": false,
+          "explanation": "Write $Y-f(X)=(Y-m(X))+(m(X)-f(X))$. The second term is fixed given $X$, so the cross term vanishes. Thus the risk is $\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\mathbb E[(m(X)-f(X))^2]$, minimized at $m(X)$."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-conditioning.group-dispersion",
+      "section": "qp-conditioning",
+      "variants": [
+        {
+          "kind": "mcq",
+          "prompt": "Group membership changes outcome variance while the conditional means coincide. Which prediction can improve?",
+          "choices": [
+            "The unconditional mean forecast",
+            "A point forecast using the group mean",
+            "The mean difference between groups",
+            "An interval with group-specific width"
+          ],
+          "correct": 3,
+          "explanation": "Total variance is $\\operatorname{Var}(Y)=\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\operatorname{Var}(\\mathbb E[Y\\mid X])$. Equal group means set the second term to zero. Group-specific noise scales can still matter for interval forecasts."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "If group means agree, between-group variance of the conditional means is zero even when within-group variances differ.",
+          "answer": true,
+          "explanation": "Total variance is $\\operatorname{Var}(Y)=\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\operatorname{Var}(\\mathbb E[Y\\mid X])$. Equal group means set the second term to zero. Group-specific noise scales can still matter for interval forecasts."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-nonlinear-dependence.gaussian-marginals",
+      "section": "qp-nonlinear-dependence",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Two variables have normal marginals and zero covariance. What Gaussian assumption would justify independence?",
+          "answer": "Their joint distribution must be Gaussian for the standard zero-covariance implication to apply.",
+          "explanation": "Symmetry gives $SX$ a standard normal marginal, and $\\mathbb E[X(SX)]=\\mathbb E[S]\\mathbb E[X^2]=0$. Yet the two magnitudes agree on every draw. The joint distribution is supported on two lines, so the joint Gaussian implication does not apply."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "If $X$ is standard normal and $S$ an independent fair random sign, $X$ and $SX$ are independent.",
+          "answer": false,
+          "explanation": "Symmetry gives $SX$ a standard normal marginal, and $\\mathbb E[X(SX)]=\\mathbb E[S]\\mathbb E[X^2]=0$. Yet the two magnitudes agree on every draw. The joint distribution is supported on two lines, so the joint Gaussian implication does not apply."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-regularization.duplicate-features",
+      "section": "qp-regularization",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Two OLS design columns are identical. What part of the fit is still uniquely determined on training rows?",
+          "answer": "The fitted vector, which is the projection onto the column space.",
+          "explanation": "Moving weight from one duplicate column to the other leaves the fitted vector unchanged. With near duplicates, that direction changes it only slightly and noise can swing the individual weights. Predictions can become sensitive on examples where the two features diverge."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "With nearly duplicate features, coefficient instability can coexist with stable predictions on similar data.",
+          "answer": true,
+          "explanation": "Moving weight from one duplicate column to the other leaves the fitted vector unchanged. With near duplicates, that direction changes it only slightly and noise can swing the individual weights. Predictions can become sensitive on examples where the two features diverge."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-regularization.ridge-directions",
+      "section": "qp-regularization",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "Which directions of a centered design does ridge shrink most relative to OLS?",
+          "answer": "Directions with small positive eigenvalues of the feature Gram matrix.",
+          "explanation": "In a Gram eigendirection of eigenvalue $d>0$ the OLS component is multiplied by $d/(d+\\lambda)$. Shrinkage reduces variance most strongly in weak directions and introduces bias. Feature units affect the common penalty, so standardize deliberately and handle the intercept separately."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "When ridge uses the same coefficient penalty after one feature is rescaled, its fitted predictions are generally unchanged.",
+          "answer": false,
+          "explanation": "In a Gram eigendirection of eigenvalue $d>0$ the OLS component is multiplied by $d/(d+\\lambda)$. Shrinkage reduces variance most strongly in weak directions and introduces bias. Feature units affect the common penalty, so standardize deliberately and handle the intercept separately."
+        }
+      ]
+    },
+    {
+      "id": "quantprep.qp-partial-regression.residualize-both",
+      "section": "qp-partial-regression",
+      "variants": [
+        {
+          "kind": "recall",
+          "prompt": "After residualizing the target on the old features, what must you do to a new feature before recovering its joint OLS slope?",
+          "answer": "Residualize the new feature on the same old design, including the intercept if used.",
+          "explanation": "With old-design projector $P$, the partial slope regresses $(I-P)y$ on $(I-P)x$. Old-feature variation in raw $x$ would inflate the denominator without contributing to the numerator. A zero residualized feature supplies no new direction. Check any predictive gain out of sample."
+        },
+        {
+          "kind": "truefalse",
+          "prompt": "If a new feature lies in the old design’s column space, its separate slope is unidentifiable in the expanded OLS fit.",
+          "answer": true,
+          "explanation": "With old-design projector $P$, the partial slope regresses $(I-P)y$ on $(I-P)x$. Old-feature variation in raw $x$ would inflate the denominator without contributing to the numerator. A zero residualized feature supplies no new direction. Check any predictive gain out of sample."
+        }
+      ]
+    }
+  ]
+}
