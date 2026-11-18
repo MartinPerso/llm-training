@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildBank } from '../bank/load.ts';
-import { concept, makeBank, DAY, HOUR, MIN, review } from '../test/helpers.ts';
-import { buildQueue, queueCounts } from './queue.ts';
+import { BOOK_TITLE } from '../bank/types.ts';
+import { concept, makeBank, section, DAY, HOUR, MIN, review } from '../test/helpers.ts';
+import { buildQueue, queueCounts, scopeIds, type PracticeScope } from './queue.ts';
 import { replay } from './scheduler.ts';
 import type { ProgressEvent } from './events.ts';
 
@@ -132,6 +133,77 @@ describe('queueCounts', () => {
     const now = T0 + 40 * DAY + 20 * MIN;
     const c = queueCounts(now, states(events), bank);
     expect(c).toMatchObject({ total: 5, seen: 3, newRemaining: 2, learning: 2, learningDue: 2, reviewDue: 1 });
-    expect(queueCounts(now, states(events), bank, 'B')).toMatchObject({ total: 2, seen: 1, newRemaining: 1 });
+    expect(queueCounts(now, states(events), bank, { chapter: 'B' })).toMatchObject({ total: 2, seen: 1, newRemaining: 1 });
+  });
+});
+
+describe('source focus', () => {
+  const quant = 'Quant research';
+  const rl = 'RL & agentic RL interview notes';
+  const mixed = buildBank([
+    section('book', 'Book chapter', 1),
+    { ...section('rl', 'RL chapter', 2), source: rl },
+    { ...section('probability', 'Probability', 3), source: quant },
+    { ...section('validation', 'Validation', 4), source: quant },
+  ], [
+    { chapter: 'Book chapter', concepts: [concept('l1', 'book')] },
+    { chapter: 'RL chapter', concepts: [concept('r1', 'rl')] },
+    { chapter: 'Probability', concepts: [concept('q1', 'probability', 2), concept('q2', 'probability'), { ...concept('retired', 'probability'), retired: true }] },
+    { chapter: 'Validation', concepts: [concept('q3', 'validation')] },
+  ]);
+  const mixedStates = (events: ProgressEvent[]) => replay(events, mixed.byId.keys());
+  const pick = (events: ProgressEvent[], now: number, scope: PracticeScope = { source: quant }) =>
+    buildQueue(now, mixedStates(events), mixed, { targetRecall: 0.9 }, scope);
+
+  it.each([
+    [BOOK_TITLE, ['l1']],
+    [rl, ['r1']],
+    [quant, ['q1', 'q2', 'q3']],
+  ])('includes every active concept across the chapters of %s', (source, expected) => {
+    expect(scopeIds(mixed, { source })).toEqual(expected);
+  });
+
+  it('introduces new concepts from every chapter in the selected source', () => {
+    const events: ProgressEvent[] = [];
+    const order: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const item = pick(events, T0 + i * MIN)!;
+      expect(item.tier).toBe('new');
+      order.push(item.concept.id);
+      events.push(review(item.concept.id, T0 + i * MIN, 4));
+    }
+    expect(order).toEqual(['q1', 'q3', 'q2']);
+  });
+
+  it('excludes other sources when selecting due learning cards', () => {
+    const events = [review('l1', T0, 1), review('r1', T0, 1), review('q2', T0 + MIN, 1)];
+    expect(pick(events, T0 + 5 * MIN)).toMatchObject({ concept: { id: 'q2' }, tier: 'learning' });
+  });
+
+  it('excludes other sources when selecting due reviews', () => {
+    const events = ['l1', 'r1', 'q3'].flatMap((id) => [review(id, T0, 3), review(id, T0 + 10 * MIN, 3)]);
+    expect(pick(events, T0 + 60 * DAY)).toMatchObject({ concept: { id: 'q3' }, tier: 'due' });
+  });
+
+  it('keeps extra practice and variant rotation within the selected source', () => {
+    const events = [review('l1', T0 - DAY, 1), review('r1', T0 - DAY, 1),
+      ...['q1', 'q2', 'q3'].map((id, i) => review(id, T0 + i * HOUR, 4))];
+    expect(pick(events, T0 + 2 * HOUR + MIN)).toMatchObject({ concept: { id: 'q1' }, tier: 'extra', variantIndex: 1 });
+  });
+
+  it('can narrow a source to one chapter without leaking incompatible chapters', () => {
+    expect(scopeIds(mixed, { source: quant, chapter: 'Validation' })).toEqual(['q3']);
+    expect(pick([], T0, { source: quant, chapter: 'Validation' })?.concept.id).toBe('q3');
+    expect(pick([], T0, { source: quant, chapter: 'Book chapter' })).toBeNull();
+    expect(pick([], T0, { source: 'Missing source' })).toBeNull();
+    expect(queueCounts(T0, new Map(), mixed, { source: 'Missing source' }).total).toBe(0);
+  });
+
+  it('counts progress across the selected source and restores all sources when unfiltered', () => {
+    const states = mixedStates([review('l1', T0, 1), review('r1', T0, 1), review('q2', T0, 1)]);
+    expect(queueCounts(T0 + 5 * MIN, states, mixed, { source: quant })).toEqual({
+      total: 3, seen: 1, newRemaining: 2, learning: 1, learningDue: 1, reviewDue: 0,
+    });
+    expect(queueCounts(T0 + 5 * MIN, states, mixed)).toMatchObject({ total: 5, seen: 3, newRemaining: 2, learningDue: 3 });
   });
 });

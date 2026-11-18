@@ -1,15 +1,30 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { bank, usingSampleBank } from '../bank/index.ts';
-import { queueCounts } from '../srs/queue.ts';
+import { BOOK_TITLE } from '../bank/types.ts';
+import { queueCounts, scopeIds, type PracticeScope } from '../srs/queue.ts';
 import { firstReviewTime, windowInfo, WINDOW_DAYS } from '../srs/window.ts';
 import { sync } from '../storage/instance.ts';
 import SyncChip from './SyncChip.tsx';
 import { useProgress } from './useProgress.ts';
 
-export default function Today({ onStart, onOpenSettings }: { onStart: (chapter: string | null) => void; onOpenSettings: () => void }) {
+const SOURCE_LABELS: Record<string, string> = {
+  [BOOK_TITLE]: 'LLM',
+  'RL & agentic RL interview notes': 'Post-training & RL',
+  'Quant research': 'Quant',
+};
+
+export default function Today({ scope, onScopeChange, onStart, onOpenSettings }: {
+  scope: PracticeScope;
+  onScopeChange: (scope: PracticeScope) => void;
+  onStart: () => void;
+  onOpenSettings: () => void;
+}) {
   const { file, states, status, ready } = useProgress();
-  const [chapter, setChapter] = useState<string>('');
-  const scope = chapter || null;
+  const groups = bank.chapterGroups.filter((g) => !scope.source || g.source === scope.source);
+  const scopedStates = useMemo(() => {
+    const ids = new Set(scopeIds(bank, scope));
+    return new Map([...states].filter(([id]) => ids.has(id)));
+  }, [states, scope]);
 
   const now = Date.now();
   const counts = useMemo(() => queueCounts(now, states, bank, scope), [now, states, scope]);
@@ -18,11 +33,11 @@ export default function Today({ onStart, onOpenSettings }: { onStart: (chapter: 
       windowInfo({
         now,
         firstReview: firstReviewTime(file.events),
-        states: scope ? new Map([...states].filter(([id]) => bank.chapterOf.get(id) === scope)) : states,
+        states: scopedStates,
         total: counts.total,
         remainingNew: counts.newRemaining,
       }),
-    [now, file.events, states, scope, counts],
+    [now, file.events, scopedStates, counts],
   );
 
   const empty = bank.concepts.length === 0;
@@ -78,10 +93,21 @@ export default function Today({ onStart, onOpenSettings }: { onStart: (chapter: 
             </p>
           )}
           <label className="field">
-            <span>Focus</span>
-            <select value={chapter} onChange={(e) => setChapter(e.target.value)}>
-              <option value="">All chapters</option>
+            <span>Section</span>
+            <select value={scope.source ?? ''} onChange={(e) => onScopeChange({ source: e.target.value || null, chapter: null })}>
+              <option value="">All sections</option>
               {bank.chapterGroups.map((g) => (
+                <option key={g.source} value={g.source}>
+                  {SOURCE_LABELS[g.source] ?? g.source}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Chapter (optional)</span>
+            <select value={scope.chapter ?? ''} onChange={(e) => onScopeChange({ ...scope, chapter: e.target.value || null })}>
+              <option value="">All chapters</option>
+              {groups.map((g) => (
                 <optgroup key={g.source} label={g.source}>
                   {g.chapters.map((c) => (
                     <option key={c} value={c}>
@@ -92,7 +118,8 @@ export default function Today({ onStart, onOpenSettings }: { onStart: (chapter: 
               ))}
             </select>
           </label>
-          <button type="button" className="btn primary big" onClick={() => onStart(scope)}>
+          <p className="muted small">{counts.total} concepts in the selected {scope.chapter ? 'chapter' : scope.source ? 'section' : 'bank'}.</p>
+          <button type="button" className="btn primary big" onClick={onStart}>
             Start
           </button>
         </>

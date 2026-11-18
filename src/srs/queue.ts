@@ -11,9 +11,14 @@ export interface QueueItem {
   tier: Tier;
 }
 
-export interface QueueOptions {
+export interface PracticeScope {
+  /** Include all chapters belonging to this source. */
+  source?: string | null;
   /** Restrict the session to one chapter. */
   chapter?: string | null;
+}
+
+export interface QueueOptions extends PracticeScope {
   /** The concept that was just answered: not returned again unless nothing else exists. */
   justAnswered?: string | null;
   /** Extra practice skips concepts answered within this window (default 10 minutes). */
@@ -31,13 +36,13 @@ export function pickVariant(concept: Concept, state: CardState | undefined): num
   return (state.lastVariant + 1) % n;
 }
 
-function inScope(bank: Bank, id: string, chapter: string | null | undefined): boolean {
-  return !chapter || bank.chapterOf.get(id) === chapter;
+function scopeChapters(bank: Bank, { source, chapter }: PracticeScope): string[] {
+  return bank.chapters.filter((c) => (!source || bank.sourceOf.get(c) === source) && (!chapter || c === chapter));
 }
 
-/** Concept ids of the chapter in scope, in book order. */
-function scopeIds(bank: Bank, chapter: string | null | undefined): string[] {
-  return chapter ? (bank.idsByChapter.get(chapter) ?? []) : bank.concepts.map((c) => c.id);
+/** Active concept ids of the source/chapter in scope, in book order. */
+export function scopeIds(bank: Bank, scope: PracticeScope = {}): string[] {
+  return scopeChapters(bank, scope).flatMap((chapter) => bank.idsByChapter.get(chapter) ?? []);
 }
 
 /**
@@ -47,11 +52,11 @@ function scopeIds(bank: Bank, chapter: string | null | undefined): string[] {
 function pickNew(
   bank: Bank,
   states: Map<string, CardState>,
-  chapter: string | null | undefined,
+  scope: PracticeScope,
   excluded: Set<string>,
 ): string | null {
   let best: { id: string; seen: number; rank: number } | null = null;
-  const chapters = chapter ? [chapter] : bank.chapters;
+  const chapters = scopeChapters(bank, scope);
   chapters.forEach((ch, rank) => {
     const ids = bank.idsByChapter.get(ch) ?? [];
     let seen = 0;
@@ -73,13 +78,15 @@ function select(
   states: Map<string, CardState>,
   bank: Bank,
   settings: Settings,
-  chapter: string | null | undefined,
+  scope: PracticeScope,
   excluded: Set<string>,
   recentWindowMs: number,
 ): { id: string; tier: Tier } | null {
-  const candidates = [...states.entries()].filter(
-    ([id]) => bank.byId.has(id) && inScope(bank, id, chapter) && !excluded.has(id),
-  );
+  const candidates: Array<[string, CardState]> = [];
+  for (const id of scopeIds(bank, scope)) {
+    const state = states.get(id);
+    if (state && !excluded.has(id)) candidates.push([id, state]);
+  }
 
   // 1. Learning / relearning cards that are due, earliest first.
   const learning = candidates
@@ -95,7 +102,7 @@ function select(
   if (due[0]) return { id: due[0].id, tier: 'due' };
 
   // 3. New concepts.
-  const fresh = pickNew(bank, states, chapter, excluded);
+  const fresh = pickNew(bank, states, scope, excluded);
   if (fresh) return { id: fresh, tier: 'new' };
 
   // 4. Extra practice: the seen concept most likely to be forgotten, skipping recent answers.
@@ -118,14 +125,14 @@ export function buildQueue(
   settings: Settings = DEFAULT_SETTINGS,
   opts: QueueOptions = {},
 ): QueueItem | null {
-  const { chapter = null, justAnswered = null, recentWindowMs = RECENT_WINDOW_MS } = opts;
+  const { source = null, chapter = null, justAnswered = null, recentWindowMs = RECENT_WINDOW_MS } = opts;
   const attempts: Array<[Set<string>, number]> = [
     [new Set(justAnswered ? [justAnswered] : []), recentWindowMs],
     [new Set(justAnswered ? [justAnswered] : []), 0],
     [new Set(), 0],
   ];
   for (const [excluded, window] of attempts) {
-    const pick = select(now, states, bank, settings, chapter, excluded, window);
+    const pick = select(now, states, bank, settings, { source, chapter }, excluded, window);
     if (pick) {
       const concept = bank.byId.get(pick.id) as Concept;
       return { concept, variantIndex: pickVariant(concept, states.get(pick.id)), tier: pick.tier };
@@ -151,9 +158,9 @@ export function queueCounts(
   now: number,
   states: Map<string, CardState>,
   bank: Bank,
-  chapter?: string | null,
+  scope: PracticeScope = {},
 ): QueueCounts {
-  const ids = scopeIds(bank, chapter);
+  const ids = scopeIds(bank, scope);
   const c: QueueCounts = { learningDue: 0, reviewDue: 0, learning: 0, newRemaining: 0, seen: 0, total: ids.length };
   for (const id of ids) {
     const s = states.get(id);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { bank } from '../bank/index.ts';
 import { sectionLink, sectionLinkLabel, DEFAULT_TOLERANCE, type Question } from '../bank/types.ts';
 import { formatNumber, isCloseEnough, parseNumeric } from '../grading/numeric.ts';
-import { buildQueue, queueCounts, type QueueItem } from '../srs/queue.ts';
+import { buildQueue, queueCounts, type PracticeScope, type QueueItem } from '../srs/queue.ts';
 import { autoRating, RATING_LABELS, type Rating } from '../srs/rating.ts';
 import type { CardState } from '../srs/scheduler.ts';
 import { seededOrder } from '../srs/shuffle.ts';
@@ -45,17 +45,17 @@ function isTypingTarget(t: EventTarget | null): boolean {
   return t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable;
 }
 
-function nextItem(chapter: string | null, justAnswered: string | null): QueueItem | null {
+function nextItem(scope: PracticeScope, justAnswered: string | null): QueueItem | null {
   const snap = sync.getSnapshot();
-  return buildQueue(Date.now(), statesFor(snap.file), bank, snap.file.settings, { chapter, justAnswered });
+  return buildQueue(Date.now(), statesFor(snap.file), bank, snap.file.settings, { ...scope, justAnswered });
 }
 
-export default function Session({ chapter, onEnd }: { chapter: string | null; onEnd: () => void }) {
+export default function Session({ scope, onEnd }: { scope: PracticeScope; onEnd: () => void }) {
   const { states, status } = useProgress();
-  const [current, setCurrent] = useState<QueueItem | null>(() => nextItem(chapter, null));
+  const [current, setCurrent] = useState<QueueItem | null>(() => nextItem(scope, null));
   const [answered, setAnswered] = useState(0);
 
-  const counts = useMemo(() => queueCounts(Date.now(), states, bank, chapter), [states, chapter]);
+  const counts = useMemo(() => queueCounts(Date.now(), states, bank, scope), [states, scope]);
 
   const onGrade = useCallback(
     (item: QueueItem, g: GradeInput) => {
@@ -68,9 +68,9 @@ export default function Session({ chapter, onEnd }: { chapter: string | null; on
         ...(g.a ? { a: g.a.slice(0, MAX_ANSWER_CHARS) } : {}),
       });
       setAnswered((n) => n + 1);
-      setCurrent(nextItem(chapter, item.concept.id));
+      setCurrent(nextItem(scope, item.concept.id));
     },
-    [chapter],
+    [scope],
   );
 
   const onFlag = useCallback((conceptId: string): boolean => {
@@ -82,6 +82,7 @@ export default function Session({ chapter, onEnd }: { chapter: string | null; on
 
   return (
     <section className="screen session">
+      {(scope.source || scope.chapter) && <p className="muted small">{[scope.source, scope.chapter].filter(Boolean).join(' · ')}</p>}
       <div className="session-bar">
         <span className="progress-line">
           {answered} answered · {counts.learningDue + counts.reviewDue} due · {counts.newRemaining} new
@@ -100,7 +101,7 @@ export default function Session({ chapter, onEnd }: { chapter: string | null; on
           onFlag={onFlag}
         />
       ) : (
-        <p className="notice">No questions to practice{chapter ? ' in this chapter' : ''}.</p>
+        <p className="notice">No questions to practice{scope.chapter ? ' in this chapter' : scope.source ? ' in this section' : ''}.</p>
       )}
     </section>
   );

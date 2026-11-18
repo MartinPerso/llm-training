@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import 'katex/dist/katex.min.css';
+import type { PracticeScope } from './srs/queue.ts';
 import { startSync } from './storage/instance.ts';
 import Session from './ui/Session.tsx';
 import Settings from './ui/Settings.tsx';
@@ -16,14 +17,15 @@ const TABS: Array<[Tab, string]> = [
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('today');
-  const [session, setSession] = useState<{ chapter: string | null } | null>(null);
+  const [scope, setScope] = useState<PracticeScope>({});
+  const [session, setSession] = useState<PracticeScope | null>(null);
 
   useEffect(() => startSync(), []);
 
   return (
     <main className="app">
       {session ? (
-        <Session chapter={session.chapter} onEnd={() => setSession(null)} />
+        <Session scope={session} onEnd={() => setSession(null)} />
       ) : (
         <>
           <nav className="tabs" aria-label="Sections">
@@ -33,7 +35,9 @@ export default function App() {
               </button>
             ))}
           </nav>
-          {tab === 'today' && <Today onStart={(chapter) => setSession({ chapter })} onOpenSettings={() => setTab('settings')} />}
+          {tab === 'today' && (
+            <Today scope={scope} onScopeChange={setScope} onStart={() => setSession(scope)} onOpenSettings={() => setTab('settings')} />
+          )}
           {tab === 'stats' && <Stats />}
           {tab === 'settings' && <Settings />}
         </>
