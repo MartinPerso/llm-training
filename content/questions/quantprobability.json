@@ -7,15 +7,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What probabilities suffice to compute the expected number of triggered alerts?",
+          "prompt": "Let $I_i$ equal one if alert $i$ fires and zero otherwise. What probabilities determine $\\mathbb E[N]$ for $N=\\sum_i I_i$?",
           "answer": "The marginal probability that each alert fires, summed over alerts.",
-          "explanation": "Write the total as $N=\\sum_i I_i$, where $I_i$ is one when alert $i$ fires. Then $\\mathbb E[N]=\\sum_i P(I_i=1)$ even with dependence. Synchronization changes how often the alerts fire together and therefore changes the count distribution."
+          "explanation": "Each indicator has mean $P(I_i=1)$, so $\\mathbb E[N]=\\sum_i P(I_i=1)$ even when the alerts are dependent. This lets you estimate average alert volume from individual rates. To estimate how often several arrive at once, you also need their dependence."
         },
         {
           "kind": "truefalse",
-          "prompt": "At fixed marginal firing rates, synchronizing the alerts raises the expected number of alerts per trial.",
+          "prompt": "With $N=\\sum_i I_i$ alerts per trial and fixed firing rates $P(I_i=1)$, making the alerts fire together increases $\\mathbb E[N]$.",
           "answer": false,
-          "explanation": "Write the total as $N=\\sum_i I_i$, where $I_i$ is one when alert $i$ fires. Then $\\mathbb E[N]=\\sum_i P(I_i=1)$ even with dependence. Synchronization changes how often the alerts fire together and therefore changes the count distribution."
+          "explanation": "Each indicator has mean $P(I_i=1)$, so $\\mathbb E[N]=\\sum_i P(I_i=1)$ even when the alerts are dependent. This lets you estimate average alert volume from individual rates. To estimate how often several arrive at once, you also need their dependence."
         }
       ]
     },
@@ -25,16 +25,16 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "How many fixed points does a uniformly random permutation of $n\\geq1$ items have on average?",
+          "prompt": "Shuffle $n\\ge1$ items uniformly. What is $\\mathbb E[M]$, where $M$ counts items that return to their original slot (fixed points)?",
           "answer": 1,
           "tolerance": 0,
-          "explanation": "Fix one item. Exactly $(n-1)!$ of the $n!$ permutations put it back, so its match probability is $1/n$. Summing over items gives $n/n=1$, even though observing one match changes the distribution of the remaining positions."
+          "explanation": "Each item is equally likely to land in any of the $n$ slots, so $P(I_i=1)=1/n$ and $\\mathbb E[M]=n/n=1$. This gives a chance baseline for how many matches a random assignment should produce, even though the matches influence one another."
         },
         {
           "kind": "recall",
-          "prompt": "What cancels the growing number of items when computing the mean number of permutation matches?",
+          "prompt": "Why does the average match count $M=\\sum_i I_i$ stay the same as $n$ grows in a uniform shuffle? Here $I_i=1$ when item $i$ returns to its slot.",
           "answer": "Each item matches its own position with probability $1/n$.",
-          "explanation": "Fix one item. Exactly $(n-1)!$ of the $n!$ permutations put it back, so its match probability is $1/n$. Summing over items gives $n/n=1$, even though observing one match changes the distribution of the remaining positions."
+          "explanation": "Each item is equally likely to land in any of the $n$ slots, so $P(I_i=1)=1/n$ and $\\mathbb E[M]=n/n=1$. This gives a chance baseline for how many matches a random assignment should produce, even though the matches influence one another."
         }
       ]
     },
@@ -44,7 +44,7 @@
       "variants": [
         {
           "kind": "mcq",
-          "prompt": "Which quantity equals the expected count of successes for two mutually exclusive events?",
+          "prompt": "Events $A$ and $B$ cannot both occur. Which probability equals $\\mathbb E[N]$ when $N$ counts how many of them occur?",
           "choices": [
             "Probability of at least one success",
             "Probability of both successes",
@@ -52,13 +52,13 @@
             "Larger of the two success rates"
           ],
           "correct": 0,
-          "explanation": "The count is $I_A+I_B$, while the union indicator caps that sum at one. Thus $\\mathbb E[N]=P(A\\cup B)+P(A\\cap B)$. The product only gives the intersection under independence. For mutually exclusive events the overlap vanishes."
+          "explanation": "An outcome where both events happen contributes twice to the count and once to the probability of any success. Thus $\\mathbb E[N]=P(A\\cup B)+P(A\\cap B)$. If the events cannot overlap, the extra term vanishes. Choose the count for average workload and the union for the chance of any workload."
         },
         {
           "kind": "recall",
-          "prompt": "What contribution does a trial with two successes make to the expected count versus the probability of at least one?",
+          "prompt": "Let $N=\\mathbf1_A+\\mathbf1_B$ count two possible successes. How does an outcome with both successes affect $\\mathbb E[N]$ versus $P(N\\ge1)$?",
           "answer": "Its probability is weighted twice in the expected count and once in the union probability.",
-          "explanation": "The count is $I_A+I_B$, while the union indicator caps that sum at one. Thus $\\mathbb E[N]=P(A\\cup B)+P(A\\cap B)$. The product only gives the intersection under independence. For mutually exclusive events the overlap vanishes."
+          "explanation": "An outcome where both events happen contributes twice to the count and once to the probability of any success. Thus $\\mathbb E[N]=P(A\\cup B)+P(A\\cap B)$. If the events cannot overlap, the extra term vanishes. Choose the count for average workload and the union for the chance of any workload."
         }
       ]
     },
@@ -68,21 +68,21 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why does choosing the locations of the size-two steps count ordered paths once their number is fixed?",
+          "prompt": "A path of total length $n$ uses steps of size one or two, exactly $k$ of them size two. Why does picking the $k$ slots determine the whole path?",
           "answer": "The chosen slots determine every size-two step and all other slots must contain size-one steps.",
-          "explanation": "The size-one steps account for $n-2k$ units and hence $n-2k$ slots. Adding the $k$ larger steps gives $n-k$ slots. Each subset of $k$ slots determines exactly one order, giving $\\binom{n-k}{k}$ paths."
+          "explanation": "The $k$ long steps cover $2k$ units, leaving $n-2k$ short steps and $n-k$ total slots. Choosing the $k$ long-step slots leaves all other slots short, so there are $\\binom{n-k}{k}$ paths. This converts an ordering problem into a simple subset count."
         },
         {
           "kind": "mcq",
-          "prompt": "A path of total length $n$ contains exactly $k$ size-two steps. How many slots can those $k$ steps occupy?",
+          "prompt": "A path travels distance $n$ using steps of size one or two, with $0<k<n/2$ two-unit steps. Which binomial coefficient counts the paths?",
           "choices": [
-            "$n-k$",
-            "$n$",
-            "$n-2k$",
-            "$n+k$"
+            "$\\binom{n-k}{k}$",
+            "$\\binom{n}{k}$",
+            "$\\binom{n+k}{k}$",
+            "$\\binom{n}{2k}$"
           ],
           "correct": 0,
-          "explanation": "The size-one steps account for $n-2k$ units and hence $n-2k$ slots. Adding the $k$ larger steps gives $n-k$ slots. Each subset of $k$ slots determines exactly one order, giving $\\binom{n-k}{k}$ paths."
+          "explanation": "The $k$ long steps cover $2k$ units, leaving $n-2k$ short steps and $n-k$ total slots. Choosing the $k$ long-step slots leaves all other slots short, so there are $\\binom{n-k}{k}$ paths. This converts an ordering problem into a simple subset count."
         }
       ]
     },
@@ -92,15 +92,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "For ordered paths using steps of size one or two, why does the count at total length zero equal one?",
+          "prompt": "Let $a_n$ count ordered paths of distance $n$ using steps of size one or two. Why is $a_0=1$?",
           "answer": "There is one empty path, which can end a valid sequence with no remaining distance.",
-          "explanation": "Appending a final one or two gives disjoint classes, so $a_n=a_{n-1}+a_{n-2}$ for $n>0$. Set $a_0=1$ for the empty path and $a_j=0$ for $j<0$. These boundaries count the path consisting of just the last step."
+          "explanation": "The last step is either one or two, giving disjoint classes and $a_n=a_{n-1}+a_{n-2}$. There is one way to complete a path with zero distance left: take no further steps. Setting $a_0=1$ and $a_j=0$ for $j<0$ lets the recurrence count a single final step correctly."
         },
         {
           "kind": "recall",
-          "prompt": "What makes partitioning length-$n$ paths by their last step count each path once?",
+          "prompt": "Let $a_n$ count ordered paths of distance $n$ using steps of size one or two. Why can you add the counts for the two possible last steps?",
           "answer": "Each path has a unique last step, and removing it leaves an arbitrary path of the corresponding shorter length.",
-          "explanation": "Appending a final one or two gives disjoint classes, so $a_n=a_{n-1}+a_{n-2}$ for $n>0$. Set $a_0=1$ for the empty path and $a_j=0$ for $j<0$. These boundaries count the path consisting of just the last step."
+          "explanation": "The last step is either one or two, giving disjoint classes and $a_n=a_{n-1}+a_{n-2}$. There is one way to complete a path with zero distance left: take no further steps. Setting $a_0=1$ and $a_j=0$ for $j<0$ lets the recurrence count a single final step correctly."
         }
       ]
     },
@@ -110,13 +110,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "With equal prior odds of a fair or double-headed coin chosen once, what are the posterior odds for double-headed after $k$ heads?",
+          "prompt": "A fair or double-headed coin is picked once with equal odds. After $k$ heads, what are the updated odds $P(\\text{double}\\mid kH)/P(\\text{fair}\\mid kH)$?",
           "answer": "$2^k$ to one.",
-          "explanation": "The likelihoods are $1$ and $2^{-k}$. With equal prior odds the posterior double-headed probability is $w=2^k/(1+2^k)$. Prediction averages the next-flip probabilities as $w+(1-w)/2$ using normalized posterior weights."
+          "explanation": "The two coins give $k$ heads with probabilities $1$ and $2^{-k}$. Equal starting odds therefore become $2^k$ to one. The updated probability of the double-headed coin is $w=2^k/(1+2^k)$, and the next-head probability is $w+(1-w)/2$. Forecasting uses the evidence to update the mixture first."
         },
         {
           "kind": "mcq",
-          "prompt": "After $k$ heads from a fixed coin that could be fair or double-headed, how do you weight the two next-flip probabilities?",
+          "prompt": "A fixed coin can be fair or double-headed. After $k$ heads, which weights should you use to average the two next-flip probabilities, $1/2$ and $1$?",
           "choices": [
             "Original coin probabilities",
             "Posterior coin probabilities",
@@ -124,7 +124,7 @@
             "Past heads and tails frequencies"
           ],
           "correct": 1,
-          "explanation": "The likelihoods are $1$ and $2^{-k}$. With equal prior odds the posterior double-headed probability is $w=2^k/(1+2^k)$. Prediction averages the next-flip probabilities as $w+(1-w)/2$ using normalized posterior weights."
+          "explanation": "The two coins give $k$ heads with probabilities $1$ and $2^{-k}$. Equal starting odds therefore become $2^k$ to one. The updated probability of the double-headed coin is $w=2^k/(1+2^k)$, and the next-head probability is $w+(1-w)/2$. Forecasting uses the evidence to update the mixture first."
         }
       ]
     },
@@ -134,15 +134,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A hidden coin is equally likely to be fair or double-headed. Why does seeing heads increase the chance of heads on the same coin?",
+          "prompt": "A hidden coin is fair or double-headed, each with probability $1/2$. Why is $P(H_2\\mid H_1)>P(H_2)$ for two flips of this coin?",
           "answer": "It shifts probability toward the double-headed coin, which remains in use.",
-          "explanation": "Conditional on the chosen coin, flips factorize. A persistent coin couples flips after marginalizing because the same latent variable governs them all. Redrawing it independently each time makes the marginal joint probability factorize as well."
+          "explanation": "With one coin, $H_1$ is evidence about the coin type, which still governs $H_2$. Each flip is independent given the type, but the observations share that hidden cause. Redrawing the coin resets the cause, so earlier flips carry no information about the next coin."
         },
         {
           "kind": "truefalse",
-          "prompt": "If a coin is independently redrawn from the same fair/double-headed mixture before each flip, the outcomes are independent.",
+          "prompt": "If you draw a fresh coin independently from the same fair/double-headed mixture before each flip, the outcomes are independent.",
           "answer": true,
-          "explanation": "Conditional on the chosen coin, flips factorize. A persistent coin couples flips after marginalizing because the same latent variable governs them all. Redrawing it independently each time makes the marginal joint probability factorize as well."
+          "explanation": "With one coin, $H_1$ is evidence about the coin type, which still governs $H_2$. Each flip is independent given the type, but the observations share that hidden cause. Redrawing the coin resets the cause, so earlier flips carry no information about the next coin."
         }
       ]
     },
@@ -152,13 +152,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "When does evidence favoring a rare hypothesis make it more probable than its alternative?",
+          "prompt": "For rare $H$, let $O=P(H)/P(\\neg H)$ and $L=P(D\\mid H)/P(D\\mid\\neg H)$. When does observing $D$ make $H$ more likely than $\\neg H$?",
           "answer": "When the likelihood ratio exceeds the reciprocal of its prior odds.",
-          "explanation": "Bayes gives $O_{\\rm post}=O_{\\rm prior}\\,P(D\\mid H)/P(D\\mid \\neg H)$. Evidence can strongly favor a hypothesis and still leave posterior odds below one if its starting odds are small enough."
+          "explanation": "Posterior odds are $O_{\\rm post}=O_{\\rm prior}L$, so you need $O_{\\rm prior}>1/L$. When $L=10$, the cutoff is one to ten. This is why strong evidence can still leave a rare explanation less likely than the common alternative."
         },
         {
           "kind": "mcq",
-          "prompt": "An observation has likelihood ratio 10 in favor of a hypothesis. What must its prior odds exceed for posterior odds above one?",
+          "prompt": "Evidence is ten times as likely under $H$ as under $\\neg H$. What must the starting odds $P(H)/P(\\neg H)$ exceed for $H$ to become more likely?",
           "choices": [
             "One to one hundred",
             "One to two",
@@ -166,7 +166,7 @@
             "Ten to one"
           ],
           "correct": 2,
-          "explanation": "Bayes gives $O_{\\rm post}=O_{\\rm prior}\\,P(D\\mid H)/P(D\\mid \\neg H)$. Evidence can strongly favor a hypothesis and still leave posterior odds below one if its starting odds are small enough."
+          "explanation": "Posterior odds are $O_{\\rm post}=O_{\\rm prior}L$, so you need $O_{\\rm prior}>1/L$. When $L=10$, the cutoff is one to ten. This is why strong evidence can still leave a rare explanation less likely than the common alternative."
         }
       ]
     },
@@ -176,15 +176,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "How do you account for the first trial when writing a recurrence for the mean wait to an IID success?",
+          "prompt": "Independent trials succeed with probability $p>0$. If $T$ counts trials through the first success, how do you set up a recurrence for $\\mathbb E[T]$?",
           "answer": "Count one trial in either branch and add a fresh mean wait only after failure.",
-          "explanation": "If $p>0$ is the success probability, $E=1+(1-p)E$, hence $E=1/p$. The first trial is paid in both branches. The failure branch returns to the initial state because future trials still have the original law."
+          "explanation": "The next trial costs one trial in both branches. Success ends the wait and failure resets it, so $E=1+(1-p)E$ and $E=1/p$. Counting what remains after a failure keeps the recurrence from charging twice for the same trial."
         },
         {
           "kind": "truefalse",
-          "prompt": "After five failures in IID Bernoulli trials, the expected remaining wait becomes shorter than it was at the start.",
+          "prompt": "In independent trials with fixed success chance $p>0$, five failures make the expected number of trials still needed smaller.",
           "answer": false,
-          "explanation": "If $p>0$ is the success probability, $E=1+(1-p)E$, hence $E=1/p$. The first trial is paid in both branches. The failure branch returns to the initial state because future trials still have the original law."
+          "explanation": "The next trial costs one trial in both branches. Success ends the wait and failure resets it, so $E=1+(1-p)E$ and $E=1/p$. Counting what remains after a failure keeps the recurrence from charging twice for the same trial."
         }
       ]
     },
@@ -194,16 +194,16 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "With $m$ equally likely IID coupon types and $j$ types collected, what is the mean wait for another type?",
+          "prompt": "Each draw is independent and uniform over $m$ types. With $j<m$ types already seen, what is the expected wait to see a new type?",
           "answer": "$m/(m-j)$ draws for $j<m$.",
-          "explanation": "With $j$ types seen, a new type arrives with probability $(m-j)/m$. Summing geometric stage means gives $m\\sum_{r=1}^m 1/r$, which is $14.7$ for six faces. Linearity gives the mean of the sum without a separate independence argument."
+          "explanation": "With $j$ types seen, the chance of adding a new type is $(m-j)/m$, so that stage takes $m/(m-j)$ draws on average. Add the stage means to get $m\\sum_{r=1}^m1/r$, or $14.7$ for six faces. The last unseen type dominates a much larger part of the wait than any of the early ones."
         },
         {
           "kind": "numeric",
-          "prompt": "How many rolls of a fair die are needed on average to see all six faces?",
+          "prompt": "For independent fair die rolls, what is the expected number of rolls needed to see all six faces?",
           "answer": 14.7,
           "tolerance": 0.001,
-          "explanation": "With $j$ types seen, a new type arrives with probability $(m-j)/m$. Summing geometric stage means gives $m\\sum_{r=1}^m 1/r$, which is $14.7$ for six faces. Linearity gives the mean of the sum without a separate independence argument."
+          "explanation": "With $j$ types seen, the chance of adding a new type is $(m-j)/m$, so that stage takes $m/(m-j)$ draws on average. Add the stage means to get $m\\sum_{r=1}^m1/r$, or $14.7$ for six faces. The last unseen type dominates a much larger part of the wait than any of the early ones."
         }
       ]
     },
@@ -213,14 +213,14 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "How many IID fair flips are needed on average for the first HH, counting from scratch?",
+          "prompt": "Flip a fair coin independently. How many flips do you expect before seeing HH for the first time, counting from the start?",
           "answer": 6,
           "tolerance": 0,
-          "explanation": "From scratch, $E_0=1+(E_0+E_H)/2$. For HH, $E_H=1+E_0/2$, yielding $6$ flips. For HT, another head preserves the prefix, so $E_H=1+E_H/2$ and $E_0=4$. Equal fixed-window probabilities miss this difference in transitions."
+          "explanation": "Track the mean flips still needed with no prefix ($E_0$) or one head ($E_H$). From scratch, $E_0=1+(E_0+E_H)/2$. For HH, a tail resets you, so $E_H=1+E_0/2$ and $E_0=6$. For HT, another head preserves the prefix, so $E_H=1+E_H/2$ and $E_0=4$. Equal two-flip probabilities can give different waiting times."
         },
         {
           "kind": "mcq",
-          "prompt": "After a head, which failed attempt leaves a useful prefix when waiting for the named pattern?",
+          "prompt": "Your last flip was heads. In which case does the next flip miss the target pattern but still leave a usable first letter?",
           "choices": [
             "A tail when seeking HH",
             "A tail when seeking HT",
@@ -228,7 +228,7 @@
             "Another head when seeking HT"
           ],
           "correct": 3,
-          "explanation": "From scratch, $E_0=1+(E_0+E_H)/2$. For HH, $E_H=1+E_0/2$, yielding $6$ flips. For HT, another head preserves the prefix, so $E_H=1+E_H/2$ and $E_0=4$. Equal fixed-window probabilities miss this difference in transitions."
+          "explanation": "Track the mean flips still needed with no prefix ($E_0$) or one head ($E_H$). From scratch, $E_0=1+(E_0+E_H)/2$. For HH, a tail resets you, so $E_H=1+E_0/2$ and $E_0=6$. For HT, another head preserves the prefix, so $E_H=1+E_H/2$ and $E_0=4$. Equal two-flip probabilities can give different waiting times."
         }
       ]
     },
@@ -238,16 +238,16 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A fair die result is visible. An optional reroll costs $c$ points and replaces it. When is rerolling better in expectation?",
+          "prompt": "You see a fair die roll worth $x$ points. You may pay $c$ once to replace it with an independent reroll. When does rerolling raise expected net points?",
           "answer": "When the observed result is below $3.5-c$.",
-          "explanation": "Keep value $x$ competes with reroll value $3.5-c$ after observing $x$. At unit cost the two lowest faces are replaced in expectation by $2.5$, giving $(2.5+2.5+3+4+5+6)/6=23/6$. At a tie either action has the same mean."
+          "explanation": "After seeing $x$, compare keeping $x$ with rerolling for an expected $3.5-c$. Reroll below that threshold. At $c=1$, only faces one and two are replaced, giving $(2.5+2.5+3+4+5+6)/6=23/6$. The option is valuable because you can act on the observed outcome."
         },
         {
           "kind": "numeric",
-          "prompt": "A fair die gives points equal to its face. One optional reroll replaces that roll and costs one point. What is the optimal mean gain?",
+          "prompt": "A fair die pays its face value. You can pay one point once to replace the roll with an independent reroll. What is the best expected net payoff?",
           "answer": 3.8333333333333335,
           "tolerance": 0.001,
-          "explanation": "Keep value $x$ competes with reroll value $3.5-c$ after observing $x$. At unit cost the two lowest faces are replaced in expectation by $2.5$, giving $(2.5+2.5+3+4+5+6)/6=23/6$. At a tie either action has the same mean."
+          "explanation": "After seeing $x$, compare keeping $x$ with rerolling for an expected $3.5-c$. Reroll below that threshold. At $c=1$, only faces one and two are replaced, giving $(2.5+2.5+3+4+5+6)/6=23/6$. The option is valuable because you can act on the observed outcome."
         }
       ]
     }

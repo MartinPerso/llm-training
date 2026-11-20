@@ -7,16 +7,16 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "When summing variances and covariances over unordered pairs, what coefficient goes on each off-diagonal covariance?",
+          "prompt": "Let $S=\\sum_i X_i$. In $\\operatorname{Var}(S)$, what multiplier belongs on $\\sum_{i<j}\\operatorname{Cov}(X_i,X_j)$?",
           "answer": 2,
           "tolerance": 0,
-          "explanation": "Expanding $\\operatorname{Var}(\\sum_iX_i)$ gives a sum over ordered index pairs. Each unordered pair occurs twice, yielding $\\sum_i\\sigma_i^2+2\\sum_{i<j}\\operatorname{Cov}(X_i,X_j)$. Negative terms offset part of the diagonal contribution."
+          "explanation": "Each pair $i<j$ appears twice in the expansion of the variance, so $\\operatorname{Var}(S)=\\sum_i\\operatorname{Var}(X_i)+2\\sum_{i<j}\\operatorname{Cov}(X_i,X_j)$. Terms of opposite sign can offset each other. When combining noisy estimates or gains, marginal variances alone miss this effect."
         },
         {
           "kind": "recall",
-          "prompt": "What changes in the variance of a sum when two contributions become negatively correlated at fixed marginal variances?",
+          "prompt": "In $S=X+Y$, what happens to $\\operatorname{Var}(S)$ when $\\operatorname{Cov}(X,Y)$ turns negative at fixed marginal variances?",
           "answer": "Their covariance contribution lowers it.",
-          "explanation": "Expanding $\\operatorname{Var}(\\sum_iX_i)$ gives a sum over ordered index pairs. Each unordered pair occurs twice, yielding $\\sum_i\\sigma_i^2+2\\sum_{i<j}\\operatorname{Cov}(X_i,X_j)$. Negative terms offset part of the diagonal contribution."
+          "explanation": "Each pair $i<j$ appears twice in the expansion of the variance, so $\\operatorname{Var}(S)=\\sum_i\\operatorname{Var}(X_i)+2\\sum_{i<j}\\operatorname{Cov}(X_i,X_j)$. Terms of opposite sign can offset each other. When combining noisy estimates or gains, marginal variances alone miss this effect."
         }
       ]
     },
@@ -26,13 +26,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "With fixed positive pairwise correlation $\\rho$ and common variance $\\sigma^2$, what does the variance of the mean approach?",
+          "prompt": "Each of $n$ variables has variance $\\sigma^2$ and every pair has fixed correlation $\\rho>0$. Where does $\\operatorname{Var}(\\bar X)$ tend as $n$ grows?",
           "answer": "$\\rho\\sigma^2$ as the number of observations grows.",
-          "explanation": "For equicorrelation, $\\operatorname{Var}(\\bar X)=\\sigma^2[1+(n-1)\\rho]/n=\\sigma^2[\\rho+(1-\\rho)/n]$. In a common-shock representation averaging removes independent noise asymptotically while retaining the entire shared shock."
+          "explanation": "Equal pairwise correlation gives $\\operatorname{Var}(\\bar X)=\\sigma^2[\\rho+(1-\\rho)/n]$. In the shared-shock model, $\\bar X=Z+\\bar\\epsilon$, and independent noise averages away while $Z$ keeps its variance. This is why taking more measurements under the same conditions can leave uncertainty about a common disturbance."
         },
         {
           "kind": "mcq",
-          "prompt": "A cohort shares a random shock of fixed variance plus independent noise. Which component remains in the variance of a large cohort mean?",
+          "prompt": "Each measurement is $X_i=Z+\\epsilon_i$, with equal-variance noises $\\epsilon_i$ independent of each other and of $Z$. What remains in $\\operatorname{Var}(\\bar X)$ as $n$ grows?",
           "choices": [
             "Variance of the shared shock",
             "Variance of the independent noise",
@@ -40,7 +40,7 @@
             "Variance of neither term"
           ],
           "correct": 0,
-          "explanation": "For equicorrelation, $\\operatorname{Var}(\\bar X)=\\sigma^2[1+(n-1)\\rho]/n=\\sigma^2[\\rho+(1-\\rho)/n]$. In a common-shock representation averaging removes independent noise asymptotically while retaining the entire shared shock."
+          "explanation": "The sample mean is $\\bar X=Z+\\bar\\epsilon$. The independent noises have mean variance $\\operatorname{Var}(\\epsilon_i)/n$, while the shared shock keeps its variance. If all measurements use the same instrument, repeating them can reduce reading noise while leaving a shared calibration error."
         }
       ]
     },
@@ -50,15 +50,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "For $n\\ge2$ equal-variance variables with common correlation $\\rho$, what lower bound follows from the mean having nonnegative variance?",
+          "prompt": "For $n\\ge2$ variables with variance $\\sigma^2>0$ and common correlation $\\rho$, what lower bound on $\\rho$ follows from $\\operatorname{Var}(\\bar X)\\ge0$?",
           "answer": "$-1/(n-1)$.",
-          "explanation": "The mean variance is $\\sigma^2[1+(n-1)\\rho]/n$. The bracket must be nonnegative. When it is strictly between zero and one, matching to $\\sigma^2/n_{\\rm eff}$ gives $n_{\\rm eff}>n$. That equivalence concerns the mean and does not describe independent observations."
+          "explanation": "In the equal-correlation model, $\\operatorname{Var}(\\bar X)=\\sigma^2[1+(n-1)\\rho]/n$, so $\\rho\\ge-1/(n-1)$. A negative correlation can reduce the bracket below one. Matching the resulting variance to $\\sigma^2/n_{\\rm eff}$ compares precision for this mean, which is useful when observations are deliberately paired to cancel noise."
         },
         {
           "kind": "truefalse",
-          "prompt": "An admissible negative common correlation can give the mean an equivalent IID sample size larger than the actual sample.",
+          "prompt": "For $n$ measurements of variance $\\sigma^2$, negative correlation can give $\\operatorname{Var}(\\bar X)=\\sigma^2/n_{\\rm eff}$ with $n_{\\rm eff}>n$.",
           "answer": true,
-          "explanation": "The mean variance is $\\sigma^2[1+(n-1)\\rho]/n$. The bracket must be nonnegative. When it is strictly between zero and one, matching to $\\sigma^2/n_{\\rm eff}$ gives $n_{\\rm eff}>n$. That equivalence concerns the mean and does not describe independent observations."
+          "explanation": "In the equal-correlation model, $\\operatorname{Var}(\\bar X)=\\sigma^2[1+(n-1)\\rho]/n$, so $\\rho\\ge-1/(n-1)$. A negative correlation can reduce the bracket below one. Matching the resulting variance to $\\sigma^2/n_{\\rm eff}$ compares precision for this mean, which is useful when observations are deliberately paired to cancel noise."
         }
       ]
     },
@@ -68,15 +68,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "For a stationary sample of length $n$, why does lag $k$ receive weight $1-k/n$ in the mean-variance formula?",
+          "prompt": "For $X_1,\\ldots,X_n$ with covariance determined by lag, why is the relative weight of pairs $(X_i,X_{i+k})$ in the mean variance $1-k/n$?",
           "answer": "There are $n-k$ pairs at lag $k$, compared with $n$ diagonal entries.",
-          "explanation": "Grouping pairs by lag gives $\\sigma^2[1+2\\sum_{k=1}^{n-1}(1-k/n)\\rho_k]/n$. Absolute summability keeps the bracket bounded. Unlike positive equicorrelation, this dependence pattern need not leave a fixed floor. This variance identity is general and the linked ESS discussion applies it in MCMC."
+          "explanation": "There are $n-k$ pairs $k$ steps apart, compared with $n$ diagonal entries. Thus $\\operatorname{Var}(\\bar X)=\\frac{\\sigma^2}{n}[1+2\\sum_{k=1}^{n-1}(1-k/n)\\rho_k]$. Summable correlations keep the bracket bounded. Short-lived dependence can slow averaging while a shock shared at all lags can leave a variance floor."
         },
         {
           "kind": "truefalse",
-          "prompt": "For fixed nonzero marginal variance and absolutely summable autocorrelations, the stationary sample-mean variance tends to zero.",
+          "prompt": "If the lag correlations $\\rho_k=\\operatorname{Corr}(X_t,X_{t+k})$ satisfy $\\sum_{k\\ge1}|\\rho_k|<\\infty$, a stationary mean has variance tending to zero.",
           "answer": true,
-          "explanation": "Grouping pairs by lag gives $\\sigma^2[1+2\\sum_{k=1}^{n-1}(1-k/n)\\rho_k]/n$. Absolute summability keeps the bracket bounded. Unlike positive equicorrelation, this dependence pattern need not leave a fixed floor. This variance identity is general and the linked ESS discussion applies it in MCMC."
+          "explanation": "There are $n-k$ pairs $k$ steps apart, compared with $n$ diagonal entries. Thus $\\operatorname{Var}(\\bar X)=\\frac{\\sigma^2}{n}[1+2\\sum_{k=1}^{n-1}(1-k/n)\\rho_k]$. Summable correlations keep the bracket bounded. Short-lived dependence can slow averaging while a shock shared at all lags can leave a variance floor."
         }
       ]
     },
@@ -86,14 +86,14 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "Two rolling sums each contain ten IID increments of positive finite variance and start one step apart. What is their correlation?",
+          "prompt": "Two sums each span ten increments and start one step apart. For independent increments of equal positive variance, what is their correlation?",
           "answer": 0.9,
           "tolerance": 0.001,
-          "explanation": "Expansion pairs increments in the first sum with increments in the second. Distinct time indices contribute zero. Nine shared increments each contribute $\\sigma^2$, and both variances are $10\\sigma^2$, giving correlation $9/10$."
+          "explanation": "Independent increments at different indices have zero covariance. Each shared increment contributes its variance, so two ten-step sums one step apart have correlation $9\\sigma^2/(10\\sigma^2)=0.9$. Closely spaced forward labels can carry much of the same information even when the original increments are independent."
         },
         {
           "kind": "mcq",
-          "prompt": "For two partially overlapping sums of independent increments, which increments contribute to their covariance?",
+          "prompt": "Two forward labels sum independent increments $X_i$ over overlapping windows $A$ and $B$. Which terms contribute to $\\operatorname{Cov}(\\sum_A X_i,\\sum_B X_i)$?",
           "choices": [
             "Only increments exclusive to the first sum",
             "Only increments shared by both sums",
@@ -101,7 +101,7 @@
             "All increments in either sum"
           ],
           "correct": 1,
-          "explanation": "Expansion pairs increments in the first sum with increments in the second. Distinct time indices contribute zero. Nine shared increments each contribute $\\sigma^2$, and both variances are $10\\sigma^2$, giving correlation $9/10$."
+          "explanation": "Independent increments at different indices have zero covariance. Each shared increment contributes its variance, so two ten-step sums one step apart have correlation $9\\sigma^2/(10\\sigma^2)=0.9$. Closely spaced forward labels can carry much of the same information even when the original increments are independent."
         }
       ]
     },
@@ -111,15 +111,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "For a random walk starting at zero with IID increments of variance $\\sigma^2$, what is $\\operatorname{Cov}(S_s,S_t)$ for $s<t$?",
+          "prompt": "Let $S_t=\\sum_{i=1}^t\\epsilon_i$ with independent increments of variance $\\sigma^2$. For $s<t$, what is $\\operatorname{Cov}(S_s,S_t)$?",
           "answer": "$s\\sigma^2$.",
-          "explanation": "$S_t=S_s+(S_t-S_s)$, and only the future increment sum is independent of $S_s$. Hence $\\operatorname{Cov}(S_s,S_t)=\\operatorname{Var}(S_s)=s\\sigma^2$. The variance grows with time even when the mean is constant."
+          "explanation": "Write $S_t=S_s+(S_t-S_s)$. The future sum is independent of $S_s$, so $\\operatorname{Cov}(S_s,S_t)=\\operatorname{Var}(S_s)=s\\sigma^2$. At time $t$ the variance is $t\\sigma^2$, even at zero drift. For this model, differences are a better starting point than levels when you need stable moments."
         },
         {
           "kind": "truefalse",
-          "prompt": "A zero-drift random walk with IID increments of positive variance has stationary levels.",
+          "prompt": "If $S_t=\\sum_{i=1}^t\\epsilon_i$ and the increments are IID with mean zero and variance $\\sigma^2>0$, the distribution of $S_t$ is stationary.",
           "answer": false,
-          "explanation": "$S_t=S_s+(S_t-S_s)$, and only the future increment sum is independent of $S_s$. Hence $\\operatorname{Cov}(S_s,S_t)=\\operatorname{Var}(S_s)=s\\sigma^2$. The variance grows with time even when the mean is constant."
+          "explanation": "Write $S_t=S_s+(S_t-S_s)$. The future sum is independent of $S_s$, so $\\operatorname{Cov}(S_s,S_t)=\\operatorname{Var}(S_s)=s\\sigma^2$. At time $t$ the variance is $t\\sigma^2$, even at zero drift. For this model, differences are a better starting point than levels when you need stable moments."
         }
       ]
     },
@@ -129,13 +129,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A walk has IID increments of known mean $\\mu$ and variance $\\sigma^2$. What is the $h$-step forecast of its level after observing $S_t$?",
+          "prompt": "A walk $S_t=\\sum_{i=1}^t\\epsilon_i$ has IID increments with known mean $\\mu$. After observing $S_t$, what is $\\mathbb E[S_{t+h}\\mid S_t]$?",
           "answer": "$S_t+h\\mu$, with uncertainty from future increments.",
-          "explanation": "Given $S_t$, the future sum has mean $h\\mu$ and variance $h\\sigma^2$ by independence. Unconditionally, the current level contributes another $t\\sigma^2$. The two answers concern different information sets."
+          "explanation": "Given $S_t$, the next level is the observed value plus $h$ independent future increments. Their sum has mean $h\\mu$ and variance $h\\sigma^2$. Use that variance for a forecast from the observed level. The unconditional variance $(t+h)\\sigma^2$ also includes uncertainty in the history you already saw."
         },
         {
           "kind": "mcq",
-          "prompt": "A walk has IID increments of variance $\\sigma^2$. What is the conditional variance of level $S_{t+h}$ given level $S_t$?",
+          "prompt": "A walk $S_t=\\sum_{i=1}^t\\epsilon_i$ has IID increments of variance $\\sigma^2$. After observing $S_t$, what is $\\operatorname{Var}(S_{t+h}\\mid S_t)$?",
           "choices": [
             "$(t+h)\\sigma^2$",
             "$t\\sigma^2$",
@@ -143,7 +143,7 @@
             "$h^2\\sigma^2$"
           ],
           "correct": 2,
-          "explanation": "Given $S_t$, the future sum has mean $h\\mu$ and variance $h\\sigma^2$ by independence. Unconditionally, the current level contributes another $t\\sigma^2$. The two answers concern different information sets."
+          "explanation": "Given $S_t$, the next level is the observed value plus $h$ independent future increments. Their sum has mean $h\\mu$ and variance $h\\sigma^2$. Use that variance for a forecast from the observed level. The unconditional variance $(t+h)\\sigma^2$ also includes uncertainty in the history you already saw."
         }
       ]
     },
@@ -153,15 +153,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "For IID observations, what happens to the variance of a new observation minus the sample mean as training size grows?",
+          "prompt": "Let $\\bar X$ average $n$ IID observations of variance $\\sigma^2$. What happens to $\\operatorname{Var}(X_{\\rm new}-\\bar X)$ for a fresh independent draw as $n$ grows?",
           "answer": "For an independent new draw it approaches the observation variance, because only the sample-mean uncertainty vanishes.",
-          "explanation": "Independence gives $\\operatorname{Var}(\\bar X)=\\sigma^2/n$ exactly. For a fresh draw, $\\operatorname{Var}(X_{\\rm new}-\\bar X)=\\sigma^2(1+1/n)$. A distributional approximation is a separate step if the goal is interval coverage."
+          "explanation": "Independence gives $\\operatorname{Var}(\\bar X)=\\sigma^2/n$ exactly. A fresh observation adds its own variance, so $\\operatorname{Var}(X_{\\rm new}-\\bar X)=\\sigma^2(1+1/n)$. More training data sharpens the mean estimate while individual predictions can stay noisy."
         },
         {
           "kind": "truefalse",
-          "prompt": "The exact IID standard error $\\sigma/\\sqrt n$ for the sample mean holds for skewed data with finite variance.",
+          "prompt": "For $n$ IID draws of finite variance $\\sigma^2$, the standard error $\\operatorname{sd}(\\bar X)=\\sigma/\\sqrt n$ holds even for skewed draws.",
           "answer": true,
-          "explanation": "Independence gives $\\operatorname{Var}(\\bar X)=\\sigma^2/n$ exactly. For a fresh draw, $\\operatorname{Var}(X_{\\rm new}-\\bar X)=\\sigma^2(1+1/n)$. A distributional approximation is a separate step if the goal is interval coverage."
+          "explanation": "Independence gives $\\operatorname{Var}(\\bar X)=\\sigma^2/n$ exactly. A fresh observation adds its own variance, so $\\operatorname{Var}(X_{\\rm new}-\\bar X)=\\sigma^2(1+1/n)$. More training data sharpens the mean estimate while individual predictions can stay noisy."
         }
       ]
     },
@@ -171,15 +171,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "For IID observations with finite positive variance, what does the CLT establish beyond consistency of the mean?",
+          "prompt": "For IID draws of mean $\\mu$ and variance $\\sigma^2>0$, what does the central limit theorem say about $\\sqrt n(\\bar X-\\mu)/\\sigma$?",
           "answer": "The centered mean scaled by its standard error converges in distribution to a standard normal.",
-          "explanation": "The IID strong law gives $\\bar X\\to\\mu$ almost surely under absolute integrability. The classic finite-variance CLT concerns the fluctuations $\\sqrt n(\\bar X-\\mu)/\\sigma$. Existence of a mean alone does not justify that standard error or the Gaussian approximation."
+          "explanation": "The IID strong law gives $\\bar X\\to\\mu$ almost surely when $\\mathbb E|X|<\\infty$. The classical IID central limit theorem gives a standard normal limit for $\\sqrt n(\\bar X-\\mu)/\\sigma$ when $0<\\sigma^2<\\infty$. A stable sample mean can therefore coexist with heavy tails that invalidate the usual finite-variance Gaussian error bars."
         },
         {
           "kind": "truefalse",
-          "prompt": "An absolutely integrable IID distribution with infinite variance meets the classic strong law assumptions for its mean.",
+          "prompt": "For IID draws with $\\mathbb E|X|<\\infty$ and infinite variance, the sample mean still converges almost surely to $\\mathbb E[X]$ (strong law).",
           "answer": true,
-          "explanation": "The IID strong law gives $\\bar X\\to\\mu$ almost surely under absolute integrability. The classic finite-variance CLT concerns the fluctuations $\\sqrt n(\\bar X-\\mu)/\\sigma$. Existence of a mean alone does not justify that standard error or the Gaussian approximation."
+          "explanation": "The IID strong law gives $\\bar X\\to\\mu$ almost surely when $\\mathbb E|X|<\\infty$. The classical IID central limit theorem gives a standard normal limit for $\\sqrt n(\\bar X-\\mu)/\\sigma$ when $0<\\sigma^2<\\infty$. A stable sample mean can therefore coexist with heavy tails that invalidate the usual finite-variance Gaussian error bars."
         }
       ]
     },
@@ -189,13 +189,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why can a huge sample give a poor normal approximation for the count of a very rare IID event?",
+          "prompt": "Let $N$ count successes in $n$ independent trials of chance $p$. Why can a normal approximation to $N$ be poor for large $n$ and very small $p$?",
           "answer": "The expected event count can remain small, leaving substantial mass at zero and a skewed count distribution.",
-          "explanation": "Here $np=1$ and $P(N=0)=(1-p)^n\\approx e^{-1}$. The mean is much closer to the boundary than a large trial count suggests. The variance is exactly $np(1-p)$, while normal approximation accuracy depends on the effective number of events and non-events."
+          "explanation": "The mean is $np$, which can be small even for a huge sample. At $np=1$, $P(N=0)=(1-p)^n\\approx e^{-1}$. The large mass at zero and the long right tail make the normal approximation poor. For a rare event, inspect the expected number of successes before relying on a Gaussian interval."
         },
         {
           "kind": "mcq",
-          "prompt": "For one million IID trials with event probability one per million, what dominates the shape of the count distribution?",
+          "prompt": "In $n=10^6$ independent trials with success chance $p=10^{-6}$, what feature matters when approximating the count $N$?",
           "choices": [
             "A symmetric bell around the mean",
             "A near-uniform spread over counts",
@@ -203,7 +203,7 @@
             "A substantial atom at zero"
           ],
           "correct": 3,
-          "explanation": "Here $np=1$ and $P(N=0)=(1-p)^n\\approx e^{-1}$. The mean is much closer to the boundary than a large trial count suggests. The variance is exactly $np(1-p)$, while normal approximation accuracy depends on the effective number of events and non-events."
+          "explanation": "The mean is $np$, which can be small even for a huge sample. At $np=1$, $P(N=0)=(1-p)^n\\approx e^{-1}$. The large mass at zero and the long right tail make the normal approximation poor. For a rare event, inspect the expected number of successes before relying on a Gaussian interval."
         }
       ]
     },
@@ -213,15 +213,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "How much expected squared deviation is removed by centering $n$ IID observations at their sample mean rather than their true mean?",
+          "prompt": "For $n$ IID draws of variance $\\sigma^2$, how much smaller in expectation is $\\sum_i(X_i-\\bar X)^2$ than $\\sum_i(X_i-\\mu)^2$, with $\\mu=\\mathbb E[X]$?",
           "answer": "One population variance $\\sigma^2$.",
-          "explanation": "The centered sum is $\\sum_i(X_i-\\mu)^2-n(\\bar X-\\mu)^2$. Its expectation is $n\\sigma^2-n(\\sigma^2/n)=(n-1)\\sigma^2$. The correction offsets the variation removed by choosing the center from the same data."
+          "explanation": "Fitting the mean removes $n(\\bar X-\\mu)^2$ from the sum of squares. Its expectation is $n\\operatorname{Var}(\\bar X)=\\sigma^2$, leaving $(n-1)\\sigma^2$. Use $n-1$ when you estimated the center from these rows and $n$ when the true center was already known."
         },
         {
           "kind": "truefalse",
-          "prompt": "The denominator $n-1$ also gives an unbiased IID variance estimate when deviations are taken from the known true mean.",
+          "prompt": "If the true mean $\\mu$ is known, $\\frac{1}{n-1}\\sum_i(X_i-\\mu)^2$ is unbiased for the variance of $n>1$ IID draws with positive variance.",
           "answer": false,
-          "explanation": "The centered sum is $\\sum_i(X_i-\\mu)^2-n(\\bar X-\\mu)^2$. Its expectation is $n\\sigma^2-n(\\sigma^2/n)=(n-1)\\sigma^2$. The correction offsets the variation removed by choosing the center from the same data."
+          "explanation": "Fitting the mean removes $n(\\bar X-\\mu)^2$ from the sum of squares. Its expectation is $n\\operatorname{Var}(\\bar X)=\\sigma^2$, leaving $(n-1)\\sigma^2$. Use $n-1$ when you estimated the center from these rows and $n$ when the true center was already known."
         }
       ]
     },
@@ -231,15 +231,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "In an exact frequentist 95% confidence procedure, what varies in the coverage probability for a fixed true mean?",
+          "prompt": "A procedure maps data $D$ to an interval $I(D)$ with $P_\\mu(\\mu\\in I(D))=0.95$. What varies across repeats when the true mean is fixed?",
           "answer": "The sample and hence the interval endpoints.",
-          "explanation": "Coverage is $P_\\mu(\\mu\\in I(D))=0.95$, with randomness from data $D$ generated at fixed $\\mu$. Once the sample is observed, the interval endpoints are fixed. A posterior probability would require a probabilistic model for the unknown mean."
+          "explanation": "The data $D$ and the interval endpoints vary across samples drawn at fixed $\\mu$. Exact 95% coverage means that 95% of intervals produced in repeated use contain that fixed value. A probability for the parameter given one observed interval requires a model for the parameter, such as a Bayesian prior."
         },
         {
           "kind": "truefalse",
-          "prompt": "Exact 95% frequentist coverage implies a 95% posterior probability for the true mean inside the observed interval.",
+          "prompt": "If a confidence procedure satisfies $P_\\mu(\\mu\\in I(D))=0.95$, the particular observed interval has 95% posterior probability of containing $\\mu$.",
           "answer": false,
-          "explanation": "Coverage is $P_\\mu(\\mu\\in I(D))=0.95$, with randomness from data $D$ generated at fixed $\\mu$. Once the sample is observed, the interval endpoints are fixed. A posterior probability would require a probabilistic model for the unknown mean."
+          "explanation": "The data $D$ and the interval endpoints vary across samples drawn at fixed $\\mu$. Exact 95% coverage means that 95% of intervals produced in repeated use contain that fixed value. A probability for the parameter given one observed interval requires a model for the parameter, such as a Bayesian prior."
         }
       ]
     },
@@ -249,21 +249,21 @@
       "variants": [
         {
           "kind": "mcq",
-          "prompt": "Which probability is reported by a one-sided p-value for a simple null?",
+          "prompt": "A one-sided test flags large $T$ and observes $t_{\\rm obs}$. A report calls its p-value the chance that $H_0$ is true. What did the test compute?",
           "choices": [
-            "A null tail area at the observed statistic",
+            "$P(T\\ge t_{\\rm obs}\\mid H_0)$",
             "A posterior probability of the null",
             "A probability of rejecting under the alternative",
             "A frequency of true nulls among rejections"
           ],
           "correct": 0,
-          "explanation": "The p-value integrates outcomes at least as extreme in the specified test direction under the null. Size and power condition on the hypothesis and measure the chance of rejection. The probability of a hypothesis given rejection reverses that conditioning."
+          "explanation": "The p-value is $P(T\\ge t_{\\rm obs}\\mid H_0)$ for this one-sided simple-null test. It measures how extreme the statistic is under the null. To estimate how often flagged results are genuine, you also need the frequency of real effects and the test’s chance of flagging them (power). This matters when screening many mostly null candidates."
         },
         {
           "kind": "recall",
-          "prompt": "Why can a small p-value coexist with low probability that a selected result is a genuine effect?",
+          "prompt": "Why can a small p-value $P(T\\ge t_{\\rm obs}\\mid H_0)$ coexist with a low chance that a flagged result reflects a real effect?",
           "answer": "The p-value conditions on the null, while the probability of a genuine result after selection depends on prevalence and power.",
-          "explanation": "The p-value integrates outcomes at least as extreme in the specified test direction under the null. Size and power condition on the hypothesis and measure the chance of rejection. The probability of a hypothesis given rejection reverses that conditioning."
+          "explanation": "The p-value is $P(T\\ge t_{\\rm obs}\\mid H_0)$ for this one-sided simple-null test. It measures how extreme the statistic is under the null. To estimate how often flagged results are genuine, you also need the frequency of real effects and the test’s chance of flagging them (power). This matters when screening many mostly null candidates."
         }
       ]
     },
@@ -273,15 +273,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What extra input beyond sensitivity and false-positive rate is needed to compute the fraction of positive results that are genuine?",
+          "prompt": "You know $P(+\\mid H)$ and $P(+\\mid\\neg H)$. What else do you need to find $P(H\\mid +)$, the share of flagged cases with a real effect?",
           "answer": "The pre-test prevalence in the population being tested.",
-          "explanation": "With prevalence $\\pi$, sensitivity $s$ and false-positive rate $f$, a unit mass of tests yields $\\pi s$ true positives and $(1-\\pi)f$ false positives. Their ratio to all positives gives $\\pi s/[\\pi s+(1-\\pi)f]$."
+          "explanation": "If prevalence is $\\pi=P(H)$, sensitivity is $s=P(+\\mid H)$ and false-positive rate is $f=P(+\\mid\\neg H)$, then $P(H\\mid+)=\\pi s/[\\pi s+(1-\\pi)f]$. As real effects get rarer, false positives can dominate even with good sensitivity. Recheck precision when moving a screening rule to a lower-prevalence population."
         },
         {
           "kind": "truefalse",
-          "prompt": "With unchanged positive sensitivity and false-positive rate, screening a lower-prevalence group leaves the fraction of genuine positives unchanged.",
+          "prompt": "At fixed positive rates $P(+\\mid H)$ and $P(+\\mid\\neg H)$, decreasing the real-effect frequency $P(H)$ leaves $P(H\\mid+)$ unchanged.",
           "answer": false,
-          "explanation": "With prevalence $\\pi$, sensitivity $s$ and false-positive rate $f$, a unit mass of tests yields $\\pi s$ true positives and $(1-\\pi)f$ false positives. Their ratio to all positives gives $\\pi s/[\\pi s+(1-\\pi)f]$."
+          "explanation": "If prevalence is $\\pi=P(H)$, sensitivity is $s=P(+\\mid H)$ and false-positive rate is $f=P(+\\mid\\neg H)$, then $P(H\\mid+)=\\pi s/[\\pi s+(1-\\pi)f]$. As real effects get rarer, false positives can dominate even with good sensitivity. Recheck precision when moving a screening rule to a lower-prevalence population."
         }
       ]
     },
@@ -291,15 +291,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "When can you square a test’s false-positive rate to get the rate of two positive results?",
+          "prompt": "Two tests have false-positive rate $f=P(+\\mid H_0)$. When is the chance that both flag a true null equal to $f^2$?",
           "answer": "When both tests have that rate and the results are independent conditional on the null.",
-          "explanation": "Requiring $k$ positives gives $f^k$ under the null and $s^k$ under the alternative if the relevant conditional independence holds in each group. When $s>f>0$, the positive likelihood ratio improves to $(s/f)^k$, although fewer genuine cases pass."
+          "explanation": "With independence conditional on the null, the joint false-positive rate is $f^2$. With independence conditional on a real effect, sensitivity becomes $s^2$. A second test can improve the reliability of flags at the cost of missing more real effects. Reusing the same evidence can invalidate the independence you need for this tradeoff."
         },
         {
           "kind": "truefalse",
-          "prompt": "For two identical conditionally independent tests with sensitivity strictly between zero and one, requiring both positives lowers sensitivity.",
+          "prompt": "Two tests are independent given a real effect, each with $s=P(+\\mid H)$ between zero and one. Requiring both flags lowers sensitivity.",
           "answer": true,
-          "explanation": "Requiring $k$ positives gives $f^k$ under the null and $s^k$ under the alternative if the relevant conditional independence holds in each group. When $s>f>0$, the positive likelihood ratio improves to $(s/f)^k$, although fewer genuine cases pass."
+          "explanation": "With independence conditional on the null, the joint false-positive rate is $f^2$. With independence conditional on a real effect, sensitivity becomes $s^2$. A second test can improve the reliability of flags at the cost of missing more real effects. Reusing the same evidence can invalidate the independence you need for this tradeoff."
         }
       ]
     }

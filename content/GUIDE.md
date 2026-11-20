@@ -35,6 +35,16 @@ After playing the first chapter, the reader asked for the opposite of what it ha
 - **The answer must not be implied by the name of the thing.** "Which tensors does a KV cache keep?" or "With local attention, does the cache depend on sequence length?" answer themselves.
 - Plain fact recall is acceptable **if the fact is non-obvious** (it can't be guessed). Pure definitions of a term remain banned.
 
+**Quant Research only.** The reader is less familiar with this material and wants enough mathematical setup to reason through each question mentally. Use the two calibrated regression variants in [the Quant bank](questions/quantregressionandprediction.json) as examples.
+
+- **Put the setup in the prompt.** Give the model, objective, or condition that the reader needs to reason mentally. For a centered regression, show the squared-error objective and $\bar x=0$. For reversed regressions, write both fitted lines and ask when the product of their slopes is one. Save the result for the reveal.
+- **Define the quantity being tested in the prompt.** When a technical term names a computable quantity, give its formula inline and identify any symbols the setup leaves unexplained. For example, write “mean training residual $\bar e=\frac{1}{n}\sum_i(y_i-\hat y_i)$” after specifying that the fit uses $n$ training rows.
+- **Pair optional terminology with plain wording.** Technical terms can appear in parentheses when the main statement is clear on its own. Use them to build familiarity, then explain what they add in the reveal. For example, ask what preserves prediction order “(and Pearson correlation)” and explain why the correct transformation preserves both.
+- **Recall finance definitions in the explanation.** Assume the reader knows ML and may be new to markets and trading. Define each finance term essential to the reasoning when it first appears in the reveal. For example, explain what a bid and an ask are before discussing the spread, or write Sharpe as mean excess return divided by its standard deviation and explain what “excess” means. Each variant should make sense on its own.
+- **Make the answer immediate.** Give the result and any equality condition in one or two sentences. In the explanation, use a short sequence of equations and interpret the result in plain English.
+- **Match the derivation to the question.** Derive the intercept from the first-order condition when the intercept is the point. When a supporting identity such as $b=\operatorname{Cov}(X,Y)/\operatorname{Var}(X)$ is enough to move the reasoning forward, state that it applies to simple least squares with an intercept and positive predictor variance, then use it.
+- **Explain why the result matters.** End the reveal with a concrete interpretation that gives the reader a reusable tool or intuition. Show what the result helps diagnose, what decision it changes, or what it predicts in a new setting. Rewrite cards whose payoff is only an algebraic result. If the idea still offers no useful tool or intuition, retire the concept with `"retired": true` and keep its ID and variants.
+
 Calibrated examples (Inference):
 
 | Too hard to read / too easy to answer | Calibrated |

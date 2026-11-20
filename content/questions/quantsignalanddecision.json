@@ -7,15 +7,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A signal identifies a small positive conditional mean return. Why might most individual forecasts still be noisy?",
+          "prompt": "A feature $X$ predicts a small positive mean return $\\mathbb E[Y\\mid X]$, where $Y$ is next-period return. Why might single outcomes still be hard to forecast?",
           "answer": "Most of the outcome variance can remain within signal groups.",
-          "explanation": "A mean forecast averages over many possible returns. Large variation around that mean can swamp the signal on any given draw. A small mean shift can still matter to a decision rule if it survives aggregation, estimation error and costs."
+          "explanation": "A return is the gain or loss over a period as a fraction of the starting value. A signal is information used to forecast that return. The conditional mean averages outcomes for a given signal value, so large variation around that mean can hide a small shift on any single trade. Repeated decisions can make the average shift easier to see."
         },
         {
           "kind": "truefalse",
-          "prompt": "A small conditional mean shift can persist across many decisions even when single-period outcomes are hard to predict.",
+          "prompt": "A stable shift in mean return $\\mathbb E[Y\\mid X]$ can coexist with large variation in individual returns at the same $X$.",
           "answer": true,
-          "explanation": "A mean forecast averages over many possible returns. Large variation around that mean can swamp the signal on any given draw. A small mean shift can still matter to a decision rule if it survives aggregation, estimation error and costs."
+          "explanation": "A return is the gain or loss over a period as a fraction of the starting value. A signal is information used to forecast that return. The conditional mean averages outcomes for a given signal value, so large variation around that mean can hide a small shift on any single trade. Repeated decisions can make the average shift easier to see."
         }
       ]
     },
@@ -25,13 +25,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Two desks use identical return forecasts. What sits between their forecast and their gross next-period gains?",
+          "prompt": "You forecast the same next-period return $Y$ as another team. What trading decision can make your before-cost gains differ?",
           "answer": "The size and direction of the positions each desk actually takes.",
-          "explanation": "If $q_t$ is position size, $Y_{t+1}$ the realized return and $C_{t+1}$ the cost, gross gain is $q_tY_{t+1}$ and net gain is $q_tY_{t+1}-C_{t+1}$. Changing position changes gross exposure. Net scaling also depends on the cost model, while the forecasts are held fixed."
+          "explanation": "A position $q_t$ is the signed amount of money exposed to the asset. The realized return $Y_{t+1}$ is its fractional gain or loss. Gross gain $q_tY_{t+1}$ is before costs, while net gain is $q_tY_{t+1}-C_{t+1}$. Doubling the position doubles gross gains and losses. The return and forecast stay fixed, and net gain also depends on how the cost $C_{t+1}$ changes."
         },
         {
           "kind": "mcq",
-          "prompt": "The forecast is unchanged and selected positions double. Which result scales exactly in a linear payoff model?",
+          "prompt": "A strategy doubles the amount invested (position $q$). The realized return $Y$ is fixed and costs may change. Which quantity must double?",
           "choices": [
             "Gross gains and losses double",
             "Forecast correlation doubles",
@@ -39,7 +39,7 @@
             "The realized returns double"
           ],
           "correct": 0,
-          "explanation": "If $q_t$ is position size, $Y_{t+1}$ the realized return and $C_{t+1}$ the cost, gross gain is $q_tY_{t+1}$ and net gain is $q_tY_{t+1}-C_{t+1}$. Changing position changes gross exposure. Net scaling also depends on the cost model, while the forecasts are held fixed."
+          "explanation": "A position $q_t$ is the signed amount of money exposed to the asset. The realized return $Y_{t+1}$ is its fractional gain or loss. Gross gain $q_tY_{t+1}$ is before costs, while net gain is $q_tY_{t+1}-C_{t+1}$. Doubling the position doubles gross gains and losses. The return and forecast stay fixed, and net gain also depends on how the cost $C_{t+1}$ changes."
         }
       ]
     },
@@ -49,15 +49,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A return model adds little out-of-sample $R^2$. What would establish a useful contribution to an existing strategy?",
+          "prompt": "A held-out MSE drops slightly after adding a return forecast. What comparison shows whether the new forecast helps the actual trading strategy?",
           "answer": "A repeatable improvement in decisions under the strategy’s execution and risk constraints after costs.",
-          "explanation": "Forecast error is measured across observations, including cases where actions are unchanged. A useful signal improves the decisions that can actually be taken. Position limits, transaction costs and the existing signals can all change the economic value of the same statistical improvement."
+          "explanation": "A trading strategy maps forecasts to signed amounts to invest (positions). Lower test mean squared error can leave the actions unchanged. Compare the gains of the trades with and without the forecast, after trading costs and under the same limits. The lift matters economically when it improves feasible decisions."
         },
         {
           "kind": "recall",
-          "prompt": "Even if $R^2$ improves, why could the live strategy stay the same?",
+          "prompt": "A return forecast’s held-out MSE drops. Why might the trading rule still pick exactly the same amounts to invest (positions)?",
           "answer": "The forecast changes may leave every feasible position decision unchanged.",
-          "explanation": "Forecast error is measured across observations, including cases where actions are unchanged. A useful signal improves the decisions that can actually be taken. Position limits, transaction costs and the existing signals can all change the economic value of the same statistical improvement."
+          "explanation": "A trading strategy maps forecasts to signed amounts to invest (positions). Lower test mean squared error can leave the actions unchanged. Compare the gains of the trades with and without the forecast, after trading costs and under the same limits. The lift matters economically when it improves feasible decisions."
         }
       ]
     },
@@ -67,13 +67,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "The best bid and ask stay fixed. How can transaction returns still reverse sign on successive trades?",
+          "prompt": "The highest buy quote $b$ and lowest sell quote $a$ stay fixed. How can prices paid in successive trades still alternate up and down?",
           "answer": "Trades switch sides of the spread, so prints move between the bid and ask while the midpoint stays fixed.",
-          "explanation": "With best bid $b$ and best ask $a$, the midpoint $(a+b)/2$ stays constant. A trade at $a$ followed by one at $b$ prints a decline of $a-b$, and a return to $a$ reverses it. The spread can therefore produce short-horizon movement even without a quote change."
+          "explanation": "The best bid $b$ is the highest quoted buy price and the best ask $a$ is the lowest quoted sell price. The gap $a-b$ is the spread. Trades switching from $a$ to $b$ and back appear to fall and rise even though the quote midpoint $(a+b)/2$ is fixed. This effect can mimic short-term reversals in a series of transaction prices."
         },
         {
           "kind": "mcq",
-          "prompt": "With fixed quotes, which series loses the price oscillation caused by trades alternating between bid and ask?",
+          "prompt": "Trades alternate between fixed buy and sell quotes $b$ and $a$. Which price series removes the resulting bounce?",
           "choices": [
             "Last transaction prices",
             "Quoted midpoint prices",
@@ -81,7 +81,7 @@
             "Volume-weighted individual prints"
           ],
           "correct": 1,
-          "explanation": "With best bid $b$ and best ask $a$, the midpoint $(a+b)/2$ stays constant. A trade at $a$ followed by one at $b$ prints a decline of $a-b$, and a return to $a$ reverses it. The spread can therefore produce short-horizon movement even without a quote change."
+          "explanation": "The best bid $b$ is the highest quoted buy price and the best ask $a$ is the lowest quoted sell price. The gap $a-b$ is the spread. Trades switching from $a$ to $b$ and back appear to fall and rise even though the quote midpoint $(a+b)/2$ is fixed. This effect can mimic short-term reversals in a series of transaction prices."
         }
       ]
     },
@@ -91,15 +91,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A passive buy order gets a better quoted price. What uncertainty must be included when comparing it with crossing the spread?",
+          "prompt": "A buy order waits at price $b$ instead of trading immediately at a higher price $a$. What uncertainty belongs in the comparison?",
           "answer": "Whether and when it fills, and how the price moves conditional on that fill.",
-          "explanation": "A resting order trades only when enough opposing volume reaches it. That arrival can select conditions with adverse subsequent price moves, while favorable moves can leave the order behind. Crossing buys more immediacy and typically pays the spread relative to a resting order."
+          "explanation": "A passive buy waits at its chosen price. An aggressive buy can trade immediately against the lowest sell quote. A fill means the order executes. Waiting fills can cluster before the quote midpoint, the average of the best buy and sell quotes, falls. This adverse selection can eat into the apparent price saving."
         },
         {
           "kind": "truefalse",
-          "prompt": "A passive buy can get filled more often just before the midpoint falls, even if its average fill price beats an aggressive buy.",
+          "prompt": "A waiting buy order can execute more often just before the quote midpoint falls, even if it executes at a lower price than an immediate buy.",
           "answer": true,
-          "explanation": "A resting order trades only when enough opposing volume reaches it. That arrival can select conditions with adverse subsequent price moves, while favorable moves can leave the order behind. Crossing buys more immediacy and typically pays the spread relative to a resting order."
+          "explanation": "A passive buy waits at its chosen price. An aggressive buy can trade immediately against the lowest sell quote. A fill means the order executes. Waiting fills can cluster before the quote midpoint, the average of the best buy and sell quotes, falls. This adverse selection can eat into the apparent price saving."
         }
       ]
     },
@@ -109,21 +109,21 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why can a price forecast with a one-tick horizon lose value even before transaction fees are charged?",
+          "prompt": "You forecast the next price change. How can delay between seeing the data and getting your order processed (latency) erase its value?",
           "answer": "The quote or predicted move can change before the order can reach the book and execute.",
-          "explanation": "A strategy acts on a view of the book that can already be stale. During the time to send and process an order or cancellation, other traders can deplete or update the quote. Simulating instantaneous action can give the strategy fills or cancellations it could not obtain."
+          "explanation": "Here a one-tick forecast targets the next quoted price change. Latency is the delay between seeing market data and having an order processed by the exchange. Even an accurate forecast loses value if the price moves before your order arrives."
         },
         {
           "kind": "mcq",
-          "prompt": "What latency should a simulation use when deciding whether a resting quote can realistically be canceled?",
+          "prompt": "A waiting order could trade before your cancel message takes effect. Which delay must a trade simulation include?",
           "choices": [
             "Time to compute the forecast alone",
             "Time between adjacent data rows",
-            "Time until the cancellation reaches the venue",
+            "Time until the exchange processes the cancel",
             "Time to receive the next daily close"
           ],
           "correct": 2,
-          "explanation": "A strategy acts on a view of the book that can already be stale. During the time to send and process an order or cancellation, other traders can deplete or update the quote. Simulating instantaneous action can give the strategy fills or cancellations it could not obtain."
+          "explanation": "A resting order is one still waiting to trade. A cancellation takes effect when the exchange processes it. The relevant delay includes sending and processing it, during which the order can still trade. A zero-latency simulation can overstate how often you can cancel in time."
         }
       ]
     },
@@ -133,15 +133,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Which volumes enter a top-of-book queue imbalance?",
+          "prompt": "At the best buy and sell prices, a model uses normalized imbalance $(B-A)/(B+A)$. Which quantities should $B$ and $A$ measure?",
           "answer": "The displayed quantities resting at the best bid and best ask.",
-          "explanation": "With resting bid and ask sizes $B$ and $A$, the measure $(B-A)/(B+A)$ is a snapshot of displayed depth when $B+A>0$. New orders and cancellations can move it without executions. A trade-flow measure instead needs executed quantities over time."
+          "explanation": "The top of the order book shows the highest quoted buy price and lowest quoted sell price. Let $B$ and $A$ be the quantities offered at those prices. Queue imbalance is $(B-A)/(B+A)$ when $B+A>0$. A cancellation can move this snapshot without any trade. To measure trade flow, count quantities that actually changed hands over a time window."
         },
         {
           "kind": "truefalse",
-          "prompt": "A canceled best-bid order can change top-of-book queue imbalance without any trade taking place.",
+          "prompt": "If $B$ and $A$ are quantities waiting at the best buy and sell quotes, a cancellation can change $(B-A)/(B+A)$ without a trade.",
           "answer": true,
-          "explanation": "With resting bid and ask sizes $B$ and $A$, the measure $(B-A)/(B+A)$ is a snapshot of displayed depth when $B+A>0$. New orders and cancellations can move it without executions. A trade-flow measure instead needs executed quantities over time."
+          "explanation": "The top of the order book shows the highest quoted buy price and lowest quoted sell price. Let $B$ and $A$ be the quantities offered at those prices. Queue imbalance is $(B-A)/(B+A)$ when $B+A>0$. A cancellation can move this snapshot without any trade. To measure trade flow, count quantities that actually changed hands over a time window."
         }
       ]
     },
@@ -151,13 +151,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Two strategies have the same gross gain. Why can the one with more turnover have a smaller net gain?",
+          "prompt": "Two strategies earn the same before costs. Why can the one trading more per dollar invested (higher turnover) earn less after costs?",
           "answer": "More traded volume can incur more spread and fees and require consuming more liquidity.",
-          "explanation": "Net improvement equals the gross improvement less the increase in cost. Repeated changes of position can pay spreads and fees on each fill. Larger trades can also consume liquidity at worse prices, so costs need not be proportional to trade size."
+          "explanation": "Turnover measures how much you trade over a period relative to the amount invested. Gross gain is before trading costs and net gain is after. More trading can incur more fees and spread costs, since immediate buys and sells face different quoted prices. Compare incremental gross gain with incremental trading cost to see if the extra trades pay off."
         },
         {
           "kind": "mcq",
-          "prompt": "A forecast improves gross gain by trading more often. What should its incremental gross gain be compared with?",
+          "prompt": "A forecast earns more before costs by triggering extra trades. What expense should you compare with that extra gain?",
           "choices": [
             "The total gross gain of the baseline",
             "The forecast error variance",
@@ -165,7 +165,7 @@
             "The incremental cost of trading"
           ],
           "correct": 3,
-          "explanation": "Net improvement equals the gross improvement less the increase in cost. Repeated changes of position can pay spreads and fees on each fill. Larger trades can also consume liquidity at worse prices, so costs need not be proportional to trade size."
+          "explanation": "Turnover measures how much you trade over a period relative to the amount invested. Gross gain is before trading costs and net gain is after. More trading can incur more fees and spread costs, since immediate buys and sells face different quoted prices. Compare incremental gross gain with incremental trading cost to see if the extra trades pay off."
         }
       ]
     },
@@ -175,13 +175,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why can scaling up a profitable paper strategy reduce its net gain per unit of capital?",
+          "prompt": "A simulated rule buys small amounts at the cheapest sell quote. Why might profit per invested dollar fall when its trade size grows?",
           "answer": "Larger orders can move execution prices against the strategy by more per unit.",
-          "explanation": "Available size at the best quote can be exhausted. Additional size may execute at worse prices or require waiting, while a small-order model pays the top price throughout. Economic improvements should be tested at a plausible trade size."
+          "explanation": "Market depth is how much can be traded at each quoted price. A small simulated trade may fit entirely at the current best price. A larger buy can exhaust the cheapest quoted quantity and pay higher prices for the remainder. Capacity describes how much capital a strategy can use before the cost of trading at that size makes further scaling unattractive."
         },
         {
           "kind": "mcq",
-          "prompt": "A backtest’s tiny simulated orders fill at the best quote. What breaks first when scaling through limited depth?",
+          "prompt": "A backtest assumes every buy gets the cheapest quote. What assumption is most directly affected when orders exceed the quantity quoted there?",
           "choices": [
             "The assumed execution price",
             "The definition of the target",
@@ -189,7 +189,7 @@
             "The forecast’s ranking of assets"
           ],
           "correct": 0,
-          "explanation": "Available size at the best quote can be exhausted. Additional size may execute at worse prices or require waiting, while a small-order model pays the top price throughout. Economic improvements should be tested at a plausible trade size."
+          "explanation": "Market depth is how much can be traded at each quoted price. A small simulated trade may fit entirely at the current best price. A larger buy can exhaust the cheapest quoted quantity and pay higher prices for the remainder. Capacity describes how much capital a strategy can use before the cost of trading at that size makes further scaling unattractive."
         }
       ]
     },
@@ -199,15 +199,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A vendor factor correlates with same-day returns but arrives after the close. Which returns could test a tradable forecast?",
+          "prompt": "A vendor’s feature tracks that day’s gain or loss but arrives after the market closes. Which outcome could test a prediction you can trade on?",
           "answer": "A forward return starting after the signal is available and a position can actually be placed.",
-          "explanation": "The timestamp of the period described by a record can precede the timestamp when the buyer receives it. Align the factor with returns following a feasible decision. This isolates prediction from contemporaneous association."
+          "explanation": "Here a factor is a feature supplied by the data vendor, and a return is the fractional gain or loss over a period. The date on a record describes what it measures, while the delivery time says when you can act on it. A factor received after the market closes can explain that day’s return. Test a tradable forecast on a return that begins after the information can be used."
         },
         {
           "kind": "truefalse",
-          "prompt": "A strong correlation between a daily factor and that day’s return can persist even when the factor arrives too late to trade that return.",
+          "prompt": "A feature delivered after the market closes can be strongly correlated with that day’s return, the gain or loss during the day.",
           "answer": true,
-          "explanation": "The timestamp of the period described by a record can precede the timestamp when the buyer receives it. Align the factor with returns following a feasible decision. This isolates prediction from contemporaneous association."
+          "explanation": "Here a factor is a feature supplied by the data vendor, and a return is the fractional gain or loss over a period. The date on a record describes what it measures, while the delivery time says when you can act on it. A factor received after the market closes can explain that day’s return. Test a tradable forecast on a return that begins after the information can be used."
         }
       ]
     },
@@ -217,15 +217,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A vendor backfills corrected historical values. What should replace those values in a replication of live decisions?",
+          "prompt": "A data seller replaces old values with later corrections. Which version of each value belongs in a simulation of historical decisions?",
           "answer": "The archived values, release times and coverage that the user would have had at each historical decision.",
-          "explanation": "A time lag addresses when a period first becomes reportable. It cannot undo later restatements or historical coverage changes. The value available at the decision date is the proper input, even when a revised value is more accurate."
+          "explanation": "A data vintage is the version of the dataset available on a particular date. Vendors can backfill a correction by replacing an old value with a later revision. A fixed lag shifts when a value is used and leaves the revised value intact. Rebuild each forecast with the vintage available at its decision time to test live performance fairly."
         },
         {
           "kind": "truefalse",
-          "prompt": "A fixed lag applied to the latest database reproduces historical values even after a vendor revises the original records.",
+          "prompt": "Shifting the latest dataset by a fixed delay recovers the values originally available on each date, even when old records were revised.",
           "answer": false,
-          "explanation": "A time lag addresses when a period first becomes reportable. It cannot undo later restatements or historical coverage changes. The value available at the decision date is the proper input, even when a revised value is more accurate."
+          "explanation": "A data vintage is the version of the dataset available on a particular date. Vendors can backfill a correction by replacing an old value with a later revision. A fixed lag shifts when a value is used and leaves the revised value intact. Rebuild each forecast with the vintage available at its decision time to test live performance fairly."
         }
       ]
     },
@@ -235,15 +235,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A vendor shows one excellent backtest selected from many experiments. What check best reassesses the reported gain?",
+          "prompt": "A vendor shows the best of many historical trading simulations (backtests). What evaluation would give stronger evidence of a real gain?",
           "answer": "Replicate the frozen candidate on eligible point-in-time data outside the vendor’s selection process, with uncertainty for the incremental performance.",
-          "explanation": "A standard error for a single fixed backtest omits the search that picked the result. Ask which targets, windows and configurations were tried, and evaluate the frozen candidate on a protected sample. Use a dependence-aware estimate of uncertainty for the comparison."
+          "explanation": "A backtest simulates a trading rule on historical data. A confidence interval for a rule treated as fixed measures sampling uncertainty for that rule. Selecting the best result from many backtests adds another source of optimism. Freeze the rule and evaluate it on a period outside the original search, using the data versions available at each decision time."
         },
         {
           "kind": "truefalse",
-          "prompt": "A tight ordinary confidence interval for a vendor’s best backtest accounts for the search that selected it.",
+          "prompt": "A narrow ordinary confidence interval for the best result from many historical simulations accounts for the search that selected it.",
           "answer": false,
-          "explanation": "A standard error for a single fixed backtest omits the search that picked the result. Ask which targets, windows and configurations were tried, and evaluate the frozen candidate on a protected sample. Use a dependence-aware estimate of uncertainty for the comparison."
+          "explanation": "A backtest simulates a trading rule on historical data. A confidence interval for a rule treated as fixed measures sampling uncertainty for that rule. Selecting the best result from many backtests adds another source of optimism. Freeze the rule and evaluate it on a period outside the original search, using the data versions available at each decision time."
         }
       ]
     },
@@ -253,13 +253,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A feed is predictive by itself. What comparison tests whether it is useful to a buyer with overlapping feeds?",
+          "prompt": "An external data stream predicts returns on its own. How do you test what it adds to your current model and trading rule?",
           "answer": "Compare the buyer’s feasible workflow with and without the feed, keeping the existing information in both.",
-          "explanation": "Value depends on the improvement in the decisions available with the extra information. Strong isolated predictions can be redundant given current inputs or irrelevant under position constraints. Compare feasible policies using the same outcomes and risk criterion."
+          "explanation": "A feed is a regularly delivered data stream. Its value to one buyer depends on how much it improves that buyer’s decisions using the data and models they already have. A feed can predict returns on its own and repeat information the buyer already uses. Compare the same trading workflow with and without the feed to estimate its incremental value."
         },
         {
           "kind": "mcq",
-          "prompt": "In a frictionless decision model, if a new feed never changes any optimal choice, what gross decision value does it add?",
+          "prompt": "If you can make the same optimal trades with or without a new data feed, what decision value does the feed add before paying for it?",
           "choices": [
             "The stand-alone forecast lift",
             "Zero expected decision value",
@@ -267,7 +267,7 @@
             "The variance reduction in the data"
           ],
           "correct": 1,
-          "explanation": "Value depends on the improvement in the decisions available with the extra information. Strong isolated predictions can be redundant given current inputs or irrelevant under position constraints. Compare feasible policies using the same outcomes and risk criterion."
+          "explanation": "A feed is a regularly delivered data stream. Its value to one buyer depends on how much it improves that buyer’s decisions using the data and models they already have. A feed can predict returns on its own and repeat information the buyer already uses. Compare the same trading workflow with and without the feed to estimate its incremental value."
         }
       ]
     },
@@ -277,13 +277,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What sets a risk-neutral buyer’s break-even license fee for a feed over a fixed evaluation horizon?",
+          "prompt": "What is the most a buyer would pay for a data feed over a fixed period if they compare purchases by expected monetary gain (risk neutrality)?",
           "answer": "Expected incremental economic gain over that horizon after integration, operation and trading costs, expressed on the same present-value basis as the fee.",
-          "explanation": "A buying decision compares feasible gains with and without the feed under the buyer’s risk and execution limits. Integration and operation absorb part of the gross benefit. Uncertain estimates can change a risk-sensitive buyer’s willingness to pay, and the negotiated fee also depends on the deal."
+          "explanation": "A risk-neutral buyer compares expected monetary outcomes. The break-even license fee is the expected extra gain from using the feed after trading, integration and running costs, with future gains and costs converted to their value today. Buyers can act on the same prediction at different trade sizes or costs, so their break-even fees can differ even at the same correlation."
         },
         {
           "kind": "mcq",
-          "prompt": "Two buyers face the same feed price and forecast correlation. Can their break-even fees differ?",
+          "prompt": "Two buyers see the same correlation between a feed’s prediction and the outcome. Can their break-even license fees differ?",
           "choices": [
             "Only if the vendor quotes different fees",
             "Only if one measures correlation incorrectly",
@@ -291,7 +291,7 @@
             "No, a common correlation fixes the fee"
           ],
           "correct": 2,
-          "explanation": "A buying decision compares feasible gains with and without the feed under the buyer’s risk and execution limits. Integration and operation absorb part of the gross benefit. Uncertain estimates can change a risk-sensitive buyer’s willingness to pay, and the negotiated fee also depends on the deal."
+          "explanation": "A risk-neutral buyer compares expected monetary outcomes. The break-even license fee is the expected extra gain from using the feed after trading, integration and running costs, with future gains and costs converted to their value today. Buyers can act on the same prediction at different trade sizes or costs, so their break-even fees can differ even at the same correlation."
         }
       ]
     },
@@ -301,15 +301,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A feed scores well in a historical trial. Which portion of that trial can support a deployable value estimate?",
+          "prompt": "A dataset helped in a historical test. Which rows and uses belong in an estimate of what it could earn after licensing it?",
           "answer": "The slice with usable coverage at decision time and rights compatible with the planned use.",
-          "explanation": "Coverage limits which observations can inform decisions. The license limits which workflows can use those observations. Re-evaluate the gain for the actual assets, purposes and delivery schedule included in the proposed deployment."
+          "explanation": "Coverage describes which assets, dates and observations the feed supplies. Usage rights describe what the license permits the buyer to do with it. Re-estimate the backtest gain on the assets and workflows the buyer can actually use. Strong results on a broader set may come from opportunities unavailable in deployment."
         },
         {
           "kind": "recall",
-          "prompt": "Why might a historical gain on broad coverage overstate value under a license covering only a narrow deployable universe?",
+          "prompt": "A backtest uses hundreds of stocks, but a license covers only some of them. Why can the full backtest overstate the value of that license?",
           "answer": "The covered universe may lack the same opportunities, so the full-sample gross gain cannot be assumed for the narrower policy.",
-          "explanation": "Coverage limits which observations can inform decisions. The license limits which workflows can use those observations. Re-evaluate the gain for the actual assets, purposes and delivery schedule included in the proposed deployment."
+          "explanation": "Coverage describes which assets, dates and observations the feed supplies. Usage rights describe what the license permits the buyer to do with it. Re-estimate the backtest gain on the assets and workflows the buyer can actually use. Strong results on a broader set may come from opportunities unavailable in deployment."
         }
       ]
     },
@@ -319,15 +319,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A vendor sells a predictive feed to many desks. Why might the buyer shorten its assumed period of economic benefit?",
+          "prompt": "A seller gives many trading teams the same predictive feature. Why might they earn less from it after other teams start using it?",
           "answer": "Other buyers may trade on the same information, moving prices sooner and reducing the value of acting on it later.",
-          "explanation": "Historical performance describes past conditions. If more traders act on the same information, the price response and execution competition can change. Estimate value over a plausible period of usefulness and consider how data access changes across the market."
+          "explanation": "A trading signal is information used to make a trading decision. A backtest measures how the rule would have performed on historical data. When more buyers trade on the same signal, prices may move earlier, leaving less of the predicted move available to capture. Estimate how long this edge can last when weighing the cost of the feed."
         },
         {
           "kind": "truefalse",
-          "prompt": "Wider adoption can reduce a signal’s trading value only if it also reduces the signal’s historical backtest score.",
+          "prompt": "Wider use of a trading signal can reduce its future trading gains only if it also lowers its already measured historical score.",
           "answer": false,
-          "explanation": "Historical performance describes past conditions. If more traders act on the same information, the price response and execution competition can change. Estimate value over a plausible period of usefulness and consider how data access changes across the market."
+          "explanation": "A trading signal is information used to make a trading decision. A backtest measures how the rule would have performed on historical data. When more buyers trade on the same signal, prices may move earlier, leaving less of the predicted move available to capture. Estimate how long this edge can last when weighing the cost of the feed."
         }
       ]
     },
@@ -337,13 +337,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "If every excess gain scales by the same positive leverage factor, what happens to Sharpe?",
+          "prompt": "For gain $G$ above a cash benchmark, Sharpe is $S=\\mathbb E[G]/\\operatorname{sd}(G)$. What happens to $S$ if each gain is multiplied by $L>0$?",
           "answer": "It stays the same because mean and standard deviation scale by the same factor.",
-          "explanation": "For excess gain $G$ with positive standard deviation, $S(LG)=L\\mathbb E[G]/(L\\operatorname{sd}(G))=S(G)$. Variance scales as $L^2$. The leverage result assumes homogeneous gains and costs. Nonlinear execution or financing costs can change the ratio."
+          "explanation": "Leverage scales market exposure relative to the capital invested. For a period’s gain $G$ above what a benchmark such as cash would earn, Sharpe is $S=\\mathbb E[G]/\\operatorname{sd}(G)$. If leverage multiplies every excess gain by $L>0$, the mean and standard deviation both scale by $L$, so Sharpe stays fixed and variance scales by $L^2$. Financing or trading costs can break that proportional scaling."
         },
         {
           "kind": "mcq",
-          "prompt": "How does variance scale when additive excess gains are multiplied by a positive factor $L$?",
+          "prompt": "You scale every gain above a benchmark by the same $L>0$ (leverage). How does $\\operatorname{Var}(LG)$ compare with $\\operatorname{Var}(G)$?",
           "choices": [
             "$L$",
             "$1/L$",
@@ -351,7 +351,7 @@
             "$L^2$"
           ],
           "correct": 3,
-          "explanation": "For excess gain $G$ with positive standard deviation, $S(LG)=L\\mathbb E[G]/(L\\operatorname{sd}(G))=S(G)$. Variance scales as $L^2$. The leverage result assumes homogeneous gains and costs. Nonlinear execution or financing costs can change the ratio."
+          "explanation": "Leverage scales market exposure relative to the capital invested. For a period’s gain $G$ above what a benchmark such as cash would earn, Sharpe is $S=\\mathbb E[G]/\\operatorname{sd}(G)$. If leverage multiplies every excess gain by $L>0$, the mean and standard deviation both scale by $L$, so Sharpe stays fixed and variance scales by $L^2$. Financing or trading costs can break that proportional scaling."
         }
       ]
     },
@@ -361,13 +361,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What dependence condition supports square-root-of-time Sharpe scaling for additive gains with common moments?",
-          "answer": "Zero autocovariances between distinct periods, or more generally a zero weighted sum of those autocovariances at the horizon.",
-          "explanation": "Over $T$ periods the mean is $T\\mu$. With uncorrelated gains the variance is $T\\sigma^2$, giving $\\sqrt T\\,S$. Positive net autocovariance contributions raise the variance of the sum above $T\\sigma^2$, increasing the denominator while leaving the mean fixed."
+          "prompt": "For $G_T=\\sum_{t=1}^T g_t$ and $S_T=\\mathbb E[G_T]/\\operatorname{sd}(G_T)$, when does $S_T=\\sqrt T\\,S_1$ hold for gains with common moments?",
+          "answer": "Zero covariance between distinct periods is sufficient. More generally, the cross-period covariance contributions must sum to zero when the common mean is nonzero.",
+          "explanation": "Sharpe is mean excess gain divided by its standard deviation, where excess is the gain above what a benchmark such as cash would earn. For $T$ additive periods with the same mean $\\mu$ and variance $\\sigma^2$, the mean is $T\\mu$. If gains are uncorrelated across periods, variance is $T\\sigma^2$ and Sharpe scales by $\\sqrt T$. Positive net autocovariance makes the denominator larger, so square-root scaling overstates a positive Sharpe."
         },
         {
           "kind": "mcq",
-          "prompt": "What happens to the actual horizon Sharpe versus square-root scaling when the mean is positive and the net autocovariance contribution is positive?",
+          "prompt": "For a positive mean gain, what happens to $S_T=\\mathbb E[G_T]/\\operatorname{sd}(G_T)$ versus $\\sqrt T\\,S_1$ if cross-period covariances add variance?",
           "choices": [
             "It is smaller",
             "It is larger",
@@ -375,7 +375,7 @@
             "It changes sign"
           ],
           "correct": 0,
-          "explanation": "Over $T$ periods the mean is $T\\mu$. With uncorrelated gains the variance is $T\\sigma^2$, giving $\\sqrt T\\,S$. Positive net autocovariance contributions raise the variance of the sum above $T\\sigma^2$, increasing the denominator while leaving the mean fixed."
+          "explanation": "Sharpe is mean excess gain divided by its standard deviation, where excess is the gain above what a benchmark such as cash would earn. For $T$ additive periods with the same mean $\\mu$ and variance $\\sigma^2$, the mean is $T\\mu$. If gains are uncorrelated across periods, variance is $T\\sigma^2$ and Sharpe scales by $\\sqrt T$. Positive net autocovariance makes the denominator larger, so square-root scaling overstates a positive Sharpe."
         }
       ]
     },
@@ -385,15 +385,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "At fixed weights and marginal gain variances, which dependence quantity governs the diversification benefit of two strategies?",
+          "prompt": "Two trading rules earn gains $G_1,G_2$. At fixed weights $w_1,w_2$ and fixed gain variances, which dependence term controls $\\operatorname{Var}(w_1G_1+w_2G_2)$?",
           "answer": "The covariance of their gains over the same evaluation periods.",
-          "explanation": "For gain vector $G$, covariance matrix $\\Sigma$ and weights $w$, portfolio variance is $w^\\top\\Sigma w$. The relevant covariance is between realized strategy gains. Feature relationships describe model inputs and can differ sharply from the exposures created by positions."
+          "explanation": "A portfolio combines strategies with weights $w$ that describe the share allocated to each. Diversification reduces risk when their gains and losses move less than perfectly together. If $\\Sigma$ is the covariance matrix of realized strategy gains, portfolio variance is $w^\\top\\Sigma w$. To assess diversification, measure the gains of the trading rules themselves. Their raw input features can behave very differently."
         },
         {
           "kind": "truefalse",
-          "prompt": "Low correlation between two raw features is sufficient for strategies built from them to diversify each other.",
+          "prompt": "Low correlation between two models’ raw input features guarantees that combining their trading gains reduces risk through diversification.",
           "answer": false,
-          "explanation": "For gain vector $G$, covariance matrix $\\Sigma$ and weights $w$, portfolio variance is $w^\\top\\Sigma w$. The relevant covariance is between realized strategy gains. Feature relationships describe model inputs and can differ sharply from the exposures created by positions."
+          "explanation": "A portfolio combines strategies with weights $w$ that describe the share allocated to each. Diversification reduces risk when their gains and losses move less than perfectly together. If $\\Sigma$ is the covariance matrix of realized strategy gains, portfolio variance is $w^\\top\\Sigma w$. To assess diversification, measure the gains of the trading rules themselves. Their raw input features can behave very differently."
         }
       ]
     },
@@ -403,15 +403,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "With equal positive mean and variance per strategy, why does positive gain correlation limit the Sharpe benefit of equal weighting?",
+          "prompt": "You average $N$ strategies with equal positive means and equal variances. Why do positively correlated gains limit Sharpe $S=\\mathbb E[G]/\\operatorname{sd}(G)$?",
           "answer": "Positive covariance stops the portfolio variance from falling as fast as it would for independent bets.",
-          "explanation": "For $N$ strategies with common gain correlation $\\rho$, the variance of their mean is $\\sigma^2[1+(N-1)\\rho]/N$. For nonzero portfolio variance, Sharpe scales by $\\sqrt{N/[1+(N-1)\\rho]}$ relative to one strategy. Perfect correlation leaves effective diversification at one bet."
+          "explanation": "Sharpe divides the mean gain above a benchmark such as cash by the standard deviation of those excess gains. With $N$ equally weighted strategies sharing the same mean, variance $\\sigma^2$, and pairwise gain correlation $\\rho$, average gain variance is $\\sigma^2[1+(N-1)\\rho]/N$. For positive portfolio variance, Sharpe scales by $\\sqrt{N/[1+(N-1)\\rho]}$. At $\\rho=1$, a copy moves in lockstep and adds no diversification."
         },
         {
           "kind": "truefalse",
-          "prompt": "With equal positive means and equal positive variances, adding a perfectly correlated copy leaves the equal-weight portfolio Sharpe unchanged.",
+          "prompt": "If two strategies have identical nonconstant gains $G$, averaging them leaves the Sharpe ratio $\\mathbb E[G]/\\operatorname{sd}(G)$ unchanged.",
           "answer": true,
-          "explanation": "For $N$ strategies with common gain correlation $\\rho$, the variance of their mean is $\\sigma^2[1+(N-1)\\rho]/N$. For nonzero portfolio variance, Sharpe scales by $\\sqrt{N/[1+(N-1)\\rho]}$ relative to one strategy. Perfect correlation leaves effective diversification at one bet."
+          "explanation": "Sharpe divides the mean gain above a benchmark such as cash by the standard deviation of those excess gains. With $N$ equally weighted strategies sharing the same mean, variance $\\sigma^2$, and pairwise gain correlation $\\rho$, average gain variance is $\\sigma^2[1+(N-1)\\rho]/N$. For positive portfolio variance, Sharpe scales by $\\sqrt{N/[1+(N-1)\\rho]}$. At $\\rho=1$, a copy moves in lockstep and adds no diversification."
         }
       ]
     }

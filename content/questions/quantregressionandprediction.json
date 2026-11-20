@@ -7,13 +7,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why does centering the predictor make the OLS intercept equal the target mean?",
-          "answer": "The fitted residuals sum to zero, so the fitted line passes through the sample means.",
-          "explanation": "Optimizing the intercept gives $a=\\bar y-b\\bar x$. Substituting yields a centered least-squares problem whose derivative gives $b=\\sum_i(x_i-\\bar x)(y_i-\\bar y)/\\sum_i(x_i-\\bar x)^2$. With $\\bar x=0$, the intercept is $\\bar y$."
+          "prompt": "You fit a line by minimizing $\\sum_i(y_i-a-bx_i)^2$. If the inputs are centered ($\\bar x=0$), what does the fitted intercept $a$ equal?",
+          "answer": "The average of the observed target values.",
+          "explanation": "Write the fitted line as $\\hat y_i=a+bx_i$. At the least-squares optimum, the derivative with respect to the intercept is zero.\n\n$$\\frac{\\partial}{\\partial a}\\sum_i(y_i-a-bx_i)^2=-2\\sum_i(y_i-a-bx_i)=0.$$\n\nDividing the residual sum by the sample size gives $\\bar y-a-b\\bar x=0$. Since the shifted inputs have $\\bar x=0$, the intercept is $a=\\bar y-b\\bar x=\\bar y$."
         },
         {
           "kind": "mcq",
-          "prompt": "What is the slope in simple OLS with an intercept and a nonconstant predictor?",
+          "prompt": "You fit $\\hat y=a+bx$ by least squares. If $X$ has positive variance, which ratio gives the fitted slope $b$?",
           "choices": [
             "$\\operatorname{Cov}(X,Y)/\\operatorname{Var}(X)$",
             "$\\operatorname{Cov}(X,Y)/\\operatorname{Var}(Y)$",
@@ -21,7 +21,7 @@
             "$\\operatorname{Cov}(X,Y)/[\\sigma_X\\sigma_Y]$"
           ],
           "correct": 0,
-          "explanation": "Optimizing the intercept gives $a=\\bar y-b\\bar x$. Substituting yields a centered least-squares problem whose derivative gives $b=\\sum_i(x_i-\\bar x)(y_i-\\bar y)/\\sum_i(x_i-\\bar x)^2$. With $\\bar x=0$, the intercept is $\\bar y$."
+          "explanation": "Fitting the intercept gives $a=\\bar y-b\\bar x$, so the slope is fit on centered pairs. Its value is $b=\\operatorname{Cov}(X,Y)/\\operatorname{Var}(X)$. Centering separates the average prediction from the slope, which tells you how much the fitted prediction changes per input unit."
         }
       ]
     },
@@ -31,15 +31,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "When are the simple OLS slopes of $Y$ on $X$ and $X$ on $Y$ reciprocals, with intercepts and nonconstant variables?",
-          "answer": "Exactly when the absolute sample correlation is one.",
-          "explanation": "The two slopes divide the same covariance by different variances. Their product is $\\operatorname{Cov}(X,Y)^2/[\\operatorname{Var}(X)\\operatorname{Var}(Y)]=\\rho^2$. The objectives measure vertical and horizontal discrepancies respectively, and agree on the line when the cloud lies exactly on it."
+          "prompt": "You fit two least-squares lines, $\\hat y=a+bx$ and $\\hat x=c+dy$, to the same data. Both variables vary. When is $bd=1$?",
+          "answer": "Exactly when the sample correlation is $+1$ or $-1$. The data points then lie on one straight line.",
+          "explanation": "In simple least squares with an intercept, you minimize $\\sum_i(y_i-a-bx_i)^2$. The slope is $b=\\operatorname{Cov}(X,Y)/\\operatorname{Var}(X)$ whenever the predictor $X$ has positive variance.\n\nEach slope divides the same sample covariance by the variance of its input.\n\n$$b=\\frac{\\operatorname{Cov}(X,Y)}{\\operatorname{Var}(X)},\\qquad d=\\frac{\\operatorname{Cov}(X,Y)}{\\operatorname{Var}(Y)}.$$\n\nTheir product is the square of the sample correlation $r$.\n\n$$bd=\\frac{\\operatorname{Cov}(X,Y)^2}{\\operatorname{Var}(X)\\operatorname{Var}(Y)}=r^2.$$\n\nSo the slopes are reciprocals exactly when $|r|=1$. Since both variables vary, this is precisely when all the data points lie on a single straight line."
         },
         {
           "kind": "recall",
-          "prompt": "Why do regressing $Y$ on $X$ and reversing the fitted regression of $X$ on $Y$ generally give different lines?",
+          "prompt": "You fit $\\hat y=a+bx$ and $\\hat x=c+dy$ on the same data, with $d\\ne0$. Why does rearranging the second fit usually give a different line in $y$?",
           "answer": "They minimize squared deviations in different coordinate directions.",
-          "explanation": "The two slopes divide the same covariance by different variances. Their product is $\\operatorname{Cov}(X,Y)^2/[\\operatorname{Var}(X)\\operatorname{Var}(Y)]=\\rho^2$. The objectives measure vertical and horizontal discrepancies respectively, and agree on the line when the cloud lies exactly on it."
+          "explanation": "The first fit minimizes squared errors in $y$, $\\sum_i(y_i-a-bx_i)^2$. The second minimizes squared errors in $x$, $\\sum_i(x_i-c-dy_i)^2$. Reversing the equation changes its form but keeps the original objective. Choose the regression direction based on which quantity you need to predict."
         }
       ]
     },
@@ -49,15 +49,15 @@
       "variants": [
         {
           "kind": "truefalse",
-          "prompt": "With an intercept and two features, an OLS residual can be correlated with their product even on the training sample.",
+          "prompt": "You fit $\\hat y=a+b_1x_1+b_2x_2$ by least squares. On the training set, the residuals can be correlated with $x_1x_2$.",
           "answer": true,
-          "explanation": "The normal equations are $X^\\top e=0$ for the columns actually used to fit. The intercept inserts a column of ones. Interactions or nonlinear transforms of features can still align with the residual unless they lie in the column space."
+          "explanation": "Least squares makes the training residuals $e_i=y_i-\\hat y_i$ orthogonal to the three fitted columns.\n\n$$\\sum_i e_i=\\sum_i x_{i1}e_i=\\sum_i x_{i2}e_i=0.$$\n\nTake each of the four pairs $(x_1,x_2)\\in\\{-1,1\\}^2$ once and set $y=x_1x_2$. This product is orthogonal to all three columns, so $\\hat y=0$ and $e=x_1x_2$. The residual and the product have sample correlation one."
         },
         {
           "kind": "recall",
-          "prompt": "What extra orthogonality condition does an intercept impose in least squares?",
-          "answer": "Orthogonality to the constant vector, so the residuals sum to zero.",
-          "explanation": "The normal equations are $X^\\top e=0$ for the columns actually used to fit. The intercept inserts a column of ones. Interactions or nonlinear transforms of features can still align with the residual unless they lie in the column space."
+          "prompt": "Fit $\\hat y_i=a+bx_i$ by least squares on $n$ training rows. If you fix $a=0$, what changes about the mean residual $\\bar e=\\frac{1}{n}\\sum_i(y_i-\\hat y_i)$?",
+          "answer": "The mean training residual can be nonzero. Fitting the intercept would make it zero.",
+          "explanation": "A freely fitted intercept shifts every prediction equally, so its first-order condition is $-2\\sum_i e_i=0$. With $a$ fixed at zero, fitting the slope gives $\\sum_i x_i e_i=0$, which allows $\\sum_i e_i\\ne 0$. The actual training total minus the predicted total is $n\\bar e$, so a demand model forced through zero can miss total demand even with its best-fitting slope."
         }
       ]
     },
@@ -67,14 +67,14 @@
       "variants": [
         {
           "kind": "numeric",
-          "prompt": "For centered nonconstant targets $y$, what is the evaluation $R^2$ if $\\hat y=3y$?",
+          "prompt": "The targets $y_i$ vary and have mean $\\bar y=0$. For $\\hat y_i=3y_i$, what is $R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}$?",
           "answer": -3,
           "tolerance": 0,
-          "explanation": "Positive scaling preserves ranks and Pearson correlation. With $\\hat y=3y$ and $\\bar y=0$, the squared residual is $4y^2$ row by row, so $R^2=1-4=-3$. The skill score penalizes scale error relative to the evaluated target mean."
+          "explanation": "The mean forecast is zero, so its squared error is $y_i^2$ per row. The scaled forecast has four times that error.\n\n$$R^2=1-\\frac{\\sum_i(-2y_i)^2}{\\sum_i y_i^2}=1-4=-3.$$\n\nRanks and Pearson correlation are perfect, yet the forecast is worse than predicting the mean. A model can rank days by demand correctly while exaggerating how far demand will move from average."
         },
         {
           "kind": "mcq",
-          "prompt": "Which operation preserves rank and Pearson correlation but can worsen squared-error fit?",
+          "prompt": "Which change can preserve prediction order (and Pearson correlation with $y$) while increasing squared error $L=\\sum_i(y_i-\\hat y_i)^2$?",
           "choices": [
             "Replacing predictions by their mean",
             "Multiplying predictions by a positive constant",
@@ -82,7 +82,7 @@
             "Permuting predictions independently of targets"
           ],
           "correct": 1,
-          "explanation": "Positive scaling preserves ranks and Pearson correlation. With $\\hat y=3y$ and $\\bar y=0$, the squared residual is $4y^2$ row by row, so $R^2=1-4=-3$. The skill score penalizes scale error relative to the evaluated target mean."
+          "explanation": "Multiplying by $c>0$ preserves prediction order. Pearson correlation also stays fixed when defined, because the covariance with $y$ and the prediction standard deviation both scale by $c$. Averaging creates ties, reversing signs flips the order, and shuffling can change it. Doubling a perfect forecast of varying targets raises $L$ from zero to $\\sum_i y_i^2$. A demand model can prioritize the right items while recommending too much stock."
         }
       ]
     },
@@ -92,15 +92,15 @@
       "variants": [
         {
           "kind": "truefalse",
-          "prompt": "For nonconstant fitted values, training $R^2$ equals squared fitted-versus-observed correlation in OLS with an intercept.",
+          "prompt": "For least squares with an intercept and varying predictions, training $R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}$ equals $\\operatorname{Corr}(y,\\hat y)^2$.",
           "answer": true,
-          "explanation": "On training data the constant mean is feasible, and projection gives $y-\\bar y=(\\hat y-\\bar y)+e$ with perpendicular terms. This yields $R^2=\\operatorname{Corr}(y,\\hat y)^2$ for nonconstant fitted values. Neither the projection identity nor the error comparison is guaranteed on test data."
+          "explanation": "With a fitted intercept, training residuals $e=y-\\hat y$ average zero and are uncorrelated with $\\hat y$. Hence $\\operatorname{Var}(y)=\\operatorname{Var}(\\hat y)+\\operatorname{Var}(e)$ and $\\operatorname{Cov}(y,\\hat y)=\\operatorname{Var}(\\hat y)$.\n\n$$R^2=1-\\frac{\\operatorname{Var}(e)}{\\operatorname{Var}(y)}=\\frac{\\operatorname{Var}(\\hat y)}{\\operatorname{Var}(y)}=\\operatorname{Corr}(y,\\hat y)^2.$$\n\nOn held-out data, compute $R^2$ from the held-out errors and target mean. The projection identity is specific to the fitted rows."
         },
         {
           "kind": "recall",
-          "prompt": "Why can test $R^2$ fall below zero even if an OLS fit included an intercept?",
+          "prompt": "On held-out rows, $R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}$. Why can it be negative after a least-squares fit with an intercept?",
           "answer": "The test predictions need not beat the test-set mean in squared error.",
-          "explanation": "On training data the constant mean is feasible, and projection gives $y-\\bar y=(\\hat y-\\bar y)+e$ with perpendicular terms. This yields $R^2=\\operatorname{Corr}(y,\\hat y)^2$ for nonconstant fitted values. Neither the projection identity nor the error comparison is guaranteed on test data."
+          "explanation": "A freely fitted intercept makes the constant training mean a feasible model during training. On held-out rows, the numerator can exceed the denominator, which is the error from predicting the held-out target mean. A negative $R^2$ flags a model whose squared errors exceed that baseline."
         }
       ]
     },
@@ -110,13 +110,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What property of forecasts with the correct overall mean can fail within each forecast bucket?",
+          "prompt": "Forecasts match the overall mean, $\\mathbb E[\\hat Y]=\\mathbb E[Y]$. What can still go wrong among cases with the same prediction?",
           "answer": "The average outcome for a given forecast value need not equal that value.",
-          "explanation": "Conditional mean calibration requires $\\mathbb E[Y\\mid\\hat Y]=\\hat Y$. Here the opposite bucket errors cancel overall and the ranking is right. The predicted separation is too large, and an OLS intercept ensures only training mean agreement, alongside linear residual orthogonality."
+          "explanation": "Conditional calibration means $\\mathbb E[Y\\mid\\hat Y=p]=p$ for each prediction level $p$. Overprediction at one level can cancel underprediction at another in the overall mean. Compare predictions with observed frequencies by level before using event scores to set probability thresholds."
         },
         {
           "kind": "mcq",
-          "prompt": "A model predicts 0.3 or 0.7 equally often. Observed rates are 0.4 and 0.6, respectively. What property holds?",
+          "prompt": "An event model predicts $p=0.3$ and $p=0.7$ equally often. The corresponding observed frequencies are $0.4$ and $0.6$. What does the model get right?",
           "choices": [
             "Both forecast levels are conditionally calibrated",
             "Forecasts are shrunk too much toward the mean",
@@ -124,7 +124,7 @@
             "Forecasts reverse the ranking of the two groups"
           ],
           "correct": 2,
-          "explanation": "Conditional mean calibration requires $\\mathbb E[Y\\mid\\hat Y]=\\hat Y$. Here the opposite bucket errors cancel overall and the ranking is right. The predicted separation is too large, and an OLS intercept ensures only training mean agreement, alongside linear residual orthogonality."
+          "explanation": "Both overall means are $0.5$, since the groups are equally common. Within the groups, predicted probabilities differ from observed frequencies. The ranking is right and the predicted gap is too large. Check calibration by prediction level when a downstream decision uses the probability itself."
         }
       ]
     },
@@ -134,15 +134,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What property of the conditional-mean residual removes the cross term in the squared-loss decomposition?",
+          "prompt": "Let $m(X)=\\mathbb E[Y\\mid X]$. Why does the cross term $\\mathbb E[(Y-m(X))(m(X)-f(X))]$ vanish for square-integrable predictions $f(X)$?",
           "answer": "It has mean zero given the predictors, making it orthogonal to every square-integrable function of them.",
-          "explanation": "Write $Y-f(X)=(Y-m(X))+(m(X)-f(X))$. The second term is fixed given $X$, so the cross term vanishes. Thus the risk is $\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\mathbb E[(m(X)-f(X))^2]$, minimized at $m(X)$."
+          "explanation": "Given $X$, the term $m(X)-f(X)$ is fixed and the residual has mean zero, so the cross term vanishes. This gives $\\mathbb E[(Y-f(X))^2]=\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\mathbb E[(m(X)-f(X))^2]$. Improving the mean model can reduce the second term. Prediction intervals still need to account for input-specific noise."
         },
         {
           "kind": "truefalse",
-          "prompt": "The errors of a squared-error-optimal point forecast have the same variance at every input.",
+          "prompt": "For a squared-error-optimal forecast $m(X)=\\mathbb E[Y\\mid X]$, the error $Y-m(X)$ has the same variance at every input $X$.",
           "answer": false,
-          "explanation": "Write $Y-f(X)=(Y-m(X))+(m(X)-f(X))$. The second term is fixed given $X$, so the cross term vanishes. Thus the risk is $\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\mathbb E[(m(X)-f(X))^2]$, minimized at $m(X)$."
+          "explanation": "Given $X$, the term $m(X)-f(X)$ is fixed and the residual has mean zero, so the cross term vanishes. This gives $\\mathbb E[(Y-f(X))^2]=\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\mathbb E[(m(X)-f(X))^2]$. Improving the mean model can reduce the second term. Prediction intervals still need to account for input-specific noise."
         }
       ]
     },
@@ -152,7 +152,7 @@
       "variants": [
         {
           "kind": "mcq",
-          "prompt": "Group membership changes outcome variance while the conditional means coincide. Which prediction can improve?",
+          "prompt": "Two groups $G$ have the same mean $\\mathbb E[Y\\mid G]$ and different variance $\\operatorname{Var}(Y\\mid G)$. Which forecast can benefit from knowing $G$?",
           "choices": [
             "The unconditional mean forecast",
             "A point forecast using the group mean",
@@ -160,13 +160,13 @@
             "An interval with group-specific width"
           ],
           "correct": 3,
-          "explanation": "Total variance is $\\operatorname{Var}(Y)=\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\operatorname{Var}(\\mathbb E[Y\\mid X])$. Equal group means set the second term to zero. Group-specific noise scales can still matter for interval forecasts."
+          "explanation": "Total variance splits as $\\operatorname{Var}(Y)=\\mathbb E[\\operatorname{Var}(Y\\mid G)]+\\operatorname{Var}(\\mathbb E[Y\\mid G])$. Equal group means make the second term zero. Group labels can still tell you that outcomes are more spread out in one group, which helps when choosing prediction intervals."
         },
         {
           "kind": "truefalse",
-          "prompt": "If group means agree, between-group variance of the conditional means is zero even when within-group variances differ.",
+          "prompt": "If two groups have the same mean $\\mathbb E[Y\\mid G]$, then $\\operatorname{Var}(\\mathbb E[Y\\mid G])=0$ even if their outcome spreads differ.",
           "answer": true,
-          "explanation": "Total variance is $\\operatorname{Var}(Y)=\\mathbb E[\\operatorname{Var}(Y\\mid X)]+\\operatorname{Var}(\\mathbb E[Y\\mid X])$. Equal group means set the second term to zero. Group-specific noise scales can still matter for interval forecasts."
+          "explanation": "Total variance splits as $\\operatorname{Var}(Y)=\\mathbb E[\\operatorname{Var}(Y\\mid G)]+\\operatorname{Var}(\\mathbb E[Y\\mid G])$. Equal group means make the second term zero. Group labels can still tell you that outcomes are more spread out in one group, which helps when choosing prediction intervals."
         }
       ]
     },
@@ -176,15 +176,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Two variables have normal marginals and zero covariance. What Gaussian assumption would justify independence?",
+          "prompt": "$X$ and $Y$ each have normal distributions and $\\operatorname{Cov}(X,Y)=0$. What assumption on the pair makes zero covariance imply independence?",
           "answer": "Their joint distribution must be Gaussian for the standard zero-covariance implication to apply.",
-          "explanation": "Symmetry gives $SX$ a standard normal marginal, and $\\mathbb E[X(SX)]=\\mathbb E[S]\\mathbb E[X^2]=0$. Yet the two magnitudes agree on every draw. The joint distribution is supported on two lines, so the joint Gaussian implication does not apply."
+          "explanation": "Zero covariance implies independence for a jointly Gaussian pair. In the sign example, $SX$ is standard normal and $\\mathbb E[X(SX)]=\\mathbb E[S]\\mathbb E[X^2]=0$, yet $|SX|=|X|$ on every draw. Two Gaussian-looking histograms can hide strong dependence. Check the joint behavior before treating variables as independent."
         },
         {
           "kind": "truefalse",
-          "prompt": "If $X$ is standard normal and $S$ an independent fair random sign, $X$ and $SX$ are independent.",
+          "prompt": "Let $X\\sim\\mathcal N(0,1)$ and independently draw $S=+1$ or $-1$ with equal chance. Then $X$ and $Y=SX$ are independent.",
           "answer": false,
-          "explanation": "Symmetry gives $SX$ a standard normal marginal, and $\\mathbb E[X(SX)]=\\mathbb E[S]\\mathbb E[X^2]=0$. Yet the two magnitudes agree on every draw. The joint distribution is supported on two lines, so the joint Gaussian implication does not apply."
+          "explanation": "Zero covariance implies independence for a jointly Gaussian pair. In the sign example, $SX$ is standard normal and $\\mathbb E[X(SX)]=\\mathbb E[S]\\mathbb E[X^2]=0$, yet $|SX|=|X|$ on every draw. Two Gaussian-looking histograms can hide strong dependence. Check the joint behavior before treating variables as independent."
         }
       ]
     },
@@ -194,15 +194,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Two OLS design columns are identical. What part of the fit is still uniquely determined on training rows?",
+          "prompt": "In $\\hat y_i=a+b_1x_{i1}+b_2x_{i2}$, the two feature columns are identical. Which part of the least-squares fit is still unique on training rows?",
           "answer": "The fitted vector, which is the projection onto the column space.",
-          "explanation": "Moving weight from one duplicate column to the other leaves the fitted vector unchanged. With near duplicates, that direction changes it only slightly and noise can swing the individual weights. Predictions can become sensitive on examples where the two features diverge."
+          "explanation": "If $x_1=x_2$, predictions depend on $(b_1+b_2)x_1$. Shifting weight between the two coefficients leaves every fitted value unchanged. With near duplicates, that shift can make only a small change. Treat individual coefficients cautiously when explaining importance, especially if the inputs may diverge in deployment."
         },
         {
           "kind": "truefalse",
-          "prompt": "With nearly duplicate features, coefficient instability can coexist with stable predictions on similar data.",
+          "prompt": "In a linear fit with near-duplicate feature columns, individual coefficients can change sharply while fitted predictions barely move.",
           "answer": true,
-          "explanation": "Moving weight from one duplicate column to the other leaves the fitted vector unchanged. With near duplicates, that direction changes it only slightly and noise can swing the individual weights. Predictions can become sensitive on examples where the two features diverge."
+          "explanation": "If $x_1=x_2$, predictions depend on $(b_1+b_2)x_1$. Shifting weight between the two coefficients leaves every fitted value unchanged. With near duplicates, that shift can make only a small change. Treat individual coefficients cautiously when explaining importance, especially if the inputs may diverge in deployment."
         }
       ]
     },
@@ -212,15 +212,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Which directions of a centered design does ridge shrink most relative to OLS?",
+          "prompt": "For centered data, ridge minimizes $\\|y-Xb\\|^2+\\lambda\\|b\\|^2$. Which directions of $X^\\top X$ are shrunk most relative to least squares?",
           "answer": "Directions with small positive eigenvalues of the feature Gram matrix.",
-          "explanation": "In a Gram eigendirection of eigenvalue $d>0$ the OLS component is multiplied by $d/(d+\\lambda)$. Shrinkage reduces variance most strongly in weak directions and introduces bias. Feature units affect the common penalty, so standardize deliberately and handle the intercept separately."
+          "explanation": "For an eigenvector of $X^\\top X$ with eigenvalue $d>0$, ridge multiplies the least-squares component by $d/(d+\\lambda)$. Smaller $d$ gives more shrinkage. Rescaling a feature changes the effective penalty on its contribution, so choose feature scales deliberately and keep the intercept separate."
         },
         {
           "kind": "truefalse",
-          "prompt": "When ridge uses the same coefficient penalty after one feature is rescaled, its fitted predictions are generally unchanged.",
+          "prompt": "In ridge regression with penalty $\\lambda\\sum_j b_j^2$, rescaling one input and keeping the same $\\lambda$ generally leaves predictions unchanged.",
           "answer": false,
-          "explanation": "In a Gram eigendirection of eigenvalue $d>0$ the OLS component is multiplied by $d/(d+\\lambda)$. Shrinkage reduces variance most strongly in weak directions and introduces bias. Feature units affect the common penalty, so standardize deliberately and handle the intercept separately."
+          "explanation": "For an eigenvector of $X^\\top X$ with eigenvalue $d>0$, ridge multiplies the least-squares component by $d/(d+\\lambda)$. Smaller $d$ gives more shrinkage. Rescaling a feature changes the effective penalty on its contribution, so choose feature scales deliberately and keep the intercept separate."
         }
       ]
     },
@@ -230,15 +230,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "After residualizing the target on the old features, what must you do to a new feature before recovering its joint OLS slope?",
+          "prompt": "Let $P$ project onto the old regression columns. To recover the new feature $x$’s joint slope after replacing $y$ by $(I-P)y$, how should you transform $x$?",
           "answer": "Residualize the new feature on the same old design, including the intercept if used.",
-          "explanation": "With old-design projector $P$, the partial slope regresses $(I-P)y$ on $(I-P)x$. Old-feature variation in raw $x$ would inflate the denominator without contributing to the numerator. A zero residualized feature supplies no new direction. Check any predictive gain out of sample."
+          "explanation": "Fit the residual target $(I-P)y$ on the residual feature $(I-P)x$. Variation in $x$ already explained by the old design cannot identify a new contribution. If $(I-P)x=0$, a separate coefficient is unidentifiable. Test any improvement from the remaining feature variation out of sample."
         },
         {
           "kind": "truefalse",
-          "prompt": "If a new feature lies in the old design’s column space, its separate slope is unidentifiable in the expanded OLS fit.",
+          "prompt": "In least squares, a feature $x$ that is an exact linear combination of the old design columns has no uniquely determined separate slope.",
           "answer": true,
-          "explanation": "With old-design projector $P$, the partial slope regresses $(I-P)y$ on $(I-P)x$. Old-feature variation in raw $x$ would inflate the denominator without contributing to the numerator. A zero residualized feature supplies no new direction. Check any predictive gain out of sample."
+          "explanation": "Fit the residual target $(I-P)y$ on the residual feature $(I-P)x$. Variation in $x$ already explained by the old design cannot identify a new contribution. If $(I-P)x=0$, a separate coefficient is unidentifiable. Test any improvement from the remaining feature variation out of sample."
         }
       ]
     }

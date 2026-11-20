@@ -7,13 +7,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "All $m$ nulls hold and each test has exact size $\\alpha$. What is the expected number rejected with arbitrary dependence?",
+          "prompt": "All $m$ null hypotheses are true. Each test falsely rejects with probability $\\alpha$. What is $\\mathbb E[V]$ for the number $V$ of false rejections?",
           "answer": "$m\\alpha$.",
-          "explanation": "Each false-rejection indicator has expectation $\\alpha$, so the total has mean $m\\alpha$. At least one rejection is a union event. With identical decisions its probability is $\\alpha$, while independence gives $1-(1-\\alpha)^m$."
+          "explanation": "Each rejection indicator has mean $\\alpha$, so the expected count is $m\\alpha$ for any dependence. The chance of any rejection is a union probability. Identical decisions give $\\alpha$, whereas independent decisions give $1-(1-\\alpha)^m$. Use the union probability when even one false alarm triggers follow-up."
         },
         {
           "kind": "mcq",
-          "prompt": "Two true-null tests reject on exactly the same event. How does FWER compare with one test’s size?",
+          "prompt": "Two true-null tests reject on exactly the same event. How does $P(V\\ge1)$ (familywise error) compare with one test’s false-positive rate?",
           "choices": [
             "Equal to one test’s size",
             "Twice one test’s size",
@@ -21,7 +21,7 @@
             "Larger than either size but less than their sum"
           ],
           "correct": 0,
-          "explanation": "Each false-rejection indicator has expectation $\\alpha$, so the total has mean $m\\alpha$. At least one rejection is a union event. With identical decisions its probability is $\\alpha$, while independence gives $1-(1-\\alpha)^m$."
+          "explanation": "Each rejection indicator has mean $\\alpha$, so the expected count is $m\\alpha$ for any dependence. The chance of any rejection is a union probability. Identical decisions give $\\alpha$, whereas independent decisions give $1-(1-\\alpha)^m$. Use the union probability when even one false alarm triggers follow-up."
         }
       ]
     },
@@ -31,15 +31,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What per-test size gives exact familywise size $a$ for $m$ independent continuous null tests of equal size?",
+          "prompt": "All $m$ nulls hold. Independent tests each falsely reject with chance $\\alpha$. What $\\alpha$ gives $P(V\\ge1)=a$ for the false-rejection count $V$?",
           "answer": "$1-(1-a)^{1/m}$.",
-          "explanation": "Independence gives no rejection probability $(1-\\alpha)^m$ under the complete null, so solve $(1-\\alpha)^m=1-a$. Bonferroni instead bounds the union by the sum and uses $a/m$, which remains valid under arbitrary dependence."
+          "explanation": "Independence gives $P(V=0)=(1-\\alpha)^m$, so exact control under the complete null uses $\\alpha=1-(1-a)^{1/m}$. Bonferroni uses the union bound instead, $P(V\\ge1)\\le\\sum_iP(\\text{false reject}_i)\\le a$. It remains usable when the tests share data."
         },
         {
           "kind": "truefalse",
-          "prompt": "Bonferroni requires independent p-values to control the chance of at least one false rejection.",
+          "prompt": "Using per-test threshold $a/m$ to bound the chance of any false rejection by $a$ (Bonferroni) requires independent p-values.",
           "answer": false,
-          "explanation": "Independence gives no rejection probability $(1-\\alpha)^m$ under the complete null, so solve $(1-\\alpha)^m=1-a$. Bonferroni instead bounds the union by the sum and uses $a/m$, which remains valid under arbitrary dependence."
+          "explanation": "Independence gives $P(V=0)=(1-\\alpha)^m$, so exact control under the complete null uses $\\alpha=1-(1-a)^{1/m}$. Bonferroni uses the union bound instead, $P(V\\ge1)\\le\\sum_iP(\\text{false reject}_i)\\le a$. It remains usable when the tests share data."
         }
       ]
     },
@@ -49,15 +49,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "If a procedure controls FDR at 5%, what quantity does it bound by 5%?",
+          "prompt": "A procedure reports $R$ rejections, of which $V$ are false. What does controlling the false discovery rate at 5% promise across repeated uses?",
           "answer": "The expected fraction of rejections that are false, taking the fraction as zero when there are no rejections.",
-          "explanation": "With $V$ false rejections and $R$ total rejections, FDR is $\\mathbb E[V/\\max(R,1)]$. Under the complete null $V=R$, so the fraction is the indicator of any rejection. In mixed families, the proportion and the chance of even one false rejection can differ considerably."
+          "explanation": "False discovery rate is $\\mathbb E[V/\\max(R,1)]$, the average false fraction with zero assigned to an empty result. When every null holds, $V=R$ and the fraction becomes the indicator of any rejection. Use this target when you want a reliable list rather than a guarantee about each flagged item."
         },
         {
           "kind": "truefalse",
-          "prompt": "When all tested nulls hold, FDR equals the probability of making any rejection.",
+          "prompt": "If all nulls hold and $R$ counts rejections, the false discovery rate $\\mathbb E[V/\\max(R,1)]$ equals $P(R\\ge1)$. Here $V$ counts false rejections.",
           "answer": true,
-          "explanation": "With $V$ false rejections and $R$ total rejections, FDR is $\\mathbb E[V/\\max(R,1)]$. Under the complete null $V=R$, so the fraction is the indicator of any rejection. In mixed families, the proportion and the chance of even one false rejection can differ considerably."
+          "explanation": "False discovery rate is $\\mathbb E[V/\\max(R,1)]$, the average false fraction with zero assigned to an empty result. When every null holds, $V=R$ and the fraction becomes the indicator of any rejection. Use this target when you want a reliable list rather than a guarantee about each flagged item."
         }
       ]
     },
@@ -67,15 +67,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why does the top backtest among many equally unskilled strategies tend to look profitable?",
+          "prompt": "You simulate many equally unskilled trading rules on past data (backtest). Why can the highest measured result look profitable?",
           "answer": "Choosing the maximum selects a strategy with unusually favorable estimation noise.",
-          "explanation": "Individual errors are centered before the selection rule is applied. With equal true performance, the reported error is the maximum of the candidate errors, typically positive on average. The search itself changes the sampling distribution and motivates independent evaluation."
+          "explanation": "A backtest simulates a trading rule on historical data. If all candidates have equal true performance, selecting the highest backtest score also selects the largest estimation error. That error is typically positive even when each candidate’s error averages zero on its own. Test the selected rule on data that played no part in choosing it."
         },
         {
           "kind": "truefalse",
-          "prompt": "Mean-zero backtest errors for each candidate imply mean-zero error for the candidate selected by highest backtest performance.",
+          "prompt": "If equally skilled rules each have mean-zero backtest error, the rule picked by the highest backtest score also has mean-zero error.",
           "answer": false,
-          "explanation": "Individual errors are centered before the selection rule is applied. With equal true performance, the reported error is the maximum of the candidate errors, typically positive on average. The search itself changes the sampling distribution and motivates independent evaluation."
+          "explanation": "A backtest simulates a trading rule on historical data. If all candidates have equal true performance, selecting the highest backtest score also selects the largest estimation error. That error is typically positive even when each candidate’s error averages zero on its own. Test the selected rule on data that played no part in choosing it."
         }
       ]
     },
@@ -85,13 +85,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Only aggregate scores from a holdout are shown. How can repeated model revisions still overfit that holdout?",
+          "prompt": "A holdout hides every row and shows only the error score. How can repeatedly revising your model after seeing scores still overfit it?",
           "answer": "Scores convey information about holdout errors and guide the sequence of candidates toward favorable noise.",
-          "explanation": "A score can guide feature, seed, and threshold choices even without exposing individual labels. That turns the holdout into part of the development loop. A protected final period evaluates the rule and success criterion chosen before its outcomes were consulted."
+          "explanation": "Error scores reveal which revisions work on these particular rows. Repeated choices of features, seeds or thresholds can therefore fit holdout noise. Freeze the model and the success rule before opening the final scores to measure performance on outcomes that did not guide development."
         },
         {
           "kind": "mcq",
-          "prompt": "Which use best preserves an untouched final evaluation?",
+          "prompt": "You have a final evaluation set whose scores are hidden. Which action preserves it as a test of a preselected model?",
           "choices": [
             "Retune until final scores stabilize",
             "Freeze the rule before opening final scores",
@@ -99,7 +99,7 @@
             "Set the success cutoff after scoring"
           ],
           "correct": 1,
-          "explanation": "A score can guide feature, seed, and threshold choices even without exposing individual labels. That turns the holdout into part of the development loop. A protected final period evaluates the rule and success criterion chosen before its outcomes were consulted."
+          "explanation": "Error scores reveal which revisions work on these particular rows. Repeated choices of features, seeds or thresholds can therefore fit holdout noise. Freeze the model and the success rule before opening the final scores to measure performance on outcomes that did not guide development."
         }
       ]
     },
@@ -109,15 +109,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What determines which training rows a rolling-origin forecasting comparison can use?",
+          "prompt": "You issue a forecast at time $t$ for an outcome at $t+h$. What makes an older row eligible for training in this fold?",
           "answer": "Whether their predictors and realized labels were available by that origin.",
-          "explanation": "The forecast origin defines what is observable and the target horizon defines which future outcome is scored. Moving the origin changes eligible training data while keeping the deployment task fixed. A timestamp marking the start of a training label is insufficient if the outcome arrives later."
+          "explanation": "The forecast origin is when you issue the prediction. The horizon is how far ahead the target is measured. A rolling-origin evaluation repeats the prediction at successive origins and uses only rows whose inputs and training outcomes were available by each origin. Moving the origin lets you mimic deployment at a fixed horizon."
         },
         {
           "kind": "truefalse",
-          "prompt": "A rolling-origin evaluation can use an expanding training window and still target a fixed multi-step horizon.",
+          "prompt": "As forecast time $t$ advances, you can expand the training set while predicting outcomes at $t+h$ for the same fixed $h$.",
           "answer": true,
-          "explanation": "The forecast origin defines what is observable and the target horizon defines which future outcome is scored. Moving the origin changes eligible training data while keeping the deployment task fixed. A timestamp marking the start of a training label is insufficient if the outcome arrives later."
+          "explanation": "The forecast origin is when you issue the prediction. The horizon is how far ahead the target is measured. A rolling-origin evaluation repeats the prediction at successive origins and uses only rows whose inputs and training outcomes were available by each origin. Moving the origin lets you mimic deployment at a fixed horizon."
         }
       ]
     },
@@ -127,13 +127,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A training label spans days 98–103 and an evaluation decision occurs on day 100. Why exclude the row from that fold?",
+          "prompt": "At day 100 you train a model. One older row has a target built from price changes on days 98–103. Why exclude that row?",
           "answer": "Its realized training target uses days after the evaluation decision.",
-          "explanation": "A forward return becomes a training outcome only after its endpoint is observable, accounting for any reporting lag. A chronological split of row timestamps can still allow future outcomes to affect the fitted model. Labels and features each need their own availability check."
+          "explanation": "A forward return is the fractional gain or loss over a future interval. It becomes a usable training label once the interval ends and its final value is observable, including any reporting delay. If that happens after the evaluation decision, fitting on the row leaks future information even when its start date precedes the split."
         },
         {
           "kind": "mcq",
-          "prompt": "Which timestamp determines whether a forward return may be used as a training label at the forecast origin?",
+          "prompt": "A target measures the asset’s gain or loss over a future interval (forward return). What timestamp governs when it can be used for training?",
           "choices": [
             "When the position would have opened",
             "When the input feature was generated",
@@ -141,7 +141,7 @@
             "When the forecast horizon was chosen"
           ],
           "correct": 2,
-          "explanation": "A forward return becomes a training outcome only after its endpoint is observable, accounting for any reporting lag. A chronological split of row timestamps can still allow future outcomes to affect the fitted model. Labels and features each need their own availability check."
+          "explanation": "A forward return is the fractional gain or loss over a future interval. It becomes a usable training label once the interval ends and its final value is observable, including any reporting delay. If that happens after the evaluation decision, fitting on the row leaks future information even when its start date precedes the split."
         }
       ]
     },
@@ -151,15 +151,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why can a scaler fitted on all dates leak information in a chronological test even if it uses no labels?",
+          "prompt": "A scaler uses $z=(x-\\bar x)/s$, with $s$ the sample standard deviation. Why can estimating $\\bar x,s$ on all dates leak even with no labels?",
           "answer": "Its learned statistics depend on feature values unavailable at the training cutoff.",
-          "explanation": "Means and scales are fitted parameters of the pipeline. A whole-series scaler can expose the model to future distribution shifts through those parameters. Learn the transformation from eligible training rows and apply the resulting fixed map when evaluating the fold."
+          "explanation": "The mean $\\bar x$ and standard deviation $s$ are fitted parameters. Using later rows to choose them lets the training representation depend on future feature values. Fit transformations on eligible training rows and apply the fixed mapping to test rows to mimic what deployment can know."
         },
         {
           "kind": "truefalse",
-          "prompt": "Applying a scaler fitted on the training fold to the evaluation fold can preserve the fold boundary.",
+          "prompt": "Using $z=(x-\\bar x_{\\rm train})/s_{\\rm train}$ on later test rows can preserve a chronological split.",
           "answer": true,
-          "explanation": "Means and scales are fitted parameters of the pipeline. A whole-series scaler can expose the model to future distribution shifts through those parameters. Learn the transformation from eligible training rows and apply the resulting fixed map when evaluating the fold."
+          "explanation": "The mean $\\bar x$ and standard deviation $s$ are fitted parameters. Using later rows to choose them lets the training representation depend on future feature values. Fit transformations on eligible training rows and apply the fixed mapping to test rows to mimic what deployment can know."
         }
       ]
     },
@@ -169,15 +169,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why use same-date loss differences when comparing two forecasting systems on one series?",
+          "prompt": "Two models predict the same outcome on date $t$, with losses $L_{A,t}$ and $L_{B,t}$. Why compare them using $d_t=L_{A,t}-L_{B,t}$?",
           "answer": "They expose the incremental loss on matched outcomes and can cancel shared shocks to forecast difficulty.",
-          "explanation": "Analyze $d_t=\\ell(y_t,\\hat y^A_t)-\\ell(y_t,\\hat y^B_t)$. Its variance includes the contemporaneous covariance of the two losses. Serial covariance can remain in $d_t$, so inference about its mean must account for the time structure."
+          "explanation": "Pairing compares the models on the same outcome and can cancel the effect of an unusually easy or hard date. In $\\operatorname{Var}(d_t)$ the covariance between the two losses is subtracted twice. Serial dependence can remain across dates. Estimate uncertainty for the series of differences rather than using two independent error bars."
         },
         {
           "kind": "truefalse",
-          "prompt": "Pairing two models’ losses by date makes the resulting differences independent across dates.",
+          "prompt": "Pairing losses by date as $d_t=L_{A,t}-L_{B,t}$ makes the differences independent across dates.",
           "answer": false,
-          "explanation": "Analyze $d_t=\\ell(y_t,\\hat y^A_t)-\\ell(y_t,\\hat y^B_t)$. Its variance includes the contemporaneous covariance of the two losses. Serial covariance can remain in $d_t$, so inference about its mean must account for the time structure."
+          "explanation": "Pairing compares the models on the same outcome and can cancel the effect of an unusually easy or hard date. In $\\operatorname{Var}(d_t)$ the covariance between the two losses is subtracted twice. Serial dependence can remain across dates. Estimate uncertainty for the series of differences rather than using two independent error bars."
         }
       ]
     },
@@ -187,13 +187,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why resample blocks of loss differences when a short-lived shock affects several consecutive forecast errors?",
+          "prompt": "On date $t$, two models differ in loss by $d_t=L_{A,t}-L_{B,t}$. Why resample runs of consecutive $d_t$ instead of single dates?",
           "answer": "Resampling neighboring differences together retains some of the dependence that affects uncertainty in the mean.",
-          "explanation": "Blocks retain serial dependence within each block and cut it at the joins. Short blocks can lose important lag covariance. A standard stationary-series block bootstrap relies on reasonably stable dynamics and enough blocks to estimate uncertainty."
+          "explanation": "Resampling consecutive dates together (a block bootstrap) retains dependence within blocks and cuts it at the joins. Short blocks can miss covariance between nearby dates. If several days share one shock, treating each day as a fresh replicate can make a weak forecast improvement look much more precise."
         },
         {
           "kind": "mcq",
-          "prompt": "What can go wrong if bootstrap blocks are shorter than the dependence in the paired loss series?",
+          "prompt": "To estimate uncertainty in the mean loss difference $\\bar d$, you resample consecutive dates. What breaks if the blocks are too short?",
           "choices": [
             "The two models become unpaired",
             "The forecast horizon changes",
@@ -201,7 +201,7 @@
             "Important lag covariance is lost"
           ],
           "correct": 3,
-          "explanation": "Blocks retain serial dependence within each block and cut it at the joins. Short blocks can lose important lag covariance. A standard stationary-series block bootstrap relies on reasonably stable dynamics and enough blocks to estimate uncertainty."
+          "explanation": "Resampling consecutive dates together (a block bootstrap) retains dependence within blocks and cuts it at the joins. Short blocks can miss covariance between nearby dates. If several days share one shock, treating each day as a fresh replicate can make a weak forecast improvement look much more precise."
         }
       ]
     },
@@ -211,15 +211,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "What makes a negative control informative when investigating a suspected spurious association?",
+          "prompt": "To probe a suspected source of bias, you test a second outcome (negative control). What must be true of that outcome for the check to help?",
           "answer": "It should share the suspected bias pathway while excluding the hypothesized causal effect.",
-          "explanation": "The control is chosen so its intended causal effect should be absent, while a plausible source of bias could still produce an association. A positive finding can diagnose a shared failure mode. A null finding is limited by the sensitivity and relevance of that control."
+          "explanation": "A negative-control outcome should be unaffected by the proposed causal mechanism while sharing the bias you are testing. A positive result can reveal that bias. A clean result has limited reach: it can miss errors that only affect the main outcome, or errors too small for the control to detect."
         },
         {
           "kind": "truefalse",
-          "prompt": "A clean negative control rules out bias mechanisms that the control outcome does not share with the main outcome.",
+          "prompt": "A negative-control outcome that shows no effect rules out biases specific to the main outcome.",
           "answer": false,
-          "explanation": "The control is chosen so its intended causal effect should be absent, while a plausible source of bias could still produce an association. A positive finding can diagnose a shared failure mode. A null finding is limited by the sensitivity and relevance of that control."
+          "explanation": "A negative-control outcome should be unaffected by the proposed causal mechanism while sharing the bias you are testing. A positive result can reveal that bias. A clean result has limited reach: it can miss errors that only affect the main outcome, or errors too small for the control to detect."
         }
       ]
     },
@@ -229,15 +229,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Two models differ by a small mean loss, driven by one period. What comparison tests whether that period dominates?",
+          "prompt": "Model A’s mean loss advantage is $\\bar d$ for $d_t=L_{B,t}-L_{A,t}$, mostly from one month. How do you quantify that month’s influence?",
           "answer": "Compare paired loss differences by period and recompute the overall result with the influential period omitted as a sensitivity analysis.",
-          "explanation": "A pooled average can largely reflect a few unusually favorable outcomes. Period-level differences show how broadly the gain is shared, and omission can quantify influence. Use the analysis to diagnose fragility while keeping the original evaluation visible."
+          "explanation": "Compare the paired loss differences across periods and recompute the mean with the influential period omitted. Show both estimates. If the advantage disappears, the conclusion depends on that period. Test the improvement on a separate period before relying on it."
         },
         {
           "kind": "truefalse",
-          "prompt": "Outperformance concentrated in one period can reveal regime dependence even when the aggregate gain is statistically distinguishable from zero.",
+          "prompt": "If almost all of a statistically clear mean loss gain comes from one period, the model’s advantage may depend on market conditions.",
           "answer": true,
-          "explanation": "A pooled average can largely reflect a few unusually favorable outcomes. Period-level differences show how broadly the gain is shared, and omission can quantify influence. Use the analysis to diagnose fragility while keeping the original evaluation visible."
+          "explanation": "Compare the paired loss differences across periods and recompute the mean with the influential period omitted. Show both estimates. If the advantage disappears, the conclusion depends on that period. Test the improvement on a separate period before relying on it."
         }
       ]
     },
@@ -247,13 +247,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A complex forecast beats a constant mean. What extra baseline would isolate the benefit of the new model family?",
+          "prompt": "A complex model beats a constant forecast. Which second comparison can separate the gain from model complexity from the gain from using inputs?",
           "answer": "A simple fitted model using the same eligible features and the same forecast origins.",
-          "explanation": "A constant benchmark measures the value of the whole pipeline over a weak reference. A matched simple model helps isolate complexity, while refitting after a focused feature removal tests what the remaining inputs can recover under the same protocol."
+          "explanation": "Fit a simple model on the same eligible features and evaluate at the same forecast times. It gives the complex model a meaningful comparison. For an ablation, keep evaluation and model selection fixed and refit without the group, so the remaining inputs have a fair chance to replace its information."
         },
         {
           "kind": "mcq",
-          "prompt": "What must be held fixed to isolate the effect of removing one feature group in a forecasting pipeline?",
+          "prompt": "You remove one feature group and refit (an ablation). What stays fixed to isolate the effect of that removal?",
           "choices": [
             "The evaluation and model-selection protocol",
             "The fitted coefficients for the remaining inputs",
@@ -261,7 +261,7 @@
             "The set of rows where the removed group worked"
           ],
           "correct": 0,
-          "explanation": "A constant benchmark measures the value of the whole pipeline over a weak reference. A matched simple model helps isolate complexity, while refitting after a focused feature removal tests what the remaining inputs can recover under the same protocol."
+          "explanation": "Fit a simple model on the same eligible features and evaluate at the same forecast times. It gives the complex model a meaningful comparison. For an ablation, keep evaluation and model selection fixed and refit without the group, so the remaining inputs have a fair chance to replace its information."
         }
       ]
     },
@@ -271,15 +271,15 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "Why specify a minimum useful gain before the final comparison?",
+          "prompt": "Before testing, you set a minimum useful loss reduction $\\delta>0$. Why choose $\\delta$ before seeing the final result?",
           "answer": "It makes the decision depend on a gain large enough to justify adoption and avoids choosing the hurdle after seeing the estimate.",
-          "explanation": "A practical threshold can reflect additional serving, data or maintenance costs. A precise estimate of a tiny gain answers whether the new forecast helps on the chosen metric. Using a threshold fixed before evaluation also limits selection on the final scores."
+          "explanation": "The threshold represents a benefit worth the extra data, serving or maintenance cost. A narrow interval about a negligible gain can establish a real effect while leaving the upgrade unattractive. Setting the threshold before the final test keeps the adoption rule independent of the observed score."
         },
         {
           "kind": "truefalse",
-          "prompt": "A very precise improvement that falls short of a predefined minimum gain can support abandoning the higher-cost model.",
+          "prompt": "A precise estimate of a positive loss reduction below the predefined minimum $\\delta$ can justify keeping the simpler model.",
           "answer": true,
-          "explanation": "A practical threshold can reflect additional serving, data or maintenance costs. A precise estimate of a tiny gain answers whether the new forecast helps on the chosen metric. Using a threshold fixed before evaluation also limits selection on the final scores."
+          "explanation": "The threshold represents a benefit worth the extra data, serving or maintenance cost. A narrow interval about a negligible gain can establish a real effect while leaving the upgrade unattractive. Setting the threshold before the final test keeps the adoption rule independent of the observed score."
         }
       ]
     },
@@ -289,13 +289,13 @@
       "variants": [
         {
           "kind": "recall",
-          "prompt": "A return model passes a holdout split by asset. Why might the holdout still share the training set’s main source of noise?",
+          "prompt": "You train on some stocks and test on different stocks over the same dates. What can make their forecast errors dependent?",
           "answer": "Both sets can react to the same market or sector shocks at the same dates.",
-          "explanation": "An asset split tests transfer to different names. Shared factor exposures can couple errors on both sides during the same period. A later date holdout probes temporal transfer, while serial dependence still matters for uncertainty within the evaluation period."
+          "explanation": "An asset is an instrument you can invest in, such as a stock. A common factor is a driver that moves many assets together, such as a market-wide price drop. Training and test assets can therefore share essentially the same shock. Holding out a later block of dates tests whether the model works in market conditions absent from training."
         },
         {
           "kind": "mcq",
-          "prompt": "What design change probes whether success survives market episodes unseen at fit time?",
+          "prompt": "You already hold out some stocks. Which additional split tests whether the model works during market periods absent from training?",
           "choices": [
             "Reshuffle the asset split within each date",
             "Evaluate on later, withheld date blocks",
@@ -303,7 +303,7 @@
             "Bootstrap asset-days independently"
           ],
           "correct": 1,
-          "explanation": "An asset split tests transfer to different names. Shared factor exposures can couple errors on both sides during the same period. A later date holdout probes temporal transfer, while serial dependence still matters for uncertainty within the evaluation period."
+          "explanation": "An asset is an instrument you can invest in, such as a stock. A common factor is a driver that moves many assets together, such as a market-wide price drop. Training and test assets can therefore share essentially the same shock. Holding out a later block of dates tests whether the model works in market conditions absent from training."
         }
       ]
     }
